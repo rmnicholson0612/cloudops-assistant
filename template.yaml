@@ -1,0 +1,19 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: CloudOps Assistant – Drift Detector Day 1
+
+Resources:
+  DriftDetectorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: drift_detector.lambda_handler
+      Runtime: python3.11
+      CodeUri: backend/lambda/
+      MemorySize: 128
+      Timeout: 5
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /check-drift
+            Method: GET
