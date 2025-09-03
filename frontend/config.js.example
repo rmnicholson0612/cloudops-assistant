@@ -1,0 +1,28 @@
+// CloudOps Assistant Configuration Template
+// Copy this file to config.js and update with your actual values
+
+const CONFIG = {
+    // API Configuration - Replace with your actual API Gateway URL
+    API_BASE_URL: 'https://YOUR_API_GATEWAY_URL_HERE/Prod',
+    
+    // App Configuration
+    APP_NAME: 'CloudOps Assistant',
+    VERSION: '1.0.0',
+    ENVIRONMENT: 'production',
+    
+    // Progress Tracking - Update daily
+    CURRENT_DAY: 1,
+    TOTAL_DAYS: 30,
+    
+    // Feature Flags - Enable as you build features
+    FEATURES: {
+        DRIFT_DETECTION: true,
+        COST_DASHBOARD: false,
+        AI_ASSISTANT: false,
+        MONITORING: false,
+        AUTOMATION: false
+    }
+};
+
+// Make config globally available
+window.CONFIG = CONFIG;

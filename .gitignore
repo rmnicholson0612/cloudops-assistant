@@ -70,3 +70,9 @@ yarn-error.log*
 .idea/
 *.swp
 *.swo
+
+# Configuration files with secrets
+frontend/config.js
+
+Makefile
+DAILY_TEMPLATE.md

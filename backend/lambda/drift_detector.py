@@ -9,7 +9,13 @@ def lambda_handler(event, context):
             "+ aws_ec2_instance.test_instance added"
         ]
     }
+    
     return {
         "statusCode": 200,
+        "headers": {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "Content-Type",
+            "Access-Control-Allow-Methods": "GET,POST,OPTIONS"
+        },
         "body": json.dumps(mock_drift)
     }

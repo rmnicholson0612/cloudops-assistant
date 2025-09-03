@@ -101,10 +101,16 @@ Built for **maximum functionality at minimum cost**:
 # Clone and deploy
 git clone https://github.com/rmnicholson0612/cloudops-assistant
 cd cloudops-assistant
-sam build && sam deploy --guided
 
-# Test the drift detection
-curl https://your-api-gateway-url/check-drift
+# Setup configuration
+cp frontend/config.js.example frontend/config.js
+# Edit frontend/config.js with your API URL after deployment
+
+# Deploy to AWS
+make deploy-guided
+
+# Update config.js with the API URL from deployment output
+# Then open frontend/index.html in your browser
 ```
 
 ## 📈 Current Features (Day 1)

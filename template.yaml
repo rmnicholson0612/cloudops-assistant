@@ -2,6 +2,18 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: CloudOps Assistant – Drift Detector Day 1
 
+Globals:
+  Function:
+    Tags:
+      Service: cloudops-assistant
+      Project: CloudOpsAssistant
+      Environment: prod
+  Api:
+    Cors:
+      AllowMethods: "'GET,POST,OPTIONS'"
+      AllowHeaders: "'content-type'"
+      AllowOrigin: "'*'"
+
 Resources:
   DriftDetectorFunction:
     Type: AWS::Serverless::Function
@@ -11,9 +23,19 @@ Resources:
       CodeUri: backend/lambda/
       MemorySize: 128
       Timeout: 5
+      Tags:
+        Service: cloudops-assistant
+        Feature: drift-detection
       Events:
         Api:
           Type: Api
           Properties:
             Path: /check-drift
             Method: GET
+
+Outputs:
+  CloudOpsAssistantApi:
+    Description: "API Gateway endpoint URL for CloudOps Assistant"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+    Export:
+      Name: CloudOpsAssistantApiUrl
