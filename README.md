@@ -4,8 +4,8 @@
 > That's what I'm building in 30 days: an open-source CloudOps Assistant.  
 > Day by day, feature by feature. Follow along for a front-row seat as we go from zero → full platform.
 
-[![Day](https://img.shields.io/badge/Day-1%2F30-blue)](https://github.com/your-username/cloudops-assistant)
-[![Status](https://img.shields.io/badge/Status-Building-green)](https://github.com/your-username/cloudops-assistant)
+[![Day](https://img.shields.io/badge/Day-1%2F30-blue)](https://github.com/rmnicholson0612/cloudops-assistant)
+[![Status](https://img.shields.io/badge/Status-Building-green)](https://github.com/rmnicholson0612/cloudops-assistant)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
 ## 🎯 The Mission
@@ -18,13 +18,21 @@ Every DevOps engineer has felt the pain:
 
 **CloudOps Assistant** solves this by combining AI-powered insights with practical DevOps automation in one unified platform.
 
+## 💡 Why This Project Exists
+
+In a world where "vibe coding" is taking over, code quality suffers and security becomes an afterthought. This project proves that you can build production-ready DevOps tools with:
+- **Security-first design** from day one
+- **Battle-tested patterns** from 6+ years of SRE experience  
+- **AI integration** that actually adds value, not just buzzwords
+- **Cost transparency** - see exactly what each AWS service costs
+
 ## ⚡ Why Follow This Journey?
 
 - **Daily Progress**: Watch a real platform emerge, feature by feature
 - **Open Source**: Use the final tool in your own infrastructure
 - **AI-Powered**: See how modern AI transforms traditional DevOps workflows
 - **Cost-Conscious**: Built with tear-down friendly, free-tier AWS services
-- **Battle-Tested**: Each feature solves real problems I've faced in production
+- **Production Ready**: Each feature solves real problems from large-scale infrastructure
 
 ## 🗓️ 30-Day Roadmap
 
@@ -79,7 +87,7 @@ Every DevOps engineer has felt the pain:
 
 ```bash
 # Clone and deploy
-git clone https://github.com/your-username/cloudops-assistant
+git clone https://github.com/rmnicholson0612/cloudops-assistant
 cd cloudops-assistant
 sam build && sam deploy --guided
 
@@ -102,11 +110,12 @@ Unlike other DevOps tools that cost $$$$ per month:
 - **Developer Experience**: Built by developers, for developers
 - **Cost Transparent**: See exactly what each AWS service costs
 - **Modular Design**: Use individual features or the full platform
+- **Security Focused**: Built with security best practices from day one
 
 ## 🤝 Join the Journey
 
 - ⭐ **Star this repo** to follow daily progress
-- 🐦 **Follow updates** on [Twitter/LinkedIn]
+- 🐦 **Follow updates** on [LinkedIn](https://linkedin.com/in/your-profile)
 - 💬 **Join discussions** in Issues
 - 🔧 **Contribute** features or bug fixes
 - 📢 **Share** with your DevOps friends
