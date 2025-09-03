@@ -41,8 +41,8 @@ In a world where "vibe coding" is taking over, code quality suffers and security
 - [ ] **Day 2**: Real Terraform Plan Integration
 - [ ] **Day 3**: Cost Dashboard with AWS Cost Explorer
 - [ ] **Day 4**: Modern React Frontend
-- [ ] **Day 5**: JWT Authentication
-- [ ] **Day 6**: ECS Deployment Pipeline
+- [ ] **Day 5**: JWT Authentication with Cognito
+- [ ] **Day 6**: Lambda Deployment Pipeline
 - [ ] **Day 7**: Scheduled Drift Monitoring
 
 ### Week 2: AI Layer 🤖
@@ -59,12 +59,12 @@ In a world where "vibe coding" is taking over, code quality suffers and security
 - [ ] **Day 16**: Latency Tracking Dashboard
 - [ ] **Day 17**: Feature Flag Management
 - [ ] **Day 18**: Smart Alert Routing
-- [ ] **Day 19**: One-Click ECS Rollbacks
+- [ ] **Day 19**: One-Click Lambda Rollbacks
 - [ ] **Day 20**: Cold Start Analytics
 - [ ] **Day 21**: Public Status Page
 
 ### Week 4: Advanced Features 🎯
-- [ ] **Day 22**: Background Job Queue
+- [ ] **Day 22**: Background Job Queue (SQS + Lambda)
 - [ ] **Day 23**: Automated GitHub Backups
 - [ ] **Day 24**: VPN Deployment Wizard
 - [ ] **Day 25**: Incident Response Simulator
@@ -77,11 +77,23 @@ In a world where "vibe coding" is taking over, code quality suffers and security
 ## 🛠️ Tech Stack
 
 **Frontend**: React + Vite (S3 hosted, CloudFront CDN)  
-**Backend**: Python + FastAPI (ECS Fargate)  
+**Backend**: Python Lambda Functions (API Gateway)  
 **Database**: DynamoDB + S3 (free-tier friendly)  
 **AI**: AWS Bedrock (pay-per-call, cost-effective)  
-**Infrastructure**: Terraform + AWS SAM  
+**Infrastructure**: AWS SAM + Terraform  
 **CI/CD**: GitHub Actions  
+
+## 💰 Cost-Optimized Architecture
+
+Built for **maximum functionality at minimum cost**:
+- **Lambda**: Pay only for execution time (free tier: 1M requests/month)
+- **DynamoDB**: On-demand pricing (free tier: 25GB storage)
+- **S3**: Static hosting + storage (free tier: 5GB)
+- **API Gateway**: Pay per request (free tier: 1M requests/month)
+- **CloudFront**: Global CDN (free tier: 1TB transfer)
+- **Bedrock**: Pay-per-AI-call (no base fees)
+
+**Estimated monthly cost for moderate usage: $5-15**
 
 ## 🚀 Quick Start (Day 1)
 
@@ -111,6 +123,7 @@ Unlike other DevOps tools that cost $$$$ per month:
 - **Cost Transparent**: See exactly what each AWS service costs
 - **Modular Design**: Use individual features or the full platform
 - **Security Focused**: Built with security best practices from day one
+- **Serverless-First**: No servers to manage, scales automatically
 
 ## 🤝 Join the Journey
 
@@ -139,6 +152,7 @@ By Day 30, you'll have a production-ready CloudOps Assistant that:
 - Automates common DevOps tasks
 - Saves you hours of manual work every week
 - Costs a fraction of enterprise alternatives
+- Runs entirely on AWS free tier for small teams
 
 **Ready to build the future of DevOps together?** 🚀
 
