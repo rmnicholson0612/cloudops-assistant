@@ -55,6 +55,11 @@ Resources:
           Properties:
             Path: /scan-repos
             Method: POST
+        ApiOptions:
+          Type: Api
+          Properties:
+            Path: /scan-repos
+            Method: OPTIONS
 
   # Day 1 - Plan Processor Function
   PlanProcessorFunction:
@@ -77,6 +82,11 @@ Resources:
           Properties:
             Path: /upload-plan
             Method: POST
+        ApiOptions:
+          Type: Api
+          Properties:
+            Path: /upload-plan
+            Method: OPTIONS
 
   # DynamoDB Table for storing drift results with security features
   DriftResultsTable:
