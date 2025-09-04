@@ -71,8 +71,13 @@ yarn-error.log*
 *.swp
 *.swo
 
-# Configuration files with secrets
+# Personal/Sensitive Files
 frontend/config.js
-
 Makefile
 DAILY_TEMPLATE.md
+
+# Test/Demo Files
+*.txt
+*.log
+plan.*
+terraform.plan

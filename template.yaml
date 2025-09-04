@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: CloudOps Assistant – Drift Detector Day 1
+Description: CloudOps Assistant – Day 1 Real Terraform Integration
 
 Globals:
   Function:
@@ -12,9 +12,10 @@ Globals:
     Cors:
       AllowMethods: "'GET,POST,OPTIONS'"
       AllowHeaders: "'content-type'"
-      AllowOrigin: "'*'"
+      AllowOrigin: "'*'"  # Allow all origins for development
 
 Resources:
+  # Day 0 - Drift Detection Function
   DriftDetectorFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -22,10 +23,10 @@ Resources:
       Runtime: python3.11
       CodeUri: backend/lambda/
       MemorySize: 128
-      Timeout: 5
-      Tags:
-        Service: cloudops-assistant
-        Feature: drift-detection
+      Timeout: 15
+      Environment:
+        Variables:
+          PYTHONPATH: /var/runtime
       Events:
         Api:
           Type: Api
@@ -33,9 +34,88 @@ Resources:
             Path: /check-drift
             Method: GET
 
+  # Day 1 - Repository Scanner Function
+  RepoScannerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: repo_scanner.lambda_handler
+      Runtime: python3.11
+      CodeUri: backend/lambda/
+      MemorySize: 512  # Increased for parallel processing
+      Timeout: 60      # Increased for multiple repo scanning
+      Tags:
+        Service: cloudops-assistant
+        Feature: repo-scanning
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DriftResultsTable
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /scan-repos
+            Method: POST
+
+  # Day 1 - Plan Processor Function
+  PlanProcessorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: plan_processor.lambda_handler
+      Runtime: python3.11
+      CodeUri: backend/lambda/
+      MemorySize: 512
+      Timeout: 60
+      Tags:
+        Service: cloudops-assistant
+        Feature: plan-processing
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DriftResultsTable
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /upload-plan
+            Method: POST
+
+  # DynamoDB Table for storing drift results with security features
+  DriftResultsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: cloudops-drift-results
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true  # Enable backup for security
+      SSESpecification:
+        SSEEnabled: true  # Enable encryption at rest
+      Tags:
+        - Key: Service
+          Value: cloudops-assistant
+        - Key: Feature
+          Value: drift-storage
+
 Outputs:
   CloudOpsAssistantApi:
     Description: "API Gateway endpoint URL for CloudOps Assistant"
     Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
     Export:
       Name: CloudOpsAssistantApiUrl
+      
+  DriftResultsTableName:
+    Description: "DynamoDB table for storing drift results"
+    Value: !Ref DriftResultsTable
+    Export:
+      Name: CloudOpsDriftResultsTable
