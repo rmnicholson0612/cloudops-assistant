@@ -35,6 +35,14 @@ def sanitize_db_input(value):
     return value
 
 def lambda_handler(event, context):
+    # Handle CORS preflight
+    if event.get('httpMethod') == 'OPTIONS':
+        return {
+            "statusCode": 200,
+            "headers": get_cors_headers(),
+            "body": ""
+        }
+    
     try:
         # Safer JSON parsing
         body_str = event.get('body', '{}')
