@@ -116,8 +116,7 @@ _PLAN_PATTERNS = [
     (_is_removed, "Removed"),
     (_is_created, "Create"),
     (_is_updated, "Update"),
-    (_is_destroyed, "Destroy"),
-    (_is_summary, "Summary")
+    (_is_destroyed, "Destroy")
 ]
 
 def process_terraform_plan(plan_content, repo_name):
@@ -138,6 +137,10 @@ def process_terraform_plan(plan_content, repo_name):
         if 'No changes' in stripped_line and 'infrastructure matches' in stripped_line:
             if not has_drift:
                 has_drift = False
+            continue
+        
+        # Skip summary lines
+        if _is_summary(stripped_line):
             continue
         
         # Check patterns with early termination

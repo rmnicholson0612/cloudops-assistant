@@ -15,26 +15,7 @@ Globals:
       AllowOrigin: "'*'"  # Allow all origins for development
 
 Resources:
-  # Day 0 - Drift Detection Function
-  DriftDetectorFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: drift_detector.lambda_handler
-      Runtime: python3.11
-      CodeUri: backend/lambda/
-      MemorySize: 128
-      Timeout: 15
-      Environment:
-        Variables:
-          PYTHONPATH: /var/runtime
-      Events:
-        Api:
-          Type: Api
-          Properties:
-            Path: /check-drift
-            Method: GET
-
-  # Day 1 - Repository Scanner Function
+# Day 1 - Repository Scanner Function
   RepoScannerFunction:
     Type: AWS::Serverless::Function
     Properties:

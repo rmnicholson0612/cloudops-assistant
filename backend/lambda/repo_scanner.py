@@ -15,6 +15,22 @@ http = urllib3.PoolManager()
 dynamodb = boto3.resource('dynamodb')
 table = dynamodb.Table('cloudops-drift-results')
 
+def get_cors_headers():
+    """Return CORS headers for API responses"""
+    return {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+        'Access-Control-Allow-Methods': 'GET,POST,OPTIONS'
+    }
+
+def create_error_response(message):
+    """Create standardized error response with CORS headers"""
+    return {
+        "statusCode": 400,
+        "headers": get_cors_headers(),
+        "body": json.dumps({"error": message})
+    }
+
 def sanitize_log_input(value):
     """Sanitize input for logging to prevent log injection"""
     if not isinstance(value, str):
