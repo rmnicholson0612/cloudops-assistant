@@ -75,6 +75,7 @@ yarn-error.log*
 frontend/config.js
 Makefile
 DAILY_TEMPLATE.md
+.amazonq/
 
 # Test/Demo Files
 *.txt

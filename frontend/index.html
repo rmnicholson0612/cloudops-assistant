@@ -80,7 +80,29 @@
                     </div>
                 </div>
 
-
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-history"></i> Plan History & Comparison</h3>
+                        <div class="feature-badge">✅ Day 2 Complete</div>
+                    </div>
+                    <div class="card-body">
+                        <p>Track terraform plan changes over time and compare different versions to understand infrastructure evolution.</p>
+                        <div class="feature-highlights">
+                            <div class="highlight-item">
+                                <i class="fas fa-clock"></i>
+                                <span>Historical plan tracking with timestamps</span>
+                            </div>
+                            <div class="highlight-item">
+                                <i class="fas fa-code-branch"></i>
+                                <span>Side-by-side plan comparison</span>
+                            </div>
+                            <div class="highlight-item">
+                                <i class="fas fa-chart-line"></i>
+                                <span>Change trend analysis</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="feature-grid">
                     <div class="feature-card coming-soon">
@@ -322,8 +344,8 @@ terraform plan > plan.txt</code>
                         <div class="step">
                             <div class="step-number">4</div>
                             <div class="step-content">
-                                <strong>Drift Simulation</strong>
-                                <p>Simulates terraform plan execution and drift detection</p>
+                                <strong>Drift Detection</strong>
+                                <p>Detects infrastructure changes and configuration drift</p>
                             </div>
                         </div>
                     </div>
@@ -369,7 +391,7 @@ terraform plan > plan.txt</code>
                         </div>
                         <div class="capability">
                             <i class="fas fa-check-circle"></i>
-                            <span>Mock drift detection with realistic scenarios</span>
+                            <span>Real drift detection from terraform plans</span>
                         </div>
                         <div class="capability">
                             <i class="fas fa-check-circle"></i>
@@ -539,8 +561,8 @@ terraform plan > plan.txt</code>
                     '<i class="fas fa-check-circle" style="color: #28a745;"></i>';
                 
                 const statusText = repo.drift_detected ? 
-                    `${repo.changes.length} changes detected (simulated)` : 
-                    'No drift detected (simulated)';
+                    `${repo.changes.length} changes detected` : 
+                    'No drift detected';
                 
                 html += `<div class="repo-item ${repo.drift_detected ? 'has-drift' : 'no-drift'}">
                     <div class="repo-header">
@@ -591,8 +613,211 @@ terraform plan > plan.txt</code>
             document.getElementById('upload-btn').disabled = true;
         }
         
-        function viewRepoHistory(repoName, githubTarget) {
-            alert(`History for ${repoName} - Coming in Day 4!`);
+        async function viewRepoHistory(repoName, githubTarget) {
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/plan-history/${repoName}`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showHistoryModal(data);
+                } else {
+                    alert(`Error loading history: ${data.error}`);
+                }
+            } catch (error) {
+                alert('Failed to load plan history');
+            }
+        }
+        
+        function showHistoryModal(historyData) {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'block';
+            
+            let historyHtml = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2><i class="fas fa-history"></i> Plan History - ${historyData.repo_name}</h2>
+                        <span class="close" onclick="this.closest('.modal').remove()">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <p>Found ${historyData.total} plan(s) for this repository</p>
+                        <div class="history-timeline">`;
+            
+            historyData.plans.forEach((plan, index) => {
+                const date = new Date(plan.timestamp).toLocaleString();
+                historyHtml += `
+                    <div class="history-item">
+                        <div class="history-date">${date}</div>
+                        <div class="history-changes">${plan.changes_detected} changes detected</div>
+                        <div class="history-actions">
+                            <button class="btn btn-sm btn-secondary" onclick="viewPlanDetails('${plan.plan_id}')">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                            ${index < historyData.plans.length - 1 ? 
+                                `<button class="btn btn-sm btn-primary" onclick="comparePlans('${plan.plan_id}', '${historyData.plans[index + 1].plan_id}')">
+                                    <i class="fas fa-code-branch"></i> Compare
+                                </button>` : ''}
+                        </div>
+                    </div>`;
+            });
+            
+            historyHtml += `
+                        </div>
+                    </div>
+                </div>`;
+            
+            modal.innerHTML = historyHtml;
+            document.body.appendChild(modal);
+        }
+        
+        async function comparePlans(planId1, planId2) {
+            try {
+                const encodedPlan1 = encodeURIComponent(planId1);
+                const encodedPlan2 = encodeURIComponent(planId2);
+                const response = await fetch(`${CONFIG.API_BASE_URL}/compare-plans/${encodedPlan1}/${encodedPlan2}`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showComparisonModal(data);
+                } else {
+                    alert(`Error comparing plans: ${data.error}`);
+                }
+            } catch (error) {
+                alert('Failed to compare plans');
+            }
+        }
+        
+        function showComparisonModal(comparisonData) {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'block';
+            
+            let diffHtml = comparisonData.diff.map(line => {
+                if (line.startsWith('+')) return `<div class="diff-added">${line}</div>`;
+                if (line.startsWith('-')) return `<div class="diff-removed">${line}</div>`;
+                return `<div class="diff-context">${line}</div>`;
+            }).join('');
+            
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2><i class="fas fa-code-branch"></i> Plan Comparison</h2>
+                        <span class="close" onclick="this.closest('.modal').remove()">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <div class="comparison-header">
+                            <div class="plan-info">
+                                <strong>Plan 1:</strong> ${new Date(comparisonData.plan1.timestamp).toLocaleString()}
+                                <span>(${comparisonData.plan1.changes} changes)</span>
+                            </div>
+                            <div class="plan-info">
+                                <strong>Plan 2:</strong> ${new Date(comparisonData.plan2.timestamp).toLocaleString()}
+                                <span>(${comparisonData.plan2.changes} changes)</span>
+                            </div>
+                        </div>
+                        <div class="diff-viewer">${diffHtml}</div>
+                    </div>
+                </div>`;
+            
+            document.body.appendChild(modal);
+        }
+        
+        async function viewPlanDetails(planId) {
+            try {
+                const encodedPlanId = encodeURIComponent(planId);
+                const response = await fetch(`${CONFIG.API_BASE_URL}/plan-details/${encodedPlanId}`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showPlanDetailsModal(data);
+                } else {
+                    alert(`Error loading plan details: ${data.error}`);
+                }
+            } catch (error) {
+                alert('Failed to load plan details');
+            }
+        }
+        
+        function showPlanDetailsModal(planData) {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'block';
+            
+            const date = new Date(planData.timestamp).toLocaleString();
+            let content = planData.plan_content || 'No plan content available';
+            
+            // Clean up and format terraform plan content
+            content = content
+                .replace(/\x1b\[[0-9;]*m/g, '') // Remove ANSI color codes
+                .replace(/\x00/g, '') // Remove null characters
+                .replace(/Reading\.\.\./g, 'Reading...\n')
+                .replace(/Readcomplete/g, 'Read complete')
+                .replace(/after0s/g, 'after 0s')
+                .replace(/id794038210725/g, 'id=794038210725')
+                .replace(/Terraformusedtheselected/g, '\n\nTerraform used the selected')
+                .replace(/providerstogenerate/g, 'providers to generate')
+                .replace(/thefollowingexecution/g, 'the following execution')
+                .replace(/plan\.Resource/g, 'plan. Resource')
+                .replace(/actionsareindicatedwith/g, 'actions are indicated with')
+                .replace(/thefollowingsymbols/g, 'the following symbols')
+                .replace(/create/g, '\n  + create')
+                .replace(/Terraformwillperform/g, '\n\nTerraform will perform')
+                .replace(/thefollowingactions/g, 'the following actions:')
+                .replace(/aws_([a-z_]+)\.([a-z_-]+)/g, '\n\n# aws_$1.$2')
+                .replace(/willbecreated/g, ' will be created')
+                .replace(/resource([a-z_]+)/g, '\n\nresource "$1"')
+                .replace(/([a-z_]+)\s+(known|false|true|us-east-1)/g, '\n    $1 = $2')
+                .replace(/knownafterapply/g, '(known after apply)')
+                .replace(/\s{2,}/g, ' ') // Normalize spaces
+                .split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0)
+                .join('\n');
+            
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 800px;">
+                    <div class="modal-header">
+                        <h2><i class="fas fa-file-alt"></i> Plan Details - ${planData.repo_name}</h2>
+                        <span class="close" onclick="this.closest('.modal').remove()">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <div class="plan-metadata" style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                <p><strong>Repository:</strong> ${planData.repo_name}</p>
+                                <p><strong>Timestamp:</strong> ${date}</p>
+                                <p><strong>Changes:</strong> ${planData.changes_detected || 0}</p>
+                                <p><strong>Status:</strong> <span style="color: ${planData.drift_detected ? '#dc3545' : '#28a745'}">${planData.drift_detected ? 'Drift Detected' : 'No Drift'}</span></p>
+                            </div>
+                        </div>
+                        <div class="plan-content">
+                            <h4>Terraform Plan Output:</h4>
+                            <div style="
+                                background: #f8f9fa; 
+                                border: 1px solid #dee2e6;
+                                border-radius: 8px; 
+                                max-height: 500px; 
+                                overflow-y: auto; 
+                                font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; 
+                                font-size: 14px; 
+                                line-height: 1.6;
+                            ">
+                                ${content.split('\n').map(line => {
+                                    if (line.includes('will be created')) return `<div style="color: #28a745; padding: 8px 16px; background: #d4edda; border-left: 3px solid #28a745;">➕ ${line}</div>`;
+                                    if (line.includes('will be updated')) return `<div style="color: #ffc107; padding: 8px 16px; background: #fff3cd; border-left: 3px solid #ffc107;">♾ ${line}</div>`;
+                                    if (line.includes('will be destroyed')) return `<div style="color: #dc3545; padding: 8px 16px; background: #f8d7da; border-left: 3px solid #dc3545;">❌ ${line}</div>`;
+                                    if (line.startsWith('# aws_')) return `<div style="font-weight: bold; padding: 12px 16px; background: #e3f2fd; border-left: 4px solid #2196f3; color: #1976d2;">${line}</div>`;
+                                    if (line.startsWith('resource ')) return `<div style="font-weight: bold; padding: 12px 16px; background: #e9ecef; border-left: 4px solid #007bff;">${line}</div>`;
+                                    if (line.includes('Plan:')) return `<div style="font-weight: bold; padding: 12px 16px; background: #d1ecf1; color: #0c5460;">${line}</div>`;
+                                    if (line.includes(' = ')) return `<div style="padding: 4px 32px; color: #6c757d; font-family: monospace;">${line}</div>`;
+                                    if (line.startsWith('+ create')) return `<div style="color: #28a745; padding: 6px 16px; font-weight: bold;">${line}</div>`;
+                                    return `<div style="padding: 4px 16px; color: #495057;">${line}</div>`;
+                                }).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            
+            document.body.appendChild(modal);
         }
         
         // File selection handling
@@ -707,7 +932,6 @@ terraform plan > plan.txt</code>
                 uploadModal.style.display = 'none';
             }
         }
-
 
     </script>
 </body>

@@ -13,7 +13,7 @@ logger.setLevel(logging.INFO)
 # Module-level connections for reuse
 http = urllib3.PoolManager()
 dynamodb = boto3.resource('dynamodb')
-table = dynamodb.Table('cloudops-drift-results')
+table = dynamodb.Table('terraform-plans')
 
 def get_cors_headers():
     """Return CORS headers for API responses"""
@@ -38,9 +38,11 @@ def sanitize_log_input(value):
     return re.sub(r'[\r\n\t\x00-\x1f\x7f-\x9f]', '', value)[:500]
 
 def sanitize_db_input(value):
-    """Sanitize input for database operations"""
+    """Sanitize input for database operations to prevent injection"""
     if isinstance(value, str):
-        return value[:1000]
+        # Remove potentially dangerous characters and limit length
+        sanitized = re.sub(r'[^\w\-\.@/]', '_', value)
+        return sanitized[:1000]
     return value
 
 def lambda_handler(event, context):
@@ -70,9 +72,6 @@ def lambda_handler(event, context):
         
         # Scan terraform repos for drift (with parallel processing)
         results = scan_repos_parallel(terraform_repos, github_token)
-            
-        # Store results in DynamoDB
-        store_scan_results(github_target, results)
         
         return {
             "statusCode": 200,
@@ -201,9 +200,10 @@ def scan_repo_drift(repo, token=None):
     repo_name = sanitize_db_input(repo.get('name', 'unknown'))
     
     if has_drift:
+        # Use safe string concatenation instead of f-strings for user input
         mock_changes = [
-            f"~ aws_s3_bucket.{repo_name}_bucket changed: versioning.enabled",
-            f"+ aws_cloudwatch_log_group.{repo_name}_logs added"
+            "~ aws_s3_bucket." + repo_name + "_bucket changed: versioning.enabled",
+            "+ aws_cloudwatch_log_group." + repo_name + "_logs added"
         ]
     else:
         mock_changes = []
@@ -218,37 +218,7 @@ def scan_repo_drift(repo, token=None):
         "status": "drift_detected" if has_drift else "no_drift"
     }
 
-def store_scan_results(github_target, results):
-    """Store scan results in DynamoDB using batch operations"""
-    try:
-        sanitized_target = sanitize_db_input(github_target)
-        ttl_value = int(datetime.now(timezone.utc).timestamp()) + (30 * 24 * 60 * 60)
-        
-        # Process results in batches of 25 (DynamoDB limit)
-        for i in range(0, len(results), 25):
-            batch = results[i:i+25]
-            
-            with table.batch_writer() as batch_writer:
-                for result in batch:
-                    batch_writer.put_item(
-                        Item={
-                            'pk': f"{sanitized_target}#{result['repo_name']}",
-                            'sk': result['last_scan'],
-                            'github_target': sanitized_target,
-                            'repo_name': result['repo_name'],
-                            'drift_detected': result['drift_detected'],
-                            'changes': result['changes'],
-                            'status': result['status'],
-                            'ttl': ttl_value
-                        }
-                    )
-            
-        logger.info("Stored scan results for %s (%d repos)", 
-                   sanitized_target, len(results))
-                   
-    except Exception as e:
-        logger.error("Error storing results: %s", sanitize_log_input(str(e)))
-        raise  # Re-raise to indicate failure
+# Removed store_scan_results - repo scanning should not store plans
 
 def get_cors_headers():
     return {

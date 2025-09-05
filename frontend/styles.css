@@ -206,6 +206,133 @@ body {
     padding: 1.5rem;
 }
 
+/* Feature Badge */
+.feature-badge {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Feature Highlights */
+.feature-highlights {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.highlight-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: rgba(102, 126, 234, 0.05);
+    border-radius: 6px;
+    border-left: 3px solid #667eea;
+}
+
+.highlight-item i {
+    color: #667eea;
+    font-size: 1.1rem;
+}
+
+/* History Timeline */
+.history-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.history-item {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.history-date {
+    font-weight: 600;
+    color: #333;
+    min-width: 150px;
+}
+
+.history-changes {
+    color: #666;
+    flex: 1;
+}
+
+.history-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Comparison Styles */
+.comparison-header {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.plan-info {
+    text-align: center;
+}
+
+.plan-info strong {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #333;
+}
+
+.plan-info span {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.diff-viewer {
+    background: #2d3748;
+    color: #e2e8f0;
+    padding: 1rem;
+    border-radius: 8px;
+    font-family: 'Monaco', 'Menlo', monospace;
+    font-size: 0.85rem;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.diff-added {
+    background: rgba(72, 187, 120, 0.2);
+    color: #68d391;
+    padding: 0.25rem 0.5rem;
+    margin: 0.1rem 0;
+}
+
+.diff-removed {
+    background: rgba(245, 101, 101, 0.2);
+    color: #fc8181;
+    padding: 0.25rem 0.5rem;
+    margin: 0.1rem 0;
+}
+
+.diff-context {
+    padding: 0.25rem 0.5rem;
+    margin: 0.1rem 0;
+}
+
 /* Buttons */
 .btn {
     padding: 0.75rem 1.5rem;
@@ -230,6 +357,23 @@ body {
 .btn-primary:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+    box-shadow: 0 2px 8px rgba(108, 117, 125, 0.3);
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(108, 117, 125, 0.4);
 }
 
 /* Results Display */
@@ -410,6 +554,20 @@ body {
         gap: 1rem;
         align-items: stretch;
     }
+    
+    .comparison-header {
+        grid-template-columns: 1fr;
+    }
+    
+    .history-item {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+    
+    .history-actions {
+        justify-content: center;
+    }
 }
 
 /* GitHub Scanning Styles */
@@ -513,23 +671,6 @@ body {
     display: flex;
     gap: 0.75rem;
     flex-wrap: wrap;
-}
-
-.btn-sm {
-    padding: 0.5rem 1rem;
-    font-size: 0.85rem;
-}
-
-.btn-secondary {
-    background: #6c757d;
-    color: white;
-    box-shadow: 0 2px 8px rgba(108, 117, 125, 0.3);
-}
-
-.btn-secondary:hover {
-    background: #5a6268;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(108, 117, 125, 0.4);
 }
 
 .drift-details {
@@ -843,49 +984,6 @@ body {
     margin: 0;
     color: #666;
     font-size: 0.9rem;
-}
-
-/* Responsive Design for New Elements */
-@media (max-width: 768px) {
-    .scan-controls {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .github-input {
-        min-width: auto;
-    }
-    
-    .repo-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.5rem;
-    }
-    
-    .modal-content {
-        width: 95%;
-        margin: 5% auto;
-    }
-    
-    .modal-header,
-    .modal-body {
-        padding: 1.5rem;
-    }
-    
-    .detection-patterns,
-    .future-features,
-    .benefits {
-        grid-template-columns: 1fr;
-    }
-    
-    .process-steps {
-        gap: 0.75rem;
-    }
-    
-    .step {
-        flex-direction: column;
-        text-align: center;
-    }
 }
 
 /* Upload Modal Styles */

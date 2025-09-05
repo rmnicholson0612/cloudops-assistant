@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: CloudOps Assistant – Day 1 Real Terraform Integration
+Description: CloudOps Assistant – Day 2 Plan History & Comparison
 
 Globals:
   Function:
@@ -11,25 +11,22 @@ Globals:
   Api:
     Cors:
       AllowMethods: "'GET,POST,OPTIONS'"
-      AllowHeaders: "'content-type'"
-      AllowOrigin: "'*'"  # Allow all origins for development
+      AllowHeaders: "'content-type,authorization'"
+      AllowOrigin: "'http://localhost:3000'"  # Restrict to local development
 
 Resources:
-# Day 1 - Repository Scanner Function
+  # Day 1 - Repository Scanner Function
   RepoScannerFunction:
     Type: AWS::Serverless::Function
     Properties:
       Handler: repo_scanner.lambda_handler
       Runtime: python3.11
       CodeUri: backend/lambda/
-      MemorySize: 512  # Increased for parallel processing
-      Timeout: 60      # Increased for multiple repo scanning
+      MemorySize: 512
+      Timeout: 60
       Tags:
         Service: cloudops-assistant
         Feature: repo-scanning
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref DriftResultsTable
       Events:
         Api:
           Type: Api
@@ -56,7 +53,7 @@ Resources:
         Feature: plan-processing
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Ref DriftResultsTable
+            TableName: !Ref TerraformPlansTable
       Events:
         Api:
           Type: Api
@@ -69,34 +66,90 @@ Resources:
             Path: /upload-plan
             Method: OPTIONS
 
-  # DynamoDB Table for storing drift results with security features
-  DriftResultsTable:
+  # Day 2 - Plan History Function
+  PlanHistoryFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: plan_history.lambda_handler
+      Runtime: python3.11
+      CodeUri: backend/lambda/
+      MemorySize: 256
+      Timeout: 30
+      Tags:
+        Service: cloudops-assistant
+        Feature: plan-history
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref TerraformPlansTable
+      Events:
+        HistoryApi:
+          Type: Api
+          Properties:
+            Path: /plan-history/{repo}
+            Method: GET
+        CompareApi:
+          Type: Api
+          Properties:
+            Path: /compare-plans/{plan1}/{plan2}
+            Method: GET
+        PlanDetailsApi:
+          Type: Api
+          Properties:
+            Path: /plan-details/{plan_id}
+            Method: GET
+        HistoryOptions:
+          Type: Api
+          Properties:
+            Path: /plan-history/{repo}
+            Method: OPTIONS
+        CompareOptions:
+          Type: Api
+          Properties:
+            Path: /compare-plans/{plan1}/{plan2}
+            Method: OPTIONS
+        PlanDetailsOptions:
+          Type: Api
+          Properties:
+            Path: /plan-details/{plan_id}
+            Method: OPTIONS
+
+  # Day 2 - Terraform Plans Table for history tracking
+  TerraformPlansTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: cloudops-drift-results
+      TableName: terraform-plans
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
-        - AttributeName: pk
+        - AttributeName: plan_id
           AttributeType: S
-        - AttributeName: sk
+        - AttributeName: repo_name
+          AttributeType: S
+        - AttributeName: timestamp
           AttributeType: S
       KeySchema:
-        - AttributeName: pk
+        - AttributeName: plan_id
           KeyType: HASH
-        - AttributeName: sk
-          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: repo-timestamp-index
+          KeySchema:
+            - AttributeName: repo_name
+              KeyType: HASH
+            - AttributeName: timestamp
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
       TimeToLiveSpecification:
         AttributeName: ttl
         Enabled: true
       PointInTimeRecoverySpecification:
-        PointInTimeRecoveryEnabled: true  # Enable backup for security
+        PointInTimeRecoveryEnabled: true
       SSESpecification:
-        SSEEnabled: true  # Enable encryption at rest
+        SSEEnabled: true
       Tags:
         - Key: Service
           Value: cloudops-assistant
         - Key: Feature
-          Value: drift-storage
+          Value: plan-history
 
 Outputs:
   CloudOpsAssistantApi:
@@ -105,8 +158,8 @@ Outputs:
     Export:
       Name: CloudOpsAssistantApiUrl
       
-  DriftResultsTableName:
-    Description: "DynamoDB table for storing drift results"
-    Value: !Ref DriftResultsTable
+  TerraformPlansTableName:
+    Description: "DynamoDB table for storing terraform plans"
+    Value: !Ref TerraformPlansTable
     Export:
-      Name: CloudOpsDriftResultsTable
+      Name: CloudOpsTerraformPlansTable

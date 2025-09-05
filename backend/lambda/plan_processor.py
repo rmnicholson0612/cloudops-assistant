@@ -16,8 +16,7 @@ def get_table():
     """Get DynamoDB table with proper connection management"""
     try:
         dynamodb = boto3.resource('dynamodb')
-        table_name = os.environ.get('DYNAMODB_TABLE_NAME', 'cloudops-drift-results')
-        return dynamodb.Table(table_name)
+        return dynamodb.Table('terraform-plans')
     except Exception as e:
         logger.error("Failed to connect to DynamoDB: %s", str(e))
         raise
@@ -179,20 +178,19 @@ def store_plan_result(github_target, repo_name, drift_result, plan_content):
         now_utc = datetime.now(timezone.utc)
         timestamp = now_utc.isoformat()
         ttl_value = int(now_utc.timestamp()) + (30 * 24 * 60 * 60)
+        plan_id = f"{sanitized_repo}#{timestamp}"
         
-        # Store the result with validated data
+        # Store in terraform-plans table
         get_table().put_item(
             Item={
-                'pk': sanitized_target + '#' + sanitized_repo,
-                'sk': timestamp,
-                'github_target': sanitized_target,
+                'plan_id': plan_id,
                 'repo_name': sanitized_repo,
+                'github_target': sanitized_target,
+                'timestamp': timestamp,
+                'plan_content': sanitized_content[:50000],
+                'changes_detected': int(drift_result.get('total_changes', 0)),
+                'change_summary': drift_result.get('changes', [])[:20],
                 'drift_detected': bool(drift_result.get('drift_detected', False)),
-                'changes': drift_result.get('changes', [])[:10],  # Limit changes
-                'total_changes': int(drift_result.get('total_changes', 0)),
-                'status': str(drift_result.get('status', 'unknown')),
-                'scan_type': 'plan_upload',
-                'plan_content': sanitized_content[:5000],
                 'ttl': ttl_value
             }
         )
