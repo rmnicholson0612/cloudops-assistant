@@ -4,7 +4,7 @@
 > That's what I'm building in 30 days: an open-source CloudOps Assistant.  
 > Day by day, feature by feature. Follow along for a front-row seat as we go from zero → full platform.
 
-[![Day](https://img.shields.io/badge/Day-3%2F30-blue)](https://github.com/rmnicholson0612/cloudops-assistant)
+[![Day](https://img.shields.io/badge/Day-4%2F30-blue)](https://github.com/rmnicholson0612/cloudops-assistant)
 [![Status](https://img.shields.io/badge/Status-Building-green)](https://github.com/rmnicholson0612/cloudops-assistant)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
@@ -41,7 +41,7 @@ In a world where "vibe coding" is taking over, code quality suffers and security
 - [x] **Day 1**: Real Terraform Plan Integration ✅ COMPLETE
 - [x] **Day 2**: Plan History & Comparison ✅ COMPLETE
 - [x] **Day 3**: Cost Dashboard with AWS Cost Explorer ✅ COMPLETE
-- [ ] **Day 4**: Enhanced UI with React Components
+- [x] **Day 4**: Budget Management & Security Hardening ✅ COMPLETE
 - [ ] **Day 5**: JWT Authentication with Cognito
 - [ ] **Day 6**: Lambda Deployment Pipeline
 - [ ] **Day 7**: Scheduled Drift Monitoring
@@ -96,7 +96,7 @@ Built for **maximum functionality at minimum cost**:
 
 **Estimated monthly cost for moderate usage: $5-15**
 
-## 🚀 Quick Start (Day 3)
+## 🚀 Quick Start (Day 4)
 
 ```bash
 # Clone and deploy
@@ -114,7 +114,7 @@ make deploy-guided
 # Then open frontend/index.html in your browser
 ```
 
-## 📈 Current Features (Day 3)
+## 📈 Current Features (Day 4)
 
 ✅ **GitHub Repository Scanning**: Discovers terraform repos automatically  
 ✅ **Real Terraform Plan Processing**: Upload and analyze actual terraform plans  
@@ -127,6 +127,10 @@ make deploy-guided
 ✅ **Service Cost Breakdown**: See which AWS services cost the most  
 ✅ **Cost Trends**: 30-day daily spending analysis  
 ✅ **Cost Caching**: Hourly cached data to minimize API calls  
+✅ **Budget Management**: Configurable budget alerts and thresholds  
+✅ **Budget Monitoring**: Real-time budget status and spending tracking  
+✅ **Alert System**: SNS-based budget notifications  
+✅ **Security Hardening**: Input sanitization and injection prevention  
 ✅ **DynamoDB Storage**: Secure plan storage with TTL and encryption  
 ✅ **Serverless Architecture**: AWS Lambda + API Gateway + DynamoDB  
 
@@ -152,12 +156,12 @@ Unlike other DevOps tools that cost $$$$ per month:
 ## 📊 Progress Tracker
 
 ```
-Foundation:    ████████████████████████████████ 57.1% (4/7 days)
+Foundation:    ████████████████████████████████████████ 71.4% (5/7 days)
 AI Layer:      ░░░░░░░░░░  0% (0/7 days)
 Observability: ░░░░░░░░░░  0% (0/7 days)
 Advanced:      ░░░░░░░░░░  0% (0/9 days)
 
-Overall:       █████░░░░░ 13.3% (4/30 days)
+Overall:       ██████░░░░ 16.7% (5/30 days)
 ```
 
 ## 🎯 The End Goal

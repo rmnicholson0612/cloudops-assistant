@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CloudOps Assistant - Admin Dashboard</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="config.js"></script>
@@ -80,29 +81,7 @@
                     </div>
                 </div>
 
-                <div class="card">
-                    <div class="card-header">
-                        <h3><i class="fas fa-history"></i> Plan History & Comparison</h3>
-                        <div class="feature-badge">✅ Day 2 Complete</div>
-                    </div>
-                    <div class="card-body">
-                        <p>Track terraform plan changes over time and compare different versions to understand infrastructure evolution.</p>
-                        <div class="feature-highlights">
-                            <div class="highlight-item">
-                                <i class="fas fa-clock"></i>
-                                <span>Historical plan tracking with timestamps</span>
-                            </div>
-                            <div class="highlight-item">
-                                <i class="fas fa-code-branch"></i>
-                                <span>Side-by-side plan comparison</span>
-                            </div>
-                            <div class="highlight-item">
-                                <i class="fas fa-chart-line"></i>
-                                <span>Change trend analysis</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+
 
                 <div class="feature-grid">
                     <div class="feature-card coming-soon">
@@ -190,12 +169,28 @@
                     </div>
                 </div>
 
-                <div class="feature-grid">
-                    <div class="feature-card coming-soon">
-                        <i class="fas fa-exclamation-circle"></i>
-                        <h4>Budget Alerts</h4>
-                        <p>Coming Day 4</p>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="header-with-info">
+                            <h3><i class="fas fa-exclamation-circle"></i> Budget Alerts</h3>
+                            <button class="btn btn-info" onclick="showBudgetInfo()" title="About budget alerts">
+                                <i class="fas fa-info-circle"></i>
+                            </button>
+                        </div>
+                        <button class="btn btn-primary" onclick="showBudgetModal()">
+                            <i class="fas fa-bell"></i> Configure Budget Alert
+                        </button>
                     </div>
+                    <div class="card-body">
+                        <div id="budget-status-display" class="budget-status">
+                            <div class="budget-loading">
+                                <i class="fas fa-spinner fa-spin"></i> Loading budget status...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="feature-grid">
                     <div class="feature-card coming-soon">
                         <i class="fas fa-lightbulb"></i>
                         <h4>Optimization Tips</h4>
@@ -760,6 +755,160 @@ terraform plan > plan.txt</code>
         </div>
     </div>
 
+    <!-- Budget Info Modal -->
+    <div id="budget-info-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-exclamation-circle"></i> About Budget Alerts</h2>
+                <span class="close" onclick="closeBudgetInfo()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="info-section">
+                    <h3><i class="fas fa-bell"></i> How Budget Alerts Work</h3>
+                    <p>Budget alerts monitor your AWS spending and send notifications when you exceed configured thresholds.</p>
+                    
+                    <div class="process-steps">
+                        <div class="step">
+                            <div class="step-number">1</div>
+                            <div class="step-content">
+                                <strong>Set Monthly Limit</strong>
+                                <p>Configure your monthly AWS spending budget</p>
+                            </div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">2</div>
+                            <div class="step-content">
+                                <strong>Choose Thresholds</strong>
+                                <p>Select at 50%, 80%, and/or 100% of your budget</p>
+                            </div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">3</div>
+                            <div class="step-content">
+                                <strong>Automatic Monitoring</strong>
+                                <p>System checks spending daily and sends alerts via SNS</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3><i class="fas fa-cogs"></i> Current Capabilities</h3>
+                    <div class="capabilities">
+                        <div class="capability">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Real-time spending tracking with Cost Explorer</span>
+                        </div>
+                        <div class="capability">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Multiple budget configurations per account</span>
+                        </div>
+                        <div class="capability">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Customizable alert thresholds (50%, 80%, 100%)</span>
+                        </div>
+                        <div class="capability">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Service-specific budget filtering</span>
+                        </div>
+                        <div class="capability">
+                            <i class="fas fa-clock"></i>
+                            <span>SNS email notifications (configuration pending)</span>
+                        </div>
+                        <div class="capability">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Budget status dashboard with projections</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3><i class="fas fa-lightbulb"></i> Best Practices</h3>
+                    <div class="benefits">
+                        <div class="benefit">
+                            <i class="fas fa-percentage"></i>
+                            <div>
+                                <strong>Set Conservative Limits</strong>
+                                <p>Start with lower budgets and adjust based on actual usage</p>
+                            </div>
+                        </div>
+                        <div class="benefit">
+                            <i class="fas fa-envelope"></i>
+                            <div>
+                                <strong>Email Alerts (Coming Soon)</strong>
+                                <p>Email field is stored but SNS topic setup is still needed</p>
+                            </div>
+                        </div>
+                        <div class="benefit">
+                            <i class="fas fa-filter"></i>
+                            <div>
+                                <strong>Use Service Filters</strong>
+                                <p>Create separate budgets for different AWS services</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Budget Configuration Modal -->
+    <div id="budget-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-bell"></i> Configure Budget Alert</h2>
+                <span class="close" onclick="closeBudgetModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="budget-form">
+                    <div class="form-group">
+                        <label for="budget-name">Budget Name</label>
+                        <input type="text" id="budget-name" placeholder="e.g., Monthly AWS Budget" value="Monthly AWS Budget">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="budget-amount">Monthly Limit ($)</label>
+                        <input type="number" id="budget-amount" placeholder="100.00" min="1" step="0.01">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="budget-email">Email for Alerts (Optional)</label>
+                        <input type="email" id="budget-email" placeholder="your-email@example.com">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Alert Thresholds</label>
+                        <div class="threshold-options">
+                            <label><input type="checkbox" checked> 50% of budget</label>
+                            <label><input type="checkbox" checked> 80% of budget</label>
+                            <label><input type="checkbox" checked> 100% of budget</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="service-filter">Service Filter</label>
+                        <select id="service-filter">
+                            <option value="all">All AWS Services</option>
+                            <option value="Amazon Elastic Compute Cloud - Compute">EC2</option>
+                            <option value="AWS Lambda">Lambda</option>
+                            <option value="Amazon Simple Storage Service">S3</option>
+                            <option value="Amazon DynamoDB">DynamoDB</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="budget-actions">
+                    <button class="btn btn-primary" onclick="saveBudgetConfig()">
+                        <i class="fas fa-save"></i> Save Budget Alert
+                    </button>
+                    <button class="btn btn-secondary" onclick="closeBudgetModal()">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Tab switching functionality
         document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -1240,6 +1389,8 @@ terraform plan > plan.txt</code>
             const featureModal = document.getElementById('feature-modal');
             const uploadModal = document.getElementById('upload-modal');
             const costModal = document.getElementById('cost-modal');
+            const budgetModal = document.getElementById('budget-modal');
+            const budgetInfoModal = document.getElementById('budget-info-modal');
             
             if (event.target === featureModal) {
                 featureModal.style.display = 'none';
@@ -1249,6 +1400,12 @@ terraform plan > plan.txt</code>
             }
             if (event.target === costModal) {
                 costModal.style.display = 'none';
+            }
+            if (event.target === budgetModal) {
+                budgetModal.style.display = 'none';
+            }
+            if (event.target === budgetInfoModal) {
+                budgetInfoModal.style.display = 'none';
             }
         }
 
@@ -1291,7 +1448,8 @@ terraform plan > plan.txt</code>
                 loadCurrentCosts(selectedMonth),
                 loadServiceCosts(selectedMonth),
                 loadCostTrends(),
-                loadTagCosts(selectedMonth)
+                loadTagCosts(selectedMonth),
+                loadBudgetStatus()
             ]);
         }
 
@@ -1435,6 +1593,152 @@ terraform plan > plan.txt</code>
                 displayElement.innerHTML = `<div class="cost-error">
                     <i class="fas fa-times-circle"></i> Failed to load tagged costs
                 </div>`;
+            }
+        }
+
+        // Budget Management Functions
+        function showBudgetModal() {
+            document.getElementById('budget-modal').style.display = 'block';
+        }
+        
+        function closeBudgetModal() {
+            document.getElementById('budget-modal').style.display = 'none';
+        }
+        
+        function showBudgetInfo() {
+            document.getElementById('budget-info-modal').style.display = 'block';
+        }
+        
+        function closeBudgetInfo() {
+            document.getElementById('budget-info-modal').style.display = 'none';
+        }
+        
+        async function saveBudgetConfig() {
+            const budgetName = document.getElementById('budget-name').value.trim();
+            const budgetAmount = document.getElementById('budget-amount').value;
+            const budgetEmail = document.getElementById('budget-email').value.trim();
+            const serviceFilter = document.getElementById('service-filter').value;
+            
+            // Get selected thresholds
+            const thresholdCheckboxes = document.querySelectorAll('.threshold-options input[type="checkbox"]');
+            const thresholds = [];
+            thresholdCheckboxes.forEach((checkbox, index) => {
+                if (checkbox.checked) {
+                    thresholds.push([50, 80, 100][index]);
+                }
+            });
+            
+            if (!budgetName) {
+                alert('Please enter a budget name');
+                return;
+            }
+            
+            if (!budgetAmount || budgetAmount <= 0) {
+                alert('Please enter a valid budget amount');
+                return;
+            }
+            
+            if (thresholds.length === 0) {
+                alert('Please select at least one alert threshold');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/budgets/configure`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        budget_name: budgetName,
+                        monthly_limit: parseFloat(budgetAmount),
+                        thresholds: thresholds,
+                        email: budgetEmail,
+                        service_filter: serviceFilter
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert('Budget alert configured successfully!');
+                    closeBudgetModal();
+                    loadBudgetStatus();
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+            } catch (error) {
+                alert('Failed to configure budget alert');
+            }
+        }
+
+        async function loadBudgetStatus() {
+            const displayElement = document.getElementById('budget-status-display');
+            
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/budgets/status`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    if (data.budgets.length === 0) {
+                        displayElement.innerHTML = '<div class="no-budget">No budget alerts configured</div>';
+                        return;
+                    }
+                    
+                    let html = '<div class="budget-list">';
+                    data.budgets.forEach(budget => {
+                        const statusClass = budget.status === 'over_budget' ? 'over-budget' : 
+                                          budget.status === 'warning' ? 'warning' : 'on-track';
+                        
+                        html += `
+                            <div class="budget-item ${statusClass}">
+                                <div class="budget-info">
+                                    <div class="budget-name">${budget.budget_name}</div>
+                                    <div class="budget-usage">$${budget.current_spending} / $${budget.monthly_limit} (${budget.percentage_used}%)</div>
+                                </div>
+                                <div class="budget-actions">
+                                    <div class="budget-status">${budget.status.replace('_', ' ')}</div>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteBudget('${budget.budget_id}')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>`;
+                    });
+                    html += '</div>';
+                    
+                    displayElement.innerHTML = html;
+                } else {
+                    displayElement.innerHTML = `<div class="budget-error">
+                        <i class="fas fa-exclamation-triangle"></i> Error loading budget status: ${data.error}
+                    </div>`;
+                }
+            } catch (error) {
+                displayElement.innerHTML = `<div class="budget-error">
+                    <i class="fas fa-times-circle"></i> Failed to load budget status
+                </div>`;
+            }
+        }
+
+        async function deleteBudget(budgetId) {
+            if (!confirm('Are you sure you want to delete this budget alert?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/budgets/delete/${budgetId}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert('Budget deleted successfully!');
+                    loadBudgetStatus();
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+            } catch (error) {
+                alert('Failed to delete budget');
             }
         }
 

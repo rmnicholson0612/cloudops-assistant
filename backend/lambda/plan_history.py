@@ -142,8 +142,12 @@ def get_plan_history(repo_name):
 
 def compare_plans(plan_id1, plan_id2):
     try:
-        response1 = table.get_item(Key={'plan_id': plan_id1})
-        response2 = table.get_item(Key={'plan_id': plan_id2})
+        # Sanitize plan IDs to prevent NoSQL injection
+        if not isinstance(plan_id1, str) or not isinstance(plan_id2, str):
+            raise ValueError("Invalid plan ID format")
+        
+        response1 = table.get_item(Key={'plan_id': str(plan_id1)})
+        response2 = table.get_item(Key={'plan_id': str(plan_id2)})
         
         if 'Item' not in response1 or 'Item' not in response2:
             return {
@@ -193,7 +197,11 @@ def compare_plans(plan_id1, plan_id2):
 
 def get_plan_details(plan_id):
     try:
-        response = table.get_item(Key={'plan_id': plan_id})
+        # Sanitize plan ID to prevent NoSQL injection
+        if not isinstance(plan_id, str):
+            raise ValueError("Invalid plan ID format")
+        
+        response = table.get_item(Key={'plan_id': str(plan_id)})
         
         if 'Item' not in response:
             return {

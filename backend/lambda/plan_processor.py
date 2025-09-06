@@ -202,8 +202,9 @@ def store_plan_result(github_target, repo_name, drift_result, plan_content):
         raise  # Re-raise to indicate failure
 
 def get_cors_headers():
+    allowed_origin = os.environ.get('ALLOWED_ORIGIN', 'http://localhost:3000')
     return {
-        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Origin": allowed_origin,
         "Access-Control-Allow-Headers": "Content-Type",
         "Access-Control-Allow-Methods": "GET,POST,OPTIONS"
     }

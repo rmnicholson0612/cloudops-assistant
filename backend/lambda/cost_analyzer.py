@@ -6,14 +6,20 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 import os
 
+# Fixed cost aggregation issue - v1.1
+
 # Configure logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-# Initialize AWS clients
-ce_client = boto3.client('ce')
-dynamodb = boto3.resource('dynamodb')
-table = dynamodb.Table('cost-cache')
+# Initialize AWS clients with error handling
+try:
+    ce_client = boto3.client('ce')
+    dynamodb = boto3.resource('dynamodb')
+    table = dynamodb.Table('cost-cache')
+except Exception as e:
+    logger.error(f"Failed to initialize AWS clients: {str(e)}")
+    raise
 
 def lambda_handler(event, context):
     """
@@ -266,56 +272,44 @@ def get_costs_by_tag(month=None):
             next_month = target_date.replace(month=target_date.month + 1, day=1)
         end_date = (next_month - timedelta(days=1)).strftime('%Y-%m-%d')
         
-        # Try multiple common variations of service tag (case-sensitive in AWS)
-        tag_variations = ['Service', 'service', 'SERVICE', 'app', 'App', 'application', 'Application', 'Project', 'project', 'PROJECT']
-        all_services = {}
-        
-        for tag_key in tag_variations:
-            try:
-                response = ce_client.get_cost_and_usage(
-                    TimePeriod={
-                        'Start': start_date,
-                        'End': end_date
-                    },
-                    Granularity='MONTHLY',
-                    Metrics=['BlendedCost'],
-                    GroupBy=[
-                        {
-                            'Type': 'TAG',
-                            'Key': tag_key
-                        }
-                    ]
-                )
-        
-                # Extract tag costs
-                if response['ResultsByTime']:
-                    groups = response['ResultsByTime'][0]['Groups']
-                    for group in groups:
-                        # Keys format: ['TagKey$tag-value'] or ['TagKey$'] for untagged
-                        raw_key = group['Keys'][0] if group['Keys'] else f'{tag_key}$Untagged'
-                        service_tag = raw_key.split('$')[1] if '$' in raw_key and len(raw_key.split('$')) > 1 else 'Untagged'
-                        if not service_tag:  # Handle empty tag values
-                            service_tag = 'Untagged'
-                            
-                        cost = float(group['Metrics']['BlendedCost']['Amount'])
-                        if cost > 0.01:  # Only include meaningful costs
-                            # Aggregate costs for same service names from different tag keys
-                            if service_tag in all_services:
-                                all_services[service_tag] += cost
-                            else:
-                                all_services[service_tag] = cost
-                                
-            except Exception as tag_error:
-                logger.warning(f"Error querying tag '{tag_key}': {str(tag_error)}")
-                continue
-        
-        # Convert to list format
-        services = []
-        for service_name, cost in all_services.items():
-            services.append({
-                'service': service_name,
-                'cost': round(cost, 2)
-            })
+        # Query costs by 'Service' tag only to avoid double counting
+        try:
+            response = ce_client.get_cost_and_usage(
+                TimePeriod={
+                    'Start': start_date,
+                    'End': end_date
+                },
+                Granularity='MONTHLY',
+                Metrics=['BlendedCost'],
+                GroupBy=[
+                    {
+                        'Type': 'TAG',
+                        'Key': 'Service'
+                    }
+                ]
+            )
+    
+            # Extract tag costs
+            services = []
+            if response['ResultsByTime']:
+                groups = response['ResultsByTime'][0]['Groups']
+                for group in groups:
+                    # Keys format: ['Service$tag-value'] or ['Service$'] for untagged
+                    raw_key = group['Keys'][0] if group['Keys'] else 'Service$Untagged'
+                    service_tag = raw_key.split('$')[1] if '$' in raw_key and len(raw_key.split('$')) > 1 else 'Untagged'
+                    if not service_tag:  # Handle empty tag values
+                        service_tag = 'Untagged'
+                        
+                    cost = float(group['Metrics']['BlendedCost']['Amount'])
+                    if cost > 0.01:  # Only include meaningful costs
+                        services.append({
+                            'service': service_tag,
+                            'cost': round(cost, 2)
+                        })
+                        
+        except Exception as tag_error:
+            logger.warning(f"Error querying 'Service' tag: {str(tag_error)}")
+            services = []
         
         # Sort by cost descending
         services.sort(key=lambda x: x['cost'], reverse=True)
@@ -338,7 +332,10 @@ def get_costs_by_tag(month=None):
 def get_from_cache(cache_key):
     """Get data from DynamoDB cache"""
     try:
-        response = table.get_item(Key={'cache_key': cache_key})
+        # Sanitize cache key to prevent NoSQL injection
+        if not isinstance(cache_key, str):
+            return None
+        response = table.get_item(Key={'cache_key': str(cache_key)})
         if 'Item' in response:
             return json.loads(response['Item']['data'])
         return None
@@ -349,10 +346,13 @@ def get_from_cache(cache_key):
 def cache_result(cache_key, data, ttl_seconds):
     """Store data in DynamoDB cache with TTL"""
     try:
+        # Sanitize cache key to prevent NoSQL injection
+        if not isinstance(cache_key, str):
+            return
         ttl = int((datetime.now() + timedelta(seconds=ttl_seconds)).timestamp())
         table.put_item(
             Item={
-                'cache_key': cache_key,
+                'cache_key': str(cache_key),
                 'data': json.dumps(data, default=str),
                 'ttl': ttl
             }

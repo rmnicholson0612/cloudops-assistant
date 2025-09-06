@@ -10,7 +10,7 @@ Globals:
       Environment: prod
   Api:
     Cors:
-      AllowMethods: "'GET,POST,OPTIONS'"
+      AllowMethods: "'GET,POST,DELETE,OPTIONS'"
       AllowHeaders: "'content-type,authorization'"
       AllowOrigin: "'http://localhost:3000'"  # Restrict to local development
 
@@ -176,6 +176,96 @@ Resources:
           Properties:
             Path: /costs/by-tag
             Method: OPTIONS
+
+  # Day 4 - Budget Manager Function
+  BudgetManagerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: budget_manager.lambda_handler
+      Runtime: python3.11
+      CodeUri: backend/lambda/
+      MemorySize: 256
+      Timeout: 30
+      Tags:
+        Service: cloudops-assistant
+        Feature: budget-management
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref BudgetConfigTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref CostCacheTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ce:GetCostAndUsage
+                - sns:Publish
+              Resource: "*"
+      Events:
+        ConfigureBudgetApi:
+          Type: Api
+          Properties:
+            Path: /budgets/configure
+            Method: POST
+        BudgetStatusApi:
+          Type: Api
+          Properties:
+            Path: /budgets/status
+            Method: GET
+        BudgetAlertsApi:
+          Type: Api
+          Properties:
+            Path: /budgets/alerts
+            Method: GET
+        ConfigureBudgetOptions:
+          Type: Api
+          Properties:
+            Path: /budgets/configure
+            Method: OPTIONS
+        BudgetStatusOptions:
+          Type: Api
+          Properties:
+            Path: /budgets/status
+            Method: OPTIONS
+        BudgetAlertsOptions:
+          Type: Api
+          Properties:
+            Path: /budgets/alerts
+            Method: OPTIONS
+        DeleteBudgetApi:
+          Type: Api
+          Properties:
+            Path: /budgets/delete/{budget_id}
+            Method: DELETE
+        DeleteBudgetOptions:
+          Type: Api
+          Properties:
+            Path: /budgets/delete/{budget_id}
+            Method: OPTIONS
+
+  # Day 4 - Budget Configuration Table
+  BudgetConfigTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: cloudops-assistant-budget-config
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: budget_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: budget_id
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Service
+          Value: cloudops-assistant
+        - Key: Feature
+          Value: budget-management
 
   # Day 3 - Cost Cache Table for storing cost data
   CostCacheTable:
