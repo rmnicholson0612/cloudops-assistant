@@ -125,27 +125,81 @@
                     <p>Track AWS spending and optimize your cloud costs</p>
                 </div>
                 
-                <div class="coming-soon-banner">
-                    <i class="fas fa-hammer"></i>
-                    <h3>Coming Day 3</h3>
-                    <p>AWS Cost Explorer integration, budget alerts, and cost optimization recommendations</p>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="header-with-info">
+                            <h3><i class="fas fa-chart-line"></i> Monthly Spending</h3>
+                            <button class="btn btn-info" onclick="showCostInfo()" title="About cost tracking">
+                                <i class="fas fa-info-circle"></i>
+                            </button>
+                        </div>
+                        <div class="month-selector">
+                            <select id="month-selector">
+                                <!-- Options populated by JavaScript -->
+                            </select>
+                            <div class="feature-badge">✅ Day 3 Complete</div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="current-cost-display" class="cost-display">
+                            <div class="cost-loading">
+                                <i class="fas fa-spinner fa-spin"></i> Loading current costs...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="cost-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-chart-pie"></i> Service Breakdown</h3>
+                        </div>
+                        <div class="card-body">
+                            <div id="service-costs-display" class="service-costs">
+                                <div class="cost-loading">
+                                    <i class="fas fa-spinner fa-spin"></i> Loading service costs...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-calendar-alt"></i> 30-Day Trends</h3>
+                        </div>
+                        <div class="card-body">
+                            <div id="cost-trends-display" class="cost-trends">
+                                <div class="cost-loading">
+                                    <i class="fas fa-spinner fa-spin"></i> Loading cost trends...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-tags"></i> Cost by Service Tag</h3>
+                    </div>
+                    <div class="card-body">
+                        <div id="tag-costs-display" class="service-costs">
+                            <div class="cost-loading">
+                                <i class="fas fa-spinner fa-spin"></i> Loading tagged costs...
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="feature-grid">
                     <div class="feature-card coming-soon">
-                        <i class="fas fa-chart-pie"></i>
-                        <h4>Cost Breakdown</h4>
-                        <p>Service-by-service analysis</p>
-                    </div>
-                    <div class="feature-card coming-soon">
                         <i class="fas fa-exclamation-circle"></i>
                         <h4>Budget Alerts</h4>
-                        <p>Prevent surprise bills</p>
+                        <p>Coming Day 4</p>
                     </div>
                     <div class="feature-card coming-soon">
                         <i class="fas fa-lightbulb"></i>
                         <h4>Optimization Tips</h4>
-                        <p>AI-powered cost savings</p>
+                        <p>Coming Day 8</p>
                     </div>
                 </div>
             </div>
@@ -467,6 +521,245 @@ terraform plan > plan.txt</code>
         </div>
     </div>
 
+    <!-- Cost Info Modal -->
+    <div id="cost-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-dollar-sign"></i> About Cost Management</h2>
+                <span class="close" onclick="closeCostInfo()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="info-section">
+                    <h3><i class="fas fa-chart-line"></i> How It Works</h3>
+                    <p>The cost dashboard integrates with <strong>AWS Cost Explorer API</strong> to provide real-time visibility into your AWS spending across multiple dimensions.</p>
+                    
+                    <div class="process-steps">
+                        <div class="step">
+                            <div class="step-number">1</div>
+                            <div class="step-content">
+                                <strong>Cost Explorer Integration</strong>
+                                <p>Connects to AWS Cost Explorer API to fetch billing data</p>
+                            </div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">2</div>
+                            <div class="step-content">
+                                <strong>Smart Caching</strong>
+                                <p>Caches cost data for 1 hour to minimize API calls and costs</p>
+                            </div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">3</div>
+                            <div class="step-content">
+                                <strong>Multi-Dimensional Analysis</strong>
+                                <p>Groups costs by AWS service, time period, and custom tags</p>
+                            </div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">4</div>
+                            <div class="step-content">
+                                <strong>Historical Comparison</strong>
+                                <p>Compare spending across different months and time periods</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3><i class="fas fa-chart-pie"></i> Cost Dimensions</h3>
+                    <div class="detection-patterns">
+                        <div class="pattern-group">
+                            <h4>Monthly Spending</h4>
+                            <ul>
+                                <li><code>Total Cost</code> - Complete monthly AWS bill</li>
+                                <li><code>Historical</code> - Last 12 months available</li>
+                                <li><code>Real-time</code> - Current month updates daily</li>
+                            </ul>
+                        </div>
+                        <div class="pattern-group">
+                            <h4>Service Breakdown</h4>
+                            <ul>
+                                <li><code>AWS Services</code> - Lambda, DynamoDB, S3, etc.</li>
+                                <li><code>Top 10</code> - Highest cost services first</li>
+                                <li><code>Threshold</code> - Only shows costs > $0.01</li>
+                            </ul>
+                        </div>
+                        <div class="pattern-group">
+                            <h4>Service Tags</h4>
+                            <ul>
+                                <li><code>"Service" Tag</code> - Groups by custom service tags</li>
+                                <li><code>Untagged</code> - Resources without Service tag</li>
+                                <li><code>Cost Allocation</code> - Track spending by business unit</li>
+                            </ul>
+                        </div>
+                        <div class="pattern-group">
+                            <h4>Daily Trends</h4>
+                            <ul>
+                                <li><code>30-Day History</code> - Daily spending patterns</li>
+                                <li><code>Trend Analysis</code> - Identify spending spikes</li>
+                                <li><code>Last 7 Days</code> - Recent activity focus</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3><i class="fas fa-cogs"></i> Current Capabilities</h3>
+                    <div class="capabilities">
+                        <div class="capability">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Real-time AWS cost tracking with Cost Explorer</span>
+                        </div>
+                        <div class="capability">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Monthly cost comparison (last 12 months)</span>
+                        </div>
+                        <div class="capability">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Service-level cost breakdown and analysis</span>
+                        </div>
+                        <div class="capability">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Cost tracking by custom "Service" tags</span>
+                        </div>
+                        <div class="capability">
+                            <i class="fas fa-check-circle"></i>
+                            <span>30-day daily spending trends and patterns</span>
+                        </div>
+                        <div class="capability">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Smart caching to minimize API costs</span>
+                        </div>
+                        <div class="capability">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Responsive design for mobile and desktop</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3><i class="fas fa-rocket"></i> Future Enhancements</h3>
+                    <div class="future-features">
+                        <div class="future-item">
+                            <div class="future-day">Day 4</div>
+                            <div class="future-desc">Budget alerts and thresholds</div>
+                        </div>
+                        <div class="future-item">
+                            <div class="future-day">Day 8</div>
+                            <div class="future-desc">AI-powered cost optimization tips</div>
+                        </div>
+                        <div class="future-item">
+                            <div class="future-day">Day 12</div>
+                            <div class="future-desc">Slack notifications for cost spikes</div>
+                        </div>
+                        <div class="future-item">
+                            <div class="future-day">Future</div>
+                            <div class="future-desc">Interactive cost charts and graphs</div>
+                        </div>
+                        <div class="future-item">
+                            <div class="future-day">Future</div>
+                            <div class="future-desc">Cost forecasting and predictions</div>
+                        </div>
+                        <div class="future-item">
+                            <div class="future-day">Future</div>
+                            <div class="future-desc">Multi-account cost consolidation</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3><i class="fas fa-lightbulb"></i> Cost Optimization Tips</h3>
+                    <div class="benefits">
+                        <div class="benefit">
+                            <i class="fas fa-tags"></i>
+                            <div>
+                                <strong>Tag Everything</strong>
+                                <p>Add "Service" tags to all resources for better cost allocation</p>
+                            </div>
+                        </div>
+                        <div class="benefit">
+                            <i class="fas fa-chart-line"></i>
+                            <div>
+                                <strong>Monitor Trends</strong>
+                                <p>Watch for unexpected cost spikes in daily trends</p>
+                            </div>
+                        </div>
+                        <div class="benefit">
+                            <i class="fas fa-clock"></i>
+                            <div>
+                                <strong>Regular Reviews</strong>
+                                <p>Check costs monthly to identify optimization opportunities</p>
+                            </div>
+                        </div>
+                        <div class="benefit">
+                            <i class="fas fa-shield-alt"></i>
+                            <div>
+                                <strong>Set Budgets</strong>
+                                <p>Use AWS Budgets alongside this dashboard for alerts</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3><i class="fas fa-exclamation-triangle"></i> Prerequisites</h3>
+                    <div class="capabilities">
+                        <div class="capability">
+                            <i class="fas fa-check-circle"></i>
+                            <span>AWS Cost Explorer must be enabled (free)</span>
+                        </div>
+                        <div class="capability">
+                            <i class="fas fa-check-circle"></i>
+                            <span>24-hour delay for Cost Explorer data availability</span>
+                        </div>
+                        <div class="capability">
+                            <i class="fas fa-check-circle"></i>
+                            <span>IAM permissions for Cost Explorer API access</span>
+                        </div>
+                        <div class="capability">
+                            <i class="fas fa-check-circle"></i>
+                            <span>"Service" tags on resources for tag-based costs</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3><i class="fas fa-dollar-sign"></i> Cost-Effective Design</h3>
+                    <div class="benefits">
+                        <div class="benefit">
+                            <i class="fas fa-memory"></i>
+                            <div>
+                                <strong>Smart Caching</strong>
+                                <p>1-hour cache reduces Cost Explorer API calls by 95%</p>
+                            </div>
+                        </div>
+                        <div class="benefit">
+                            <i class="fas fa-server"></i>
+                            <div>
+                                <strong>Serverless</strong>
+                                <p>Lambda functions only run when you view costs</p>
+                            </div>
+                        </div>
+                        <div class="benefit">
+                            <i class="fas fa-database"></i>
+                            <div>
+                                <strong>DynamoDB TTL</strong>
+                                <p>Automatic cache cleanup prevents storage costs</p>
+                            </div>
+                        </div>
+                        <div class="benefit">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <div>
+                                <strong>Optimized Queries</strong>
+                                <p>Efficient API calls minimize Cost Explorer charges</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Tab switching functionality
         document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -480,6 +773,11 @@ terraform plan > plan.txt</code>
                 // Add active class to clicked tab and corresponding content
                 btn.classList.add('active');
                 document.getElementById(tabId).classList.add('active');
+                
+                // Load cost data when costs tab is activated
+                if (tabId === 'costs') {
+                    loadCostData();
+                }
             });
         });
 
@@ -492,6 +790,14 @@ terraform plan > plan.txt</code>
             
             // Update page title with current day
             document.title = `CloudOps Assistant - Day ${CONFIG.CURRENT_DAY}/${CONFIG.TOTAL_DAYS}`;
+            
+            // Initialize month selector immediately
+            initializeMonthSelector();
+            
+            // Load cost data if costs tab is initially active
+            if (document.querySelector('.tab-btn[data-tab="costs"]').classList.contains('active')) {
+                loadCostData();
+            }
         });
 
         // Repository scanning functionality
@@ -920,16 +1226,215 @@ terraform plan > plan.txt</code>
             document.getElementById('feature-modal').style.display = 'none';
         }
         
+        // Cost info modal functionality
+        function showCostInfo() {
+            document.getElementById('cost-modal').style.display = 'block';
+        }
+        
+        function closeCostInfo() {
+            document.getElementById('cost-modal').style.display = 'none';
+        }
+        
         // Close modals when clicking outside
         window.onclick = function(event) {
             const featureModal = document.getElementById('feature-modal');
             const uploadModal = document.getElementById('upload-modal');
+            const costModal = document.getElementById('cost-modal');
             
             if (event.target === featureModal) {
                 featureModal.style.display = 'none';
             }
             if (event.target === uploadModal) {
                 uploadModal.style.display = 'none';
+            }
+            if (event.target === costModal) {
+                costModal.style.display = 'none';
+            }
+        }
+
+        // Cost Dashboard Functions
+        function initializeMonthSelector() {
+            const selector = document.getElementById('month-selector');
+            if (!selector || selector.options.length > 0) {
+                return;
+            }
+            const currentDate = new Date();
+            
+            // Generate last 12 months
+            for (let i = 0; i < 12; i++) {
+                const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+                const value = date.toISOString().slice(0, 7); // YYYY-MM format
+                const text = date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+                
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = text;
+                if (i === 0) option.selected = true; // Current month selected
+                
+                selector.appendChild(option);
+            }
+            
+            // Add event listener
+            selector.addEventListener('change', function() {
+                loadCostData();
+            });
+        }
+        
+        function getSelectedMonth() {
+            const selector = document.getElementById('month-selector');
+            return selector.value || null;
+        }
+
+        async function loadCostData() {
+            const selectedMonth = getSelectedMonth();
+            await Promise.all([
+                loadCurrentCosts(selectedMonth),
+                loadServiceCosts(selectedMonth),
+                loadCostTrends(),
+                loadTagCosts(selectedMonth)
+            ]);
+        }
+
+        async function loadCurrentCosts(month = null) {
+            const displayElement = document.getElementById('current-cost-display');
+            
+            try {
+                const url = month ? `${CONFIG.API_BASE_URL}/costs/current?month=${month}` : `${CONFIG.API_BASE_URL}/costs/current`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    displayElement.innerHTML = `
+                        <div class="current-cost">
+                            <div class="cost-amount">$${parseFloat(data.total_cost).toFixed(2)}</div>
+                            <div class="cost-period">${data.period}</div>
+                            <div class="cost-updated">Last updated: ${new Date(data.last_updated).toLocaleString()}</div>
+                        </div>`;
+                } else {
+                    displayElement.innerHTML = `<div class="cost-error">
+                        <i class="fas fa-exclamation-triangle"></i> Error loading costs: ${data.error}
+                    </div>`;
+                }
+            } catch (error) {
+                displayElement.innerHTML = `<div class="cost-error">
+                    <i class="fas fa-times-circle"></i> Failed to load current costs
+                </div>`;
+            }
+        }
+
+        async function loadServiceCosts(month = null) {
+            const displayElement = document.getElementById('service-costs-display');
+            
+            try {
+                const url = month ? `${CONFIG.API_BASE_URL}/costs/services?month=${month}` : `${CONFIG.API_BASE_URL}/costs/services`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    if (data.services.length === 0) {
+                        displayElement.innerHTML = '<div class="no-costs">No service costs found for this period</div>';
+                        return;
+                    }
+                    
+                    let html = '<div class="service-list">';
+                    data.services.forEach(service => {
+                        html += `
+                            <div class="service-item">
+                                <div class="service-name">${service.service}</div>
+                                <div class="service-cost">$${parseFloat(service.cost).toFixed(2)}</div>
+                            </div>`;
+                    });
+                    html += '</div>';
+                    
+                    displayElement.innerHTML = html;
+                } else {
+                    displayElement.innerHTML = `<div class="cost-error">
+                        <i class="fas fa-exclamation-triangle"></i> Error loading service costs: ${data.error}
+                    </div>`;
+                }
+            } catch (error) {
+                displayElement.innerHTML = `<div class="cost-error">
+                    <i class="fas fa-times-circle"></i> Failed to load service costs
+                </div>`;
+            }
+        }
+
+        async function loadCostTrends() {
+            const displayElement = document.getElementById('cost-trends-display');
+            
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/costs/trends`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    if (data.daily_costs.length === 0) {
+                        displayElement.innerHTML = '<div class="no-costs">No cost trend data available</div>';
+                        return;
+                    }
+                    
+                    // Simple text-based chart for now
+                    let html = '<div class="trends-list">';
+                    const recentDays = data.daily_costs.slice(-7); // Last 7 days
+                    
+                    recentDays.forEach(day => {
+                        const date = new Date(day.date).toLocaleDateString();
+                        html += `
+                            <div class="trend-item">
+                                <div class="trend-date">${date}</div>
+                                <div class="trend-cost">$${parseFloat(day.cost).toFixed(2)}</div>
+                            </div>`;
+                    });
+                    
+                    html += '</div>';
+                    html += `<div class="trends-summary">Showing last 7 days of ${data.daily_costs.length} total days</div>`;
+                    
+                    displayElement.innerHTML = html;
+                } else {
+                    displayElement.innerHTML = `<div class="cost-error">
+                        <i class="fas fa-exclamation-triangle"></i> Error loading cost trends: ${data.error}
+                    </div>`;
+                }
+            } catch (error) {
+                displayElement.innerHTML = `<div class="cost-error">
+                    <i class="fas fa-times-circle"></i> Failed to load cost trends
+                </div>`;
+            }
+        }
+
+        async function loadTagCosts(month = null) {
+            const displayElement = document.getElementById('tag-costs-display');
+            
+            try {
+                const url = month ? `${CONFIG.API_BASE_URL}/costs/by-tag?month=${month}` : `${CONFIG.API_BASE_URL}/costs/by-tag`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    if (data.services.length === 0) {
+                        displayElement.innerHTML = '<div class="no-costs">No tagged resources found. Add "Service" tags to your AWS resources.</div>';
+                        return;
+                    }
+                    
+                    let html = '<div class="service-list">';
+                    data.services.forEach(service => {
+                        html += `
+                            <div class="service-item">
+                                <div class="service-name">${service.service}</div>
+                                <div class="service-cost">$${parseFloat(service.cost).toFixed(2)}</div>
+                            </div>`;
+                    });
+                    html += '</div>';
+                    
+                    displayElement.innerHTML = html;
+                } else {
+                    displayElement.innerHTML = `<div class="cost-error">
+                        <i class="fas fa-exclamation-triangle"></i> Error loading tagged costs: ${data.error}
+                    </div>`;
+                }
+            } catch (error) {
+                displayElement.innerHTML = `<div class="cost-error">
+                    <i class="fas fa-times-circle"></i> Failed to load tagged costs
+                </div>`;
             }
         }
 

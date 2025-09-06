@@ -1,11 +1,13 @@
-# CloudOps Assistant - Architecture Overview (Day 2)
+# CloudOps Assistant - Architecture Overview (Day 3)
+
+![Day 3 Architecture](architecture/architecture-day3.svg)
 
 ## 🏗️ Current Infrastructure Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │                              CLOUDOPS ASSISTANT                                 │
-│                            Day 2 Architecture                                   │
+│                            Day 3 Architecture                                   │
 └─────────────────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────────────┐
@@ -75,6 +77,18 @@
 │      ├── URL encoding/decoding support                                        │
 │      └── Proper error handling & logging                                     │
 │                                                                                 │
+│  💰 CostAnalyzerFunction (Day 3)                                              │
+│  ├── Handler: cost_analyzer.lambda_handler                                    │
+│  ├── Runtime: Python 3.11                                                    │
+│  ├── Memory: 256MB, Timeout: 30s                                             │
+│  └── Features:                                                                │
+│      ├── AWS Cost Explorer API integration                                    │
+│      ├── Monthly cost tracking with historical data                          │
+│      ├── Service-level cost breakdown                                         │
+│      ├── Cost by custom service tags                                          │
+│      ├── Smart caching with 1-hour TTL                                       │
+│      └── Input validation & injection prevention                              │
+│                                                                                 │
 └─────────────────────────────────────────────────────────────────────────────────┘
                                        │
                                    Reads/Writes
@@ -93,6 +107,13 @@
 │  ├── Backup: Point-in-time recovery                                           │
 │  └── Data: Full plan content, change summaries, metadata                      │
 │                                                                                 │
+│  💰 cost-cache (Day 3)                                                        │
+│  ├── Partition Key: cache_key                                                 │
+│  ├── TTL: 1 hour (automatic cleanup)                                          │
+│  ├── Encryption: SSE enabled                                                  │
+│  ├── Backup: Point-in-time recovery                                           │
+│  └── Data: Cached cost data from AWS Cost Explorer                            │
+│                                                                                 │
 └─────────────────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────────────┐
@@ -103,6 +124,13 @@
 │  ├── File content inspection                                                  │
 │  ├── Public & private repo support                                            │
 │  └── Rate limiting & error handling                                           │
+│                                                                                 │
+│  💰 AWS Cost Explorer API (Day 3)                                             │
+│  ├── Monthly cost data retrieval                                              │
+│  ├── Service-level cost breakdown                                             │
+│  ├── Cost by custom tags (Service tag)                                        │
+│  ├── Daily cost trends (30-day history)                                       │
+│  └── Smart caching to minimize API costs                                      │
 └─────────────────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────────────┐
@@ -129,7 +157,7 @@
 │  └── Efficient query patterns with GSI                                       │
 └─────────────────────────────────────────────────────────────────────────────────┘
 
-## 🚀 Day 2 Achievements
+## 🚀 Day 3 Achievements
 
 ### ✅ Completed Features
 - **Real Terraform Plan Processing**: Upload and analyze actual terraform plans
@@ -137,9 +165,13 @@
 - **Visual Plan Comparison**: Side-by-side diff viewer with syntax highlighting
 - **Clean Plan Display**: Formatted terraform output with color coding
 - **Individual Plan Details**: View complete plan content with metadata
-- **URL Encoding Support**: Handle special characters in plan IDs
-- **Error Handling**: Proper logging and generic error responses
-- **Security Hardening**: Input sanitization and injection prevention
+- **AWS Cost Dashboard**: Real-time cost tracking with Cost Explorer integration
+- **Monthly Cost Analysis**: Historical cost data for last 12 months
+- **Service Cost Breakdown**: See which AWS services cost the most
+- **Cost by Service Tags**: Track spending by custom "Service" tags
+- **Cost Trends**: 30-day daily spending analysis
+- **Smart Cost Caching**: 1-hour TTL to minimize API calls
+- **Cost Info Modal**: Comprehensive documentation for cost features
 
 ### 🔧 Technical Improvements
 - **ANSI Code Cleanup**: Remove terminal escape sequences from plan output
@@ -148,14 +180,14 @@
 - **Logging**: Structured logging with context for debugging
 
 ### 📊 Current Metrics
-- **3 Lambda Functions**: Repo scanner, plan processor, plan history
-- **1 DynamoDB Table**: terraform-plans with GSI for efficient queries
-- **5 API Endpoints**: Scan, upload, history, compare, details
-- **Security Score**: High (input sanitization, encryption, proper CORS)
+- **4 Lambda Functions**: Repo scanner, plan processor, plan history, cost analyzer
+- **2 DynamoDB Tables**: terraform-plans, cost-cache
+- **8 API Endpoints**: Scan, upload, history, compare, details, costs (current/services/trends/by-tag)
+- **Security Score**: High (input sanitization, encryption, proper CORS, injection prevention)
 
-## 🎯 Next Steps (Day 3+)
-- AWS Cost Explorer integration
-- Enhanced UI components
+## 🎯 Next Steps (Day 4+)
+- Enhanced UI with React components
+- Budget alerts and thresholds
 - JWT authentication with Cognito
 - Scheduled drift monitoring
 - AI-powered plan analysis

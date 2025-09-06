@@ -133,7 +133,7 @@ def get_plan_history(repo_name):
         }
         
     except Exception as e:
-        logger.error(f"Failed to get plan history for {repo_name}: {str(e)}")
+        logger.error(f"Failed to get plan history: {str(e)}")
         return {
             'statusCode': 500,
             'headers': get_cors_headers(),
@@ -184,7 +184,7 @@ def compare_plans(plan_id1, plan_id2):
         }
         
     except Exception as e:
-        logger.error(f"Failed to compare plans {plan_id1} and {plan_id2}: {str(e)}")
+        logger.error(f"Failed to compare plans: {str(e)}")
         return {
             'statusCode': 500,
             'headers': get_cors_headers(),
@@ -219,7 +219,7 @@ def get_plan_details(plan_id):
         }
         
     except Exception as e:
-        logger.error(f"Failed to get plan details for {plan_id}: {str(e)}")
+        logger.error(f"Failed to get plan details: {str(e)}")
         return {
             'statusCode': 500,
             'headers': get_cors_headers(),

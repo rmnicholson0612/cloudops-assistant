@@ -4,7 +4,7 @@
 > That's what I'm building in 30 days: an open-source CloudOps Assistant.  
 > Day by day, feature by feature. Follow along for a front-row seat as we go from zero → full platform.
 
-[![Day](https://img.shields.io/badge/Day-2%2F30-blue)](https://github.com/rmnicholson0612/cloudops-assistant)
+[![Day](https://img.shields.io/badge/Day-3%2F30-blue)](https://github.com/rmnicholson0612/cloudops-assistant)
 [![Status](https://img.shields.io/badge/Status-Building-green)](https://github.com/rmnicholson0612/cloudops-assistant)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
@@ -40,7 +40,7 @@ In a world where "vibe coding" is taking over, code quality suffers and security
 - [x] **Day 0**: Mock Drift Detection API (Foundation)
 - [x] **Day 1**: Real Terraform Plan Integration ✅ COMPLETE
 - [x] **Day 2**: Plan History & Comparison ✅ COMPLETE
-- [ ] **Day 3**: Cost Dashboard with AWS Cost Explorer
+- [x] **Day 3**: Cost Dashboard with AWS Cost Explorer ✅ COMPLETE
 - [ ] **Day 4**: Enhanced UI with React Components
 - [ ] **Day 5**: JWT Authentication with Cognito
 - [ ] **Day 6**: Lambda Deployment Pipeline
@@ -96,7 +96,7 @@ Built for **maximum functionality at minimum cost**:
 
 **Estimated monthly cost for moderate usage: $5-15**
 
-## 🚀 Quick Start (Day 1)
+## 🚀 Quick Start (Day 3)
 
 ```bash
 # Clone and deploy
@@ -114,7 +114,7 @@ make deploy-guided
 # Then open frontend/index.html in your browser
 ```
 
-## 📈 Current Features (Day 2)
+## 📈 Current Features (Day 3)
 
 ✅ **GitHub Repository Scanning**: Discovers terraform repos automatically  
 ✅ **Real Terraform Plan Processing**: Upload and analyze actual terraform plans  
@@ -123,6 +123,10 @@ make deploy-guided
 ✅ **Visual Plan Comparison**: Side-by-side diff viewer with syntax highlighting  
 ✅ **Clean Plan Display**: Formatted terraform output with color coding  
 ✅ **Professional Dashboard**: Modern UI with tabbed navigation  
+✅ **AWS Cost Dashboard**: Real-time cost tracking with Cost Explorer integration  
+✅ **Service Cost Breakdown**: See which AWS services cost the most  
+✅ **Cost Trends**: 30-day daily spending analysis  
+✅ **Cost Caching**: Hourly cached data to minimize API calls  
 ✅ **DynamoDB Storage**: Secure plan storage with TTL and encryption  
 ✅ **Serverless Architecture**: AWS Lambda + API Gateway + DynamoDB  
 
@@ -148,12 +152,12 @@ Unlike other DevOps tools that cost $$$$ per month:
 ## 📊 Progress Tracker
 
 ```
-Foundation:    ██████████████████████████ 42.9% (3/7 days)
+Foundation:    ████████████████████████████████ 57.1% (4/7 days)
 AI Layer:      ░░░░░░░░░░  0% (0/7 days)
 Observability: ░░░░░░░░░░  0% (0/7 days)
 Advanced:      ░░░░░░░░░░  0% (0/9 days)
 
-Overall:       ████░░░░░░ 10.0% (3/30 days)
+Overall:       █████░░░░░ 13.3% (4/30 days)
 ```
 
 ## 🎯 The End Goal

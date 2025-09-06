@@ -220,17 +220,3 @@ def scan_repo_drift(repo, token=None):
 
 # Removed store_scan_results - repo scanning should not store plans
 
-def get_cors_headers():
-    return {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type",
-        "Access-Control-Allow-Methods": "GET,POST,OPTIONS"
-    }
-
-def create_error_response(error_message):
-    """Create standardized error response with CORS headers"""
-    return {
-        "statusCode": 400,
-        "headers": get_cors_headers(),
-        "body": json.dumps({"error": sanitize_db_input(error_message)})
-    }

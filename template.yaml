@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: CloudOps Assistant – Day 2 Plan History & Comparison
+Description: CloudOps Assistant – Day 3 Cost Dashboard with AWS Cost Explorer
 
 Globals:
   Function:
@@ -113,6 +113,95 @@ Resources:
             Path: /plan-details/{plan_id}
             Method: OPTIONS
 
+  # Day 3 - Cost Analyzer Function
+  CostAnalyzerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: cost_analyzer.lambda_handler
+      Runtime: python3.11
+      CodeUri: backend/lambda/
+      MemorySize: 256
+      Timeout: 30
+      Tags:
+        Service: cloudops-assistant
+        Feature: cost-analysis
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref CostCacheTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ce:GetCostAndUsage
+                - ce:GetDimensionValues
+                - ce:GetUsageReport
+              Resource: "*"
+      Events:
+        CurrentCostApi:
+          Type: Api
+          Properties:
+            Path: /costs/current
+            Method: GET
+        ServiceCostApi:
+          Type: Api
+          Properties:
+            Path: /costs/services
+            Method: GET
+        TrendsCostApi:
+          Type: Api
+          Properties:
+            Path: /costs/trends
+            Method: GET
+        TagCostApi:
+          Type: Api
+          Properties:
+            Path: /costs/by-tag
+            Method: GET
+        CurrentCostOptions:
+          Type: Api
+          Properties:
+            Path: /costs/current
+            Method: OPTIONS
+        ServiceCostOptions:
+          Type: Api
+          Properties:
+            Path: /costs/services
+            Method: OPTIONS
+        TrendsCostOptions:
+          Type: Api
+          Properties:
+            Path: /costs/trends
+            Method: OPTIONS
+        TagCostOptions:
+          Type: Api
+          Properties:
+            Path: /costs/by-tag
+            Method: OPTIONS
+
+  # Day 3 - Cost Cache Table for storing cost data
+  CostCacheTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: cloudops-assistant-cost-cache
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: cache_key
+          AttributeType: S
+      KeySchema:
+        - AttributeName: cache_key
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Service
+          Value: cloudops-assistant
+        - Key: Feature
+          Value: cost-analysis
+
   # Day 2 - Terraform Plans Table for history tracking
   TerraformPlansTable:
     Type: AWS::DynamoDB::Table
@@ -163,3 +252,9 @@ Outputs:
     Value: !Ref TerraformPlansTable
     Export:
       Name: CloudOpsTerraformPlansTable
+      
+  CostCacheTableName:
+    Description: "DynamoDB table for caching cost data"
+    Value: !Ref CostCacheTable
+    Export:
+      Name: CloudOpsCostCacheTable
