@@ -5,6 +5,12 @@ import re
 from datetime import datetime, timedelta
 from decimal import Decimal
 import os
+try:
+    from auth_utils import auth_required
+except ImportError:
+    # Fallback if auth_utils not available
+    def auth_required(func):
+        return func
 
 # Configure logging
 logger = logging.getLogger()
@@ -27,31 +33,37 @@ def lambda_handler(event, context):
         if event.get('source') == 'scheduled':
             return check_budgets_scheduled()
         
-        path = event.get('path', '')
-        method = event.get('httpMethod', '')
-        
-        # Handle CORS preflight
-        if method == 'OPTIONS':
+        # Handle CORS preflight BEFORE authentication
+        if event.get('httpMethod') == 'OPTIONS':
             return cors_response()
         
-        # Route to appropriate handler
-        if path == '/budgets/configure' and method == 'POST':
-            return configure_budget(event)
-        elif path == '/budgets/status':
-            return get_budget_status()
-        elif path == '/budgets/alerts':
-            return get_budget_alerts()
-        elif path.startswith('/budgets/delete/') and method == 'DELETE':
-            budget_id = path.split('/')[-1]
-            return delete_budget(budget_id)
-        else:
-            return error_response(404, 'Endpoint not found')
-            
+        # Apply authentication for API requests
+        return _authenticated_handler(event, context)
     except Exception as e:
         logger.error(f"Budget manager error: {str(e)}")
         return error_response(500, 'Internal server error')
 
-def configure_budget(event):
+@auth_required
+def _authenticated_handler(event, context):
+        
+    path = event.get('path', '')
+    method = event.get('httpMethod', '')
+    
+    # Route to appropriate handler
+    user_id = event['user_info']['user_id']
+    if path == '/budgets/configure' and method == 'POST':
+        return configure_budget(event, user_id)
+    elif path == '/budgets/status':
+        return get_budget_status(user_id)
+    elif path == '/budgets/alerts':
+        return get_budget_alerts(user_id)
+    elif path.startswith('/budgets/delete/') and method == 'DELETE':
+        budget_id = path.split('/')[-1]
+        return delete_budget(budget_id, user_id)
+    else:
+        return error_response(404, 'Endpoint not found')
+
+def configure_budget(event, user_id):
     """Configure budget thresholds"""
     try:
         body = json.loads(event.get('body', '{}'))
@@ -77,7 +89,8 @@ def configure_budget(event):
         
         # Store budget configuration
         budget_config = {
-            'budget_id': f"budget_{budget_name.lower().replace(' ', '_')}",
+            'budget_id': f"{user_id}_budget_{budget_name.lower().replace(' ', '_')}",
+            'user_id': user_id,
             'budget_name': budget_name,
             'monthly_limit': Decimal(str(monthly_limit)),
             'thresholds': thresholds,
@@ -99,11 +112,15 @@ def configure_budget(event):
         logger.error(f"Error configuring budget: {str(e)}")
         return error_response(500, 'Failed to configure budget')
 
-def get_budget_status():
+def get_budget_status(user_id):
     """Get current budget status vs actual spending"""
     try:
-        # Get all budget configurations
-        response = budget_table.scan()
+        # Get budget configurations for this user
+        from boto3.dynamodb.conditions import Attr
+        response = budget_table.scan(
+            FilterExpression=Attr('user_id').eq(user_id),
+            Limit=50  # Limit scan results to prevent performance issues
+        )
         budgets = response.get('Items', [])
         
         if not budgets:
@@ -162,11 +179,14 @@ def get_budget_status():
         logger.error(f"Error getting budget status: {str(e)}")
         return error_response(500, 'Failed to get budget status')
 
-def get_budget_alerts():
+def get_budget_alerts(user_id):
     """Get budget alert history"""
     try:
-        # Get all budgets with alert history
-        response = budget_table.scan()
+        # Get budgets with alert history for this user
+        from boto3.dynamodb.conditions import Attr
+        response = budget_table.scan(
+            FilterExpression=Attr('user_id').eq(user_id)
+        )
         budgets = response.get('Items', [])
         
         alerts = []
@@ -209,12 +229,17 @@ def check_budgets_scheduled():
             
             # Validate budget has required fields for security
             if not budget.get('budget_id'):
-                logger.warning(f"Skipping budget with missing budget_id")
+                logger.warning("Skipping budget with missing required fields")
                 continue
             
             # Get current spending
             current_spending = get_current_spending(budget.get('service_filter', 'all'))
             monthly_limit = float(budget['monthly_limit'])
+            # Validate monthly_limit to prevent division by zero
+            if monthly_limit <= 0:
+                logger.warning("Skipping budget with invalid monthly_limit")
+                continue
+            
             percentage_used = (current_spending / monthly_limit * 100)
             
             # Check thresholds
@@ -256,6 +281,11 @@ def send_budget_alert(budget, threshold, current_spending, monthly_limit):
             logger.error('Invalid budget data for alert - missing required fields')
             return
         
+        # Validate monthly_limit to prevent division by zero
+        if monthly_limit <= 0:
+            logger.error('Invalid monthly_limit for budget alert')
+            return
+        
         percentage = (current_spending / monthly_limit * 100)
         
         # Sanitize budget name for alert
@@ -292,7 +322,8 @@ View detailed cost breakdown in your CloudOps Assistant dashboard.
             Message=message
         )
         
-        logger.info(f"Budget alert sent for {sanitize_input(str(budget['budget_name']))} - {threshold}% threshold")
+        budget_id_safe = sanitize_input(str(budget.get('budget_id', 'unknown')))[:50]
+        logger.info(f"Budget alert sent for budget_id={budget_id_safe} - {int(threshold)}% threshold")
         
     except Exception as e:
         logger.error(f"Error sending budget alert: {str(e)}")
@@ -419,14 +450,10 @@ def validate_authorization(event):
             logger.warning('Invalid API key characters')
             return None
         
-        # Rate limiting check - prevent brute force
-        if not check_rate_limit(api_key):
-            logger.warning('Rate limit exceeded for API key')
-            return None
-        
         # For demo purposes, derive user ID from API key
         # In production, validate against Cognito or JWT
-        user_id = f"user_{abs(hash(api_key)) % 10000}"
+        import uuid
+        user_id = f"user_{str(uuid.uuid5(uuid.NAMESPACE_DNS, api_key))[:8]}"
         
         return user_id
         
@@ -434,7 +461,7 @@ def validate_authorization(event):
         logger.error(f"Authorization validation error: {str(e)}")
         return None
 
-def delete_budget(budget_id):
+def delete_budget(budget_id, user_id):
     """Delete a budget configuration"""
     try:
         # Sanitize budget_id
@@ -443,9 +470,22 @@ def delete_budget(budget_id):
         if not budget_id:
             return error_response(400, 'Invalid budget ID')
         
-        # Delete from DynamoDB
+        # Validate budget exists and user owns it
+        try:
+            response = budget_table.get_item(Key={'budget_id': str(budget_id)})
+            if 'Item' not in response:
+                return error_response(404, 'Budget not found')
+            if response['Item'].get('user_id') != user_id:
+                return error_response(403, 'Access denied')
+        except Exception as e:
+            logger.error(f"Error checking budget existence: {str(e)}")
+            return error_response(500, 'Failed to verify budget')
+        
+        # Delete from DynamoDB with condition to prevent race conditions
         budget_table.delete_item(
-            Key={'budget_id': budget_id}
+            Key={'budget_id': str(budget_id)},
+            ConditionExpression='user_id = :user_id',
+            ExpressionAttributeValues={':user_id': user_id}
         )
         
         return success_response({
@@ -457,16 +497,7 @@ def delete_budget(budget_id):
         logger.error(f"Error deleting budget: {str(e)}")
         return error_response(500, 'Failed to delete budget')
 
-def check_rate_limit(api_key):
-    """Basic rate limiting to prevent abuse"""
-    try:
-        # In production, implement proper rate limiting with Redis/DynamoDB
-        # For now, just validate the key isn't obviously malicious
-        if len(api_key) > 100 or 'script' in api_key.lower() or 'eval' in api_key.lower():
-            return False
-        return True
-    except Exception:
-        return False
+
 
 def sanitize_input(input_str):
     """Sanitize input to prevent injection attacks"""

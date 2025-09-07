@@ -5,12 +5,20 @@ import re
 from datetime import datetime, timedelta
 from decimal import Decimal
 import os
+try:
+    from auth_utils import auth_required
+except ImportError:
+    # Fallback if auth_utils not available
+    def auth_required(func):
+        return func
 
 # Fixed cost aggregation issue - v1.1
 
 # Configure logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+# Force deployment v2
+# Force deployment v2
 
 # Initialize AWS clients with error handling
 try:
@@ -22,6 +30,15 @@ except Exception as e:
     raise
 
 def lambda_handler(event, context):
+    # Handle CORS preflight BEFORE authentication
+    if event.get('httpMethod') == 'OPTIONS':
+        return cors_response()
+    
+    # Apply authentication for non-OPTIONS requests
+    return _authenticated_handler(event, context)
+
+@auth_required
+def _authenticated_handler(event, context):
     """
     AWS Cost Explorer integration for CloudOps Assistant
     Endpoints: /costs/current, /costs/services, /costs/trends
@@ -29,10 +46,6 @@ def lambda_handler(event, context):
     try:
         path = event.get('path', '')
         method = event.get('httpMethod', '')
-        
-        # Handle CORS preflight
-        if method == 'OPTIONS':
-            return cors_response()
         
         # Get query parameters
         query_params = event.get('queryStringParameters') or {}
@@ -109,8 +122,8 @@ def get_current_costs(month=None):
             'last_updated': datetime.now().isoformat()
         }
         
-        # Cache for 1 hour
-        cache_result(cache_key, result, 3600)
+        # Cache for 12 hours
+        cache_result(cache_key, result, 43200)
         
         return success_response(result)
         
@@ -185,8 +198,8 @@ def get_service_costs(month=None):
             'last_updated': datetime.now().isoformat()
         }
         
-        # Cache for 1 hour
-        cache_result(cache_key, result, 3600)
+        # Cache for 12 hours
+        cache_result(cache_key, result, 43200)
         
         return success_response(result)
         
@@ -234,8 +247,8 @@ def get_cost_trends():
             'last_updated': datetime.now().isoformat()
         }
         
-        # Cache for 1 hour
-        cache_result(cache_key, result, 3600)
+        # Cache for 12 hours
+        cache_result(cache_key, result, 43200)
         
         return success_response(result)
         
@@ -320,8 +333,8 @@ def get_costs_by_tag(month=None):
             'last_updated': datetime.now().isoformat()
         }
         
-        # Cache for 1 hour
-        cache_result(cache_key, result, 3600)
+        # Cache for 12 hours
+        cache_result(cache_key, result, 43200)
         
         return success_response(result)
         
@@ -366,8 +379,8 @@ def success_response(data):
         'statusCode': 200,
         'headers': {
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': 'http://localhost:3000',
-            'Access-Control-Allow-Headers': 'content-type,authorization',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Content-Type,Authorization',
             'Access-Control-Allow-Methods': 'GET,POST,OPTIONS'
         },
         'body': json.dumps(data, default=str)
@@ -379,8 +392,8 @@ def error_response(status_code, message):
         'statusCode': status_code,
         'headers': {
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': 'http://localhost:3000',
-            'Access-Control-Allow-Headers': 'content-type,authorization',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Content-Type,Authorization',
             'Access-Control-Allow-Methods': 'GET,POST,OPTIONS'
         },
         'body': json.dumps({'error': message})
@@ -391,8 +404,8 @@ def cors_response():
     return {
         'statusCode': 200,
         'headers': {
-            'Access-Control-Allow-Origin': 'http://localhost:3000',
-            'Access-Control-Allow-Headers': 'content-type,authorization',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Content-Type,Authorization',
             'Access-Control-Allow-Methods': 'GET,POST,OPTIONS'
         },
         'body': ''

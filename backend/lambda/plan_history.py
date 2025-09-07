@@ -2,9 +2,15 @@ import json
 import boto3
 import logging
 from datetime import datetime
-from boto3.dynamodb.conditions import Key
+from boto3.dynamodb.conditions import Key, Attr
 import difflib
 from decimal import Decimal
+try:
+    from auth_utils import auth_required
+except ImportError:
+    # Fallback if auth_utils not available
+    def auth_required(func):
+        return func
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -16,26 +22,32 @@ class DecimalEncoder(json.JSONEncoder):
         return super(DecimalEncoder, self).default(obj)
 
 dynamodb = boto3.resource('dynamodb')
-table = dynamodb.Table('terraform-plans')
+table = dynamodb.Table('cloudops-assistant-terraform-plans')
 
 def get_cors_headers():
     return {
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
+        'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+        'Access-Control-Allow-Methods': 'GET,POST,OPTIONS'
     }
 
 def lambda_handler(event, context):
+    # Handle CORS preflight BEFORE authentication
+    if event.get('httpMethod') == 'OPTIONS':
+        return {
+            'statusCode': 200,
+            'headers': get_cors_headers(),
+            'body': ''
+        }
+    
+    # Apply authentication for non-OPTIONS requests
+    return _authenticated_handler(event, context)
+
+@auth_required
+def _authenticated_handler(event, context):
     try:
         path = event.get('path', '')
         method = event.get('httpMethod', '')
-        
-        if method == 'OPTIONS':
-            return {
-                'statusCode': 200,
-                'headers': get_cors_headers(),
-                'body': ''
-            }
         
         if path.startswith('/plan-history/'):
             parts = path.split('/')
@@ -46,7 +58,8 @@ def lambda_handler(event, context):
                     'body': json.dumps({'error': 'Repository name required'})
                 }
             repo_name = parts[-1]
-            return get_plan_history(repo_name)
+            user_id = event['user_info']['user_id']
+            return get_plan_history(repo_name, user_id)
         elif path.startswith('/plan-details/'):
             # Extract plan_id from path parameters or path
             plan_id = event.get('pathParameters', {}).get('plan_id')
@@ -65,7 +78,8 @@ def lambda_handler(event, context):
             # URL decode the plan_id
             import urllib.parse
             plan_id = urllib.parse.unquote(plan_id)
-            return get_plan_details(plan_id)
+            user_id = event['user_info']['user_id']
+            return get_plan_details(plan_id, user_id)
         elif path.startswith('/compare-plans/'):
             # Extract plan IDs from path parameters
             path_params = event.get('pathParameters', {})
@@ -88,7 +102,8 @@ def lambda_handler(event, context):
             import urllib.parse
             plan_id1 = urllib.parse.unquote(plan_id1)
             plan_id2 = urllib.parse.unquote(plan_id2)
-            return compare_plans(plan_id1, plan_id2)
+            user_id = event['user_info']['user_id']
+            return compare_plans(plan_id1, plan_id2, user_id)
         
         return {
             'statusCode': 404,
@@ -104,12 +119,10 @@ def lambda_handler(event, context):
             'body': json.dumps({'error': 'Internal server error'})
         }
 
-def get_plan_history(repo_name):
+def get_plan_history(repo_name, user_id):
     try:
-        response = table.query(
-            IndexName='repo-timestamp-index',
-            KeyConditionExpression=Key('repo_name').eq(repo_name),
-            ScanIndexForward=False,
+        response = table.scan(
+            FilterExpression=Attr('repo_name').eq(repo_name) & Attr('user_id').eq(user_id),
             Limit=20
         )
         
@@ -140,7 +153,7 @@ def get_plan_history(repo_name):
             'body': json.dumps({'error': 'Failed to get history'})
         }
 
-def compare_plans(plan_id1, plan_id2):
+def compare_plans(plan_id1, plan_id2, user_id):
     try:
         # Sanitize plan IDs to prevent NoSQL injection
         if not isinstance(plan_id1, str) or not isinstance(plan_id2, str):
@@ -148,6 +161,15 @@ def compare_plans(plan_id1, plan_id2):
         
         response1 = table.get_item(Key={'plan_id': str(plan_id1)})
         response2 = table.get_item(Key={'plan_id': str(plan_id2)})
+        
+        # Verify user owns both plans
+        if ('Item' in response1 and response1['Item'].get('user_id') != user_id) or \
+           ('Item' in response2 and response2['Item'].get('user_id') != user_id):
+            return {
+                'statusCode': 403,
+                'headers': get_cors_headers(),
+                'body': json.dumps({'error': 'Access denied'})
+            }
         
         if 'Item' not in response1 or 'Item' not in response2:
             return {
@@ -195,7 +217,7 @@ def compare_plans(plan_id1, plan_id2):
             'body': json.dumps({'error': 'Failed to compare plans'})
         }
 
-def get_plan_details(plan_id):
+def get_plan_details(plan_id, user_id):
     try:
         # Sanitize plan ID to prevent NoSQL injection
         if not isinstance(plan_id, str):
@@ -208,6 +230,14 @@ def get_plan_details(plan_id):
                 'statusCode': 404,
                 'headers': get_cors_headers(),
                 'body': json.dumps({'error': 'Plan not found'})
+            }
+        
+        # Verify user owns this plan
+        if response['Item'].get('user_id') != user_id:
+            return {
+                'statusCode': 403,
+                'headers': get_cors_headers(),
+                'body': json.dumps({'error': 'Access denied'})
             }
         
         plan = response['Item']

@@ -4,7 +4,7 @@
 > That's what I'm building in 30 days: an open-source CloudOps Assistant.  
 > Day by day, feature by feature. Follow along for a front-row seat as we go from zero → full platform.
 
-[![Day](https://img.shields.io/badge/Day-4%2F30-blue)](https://github.com/rmnicholson0612/cloudops-assistant)
+[![Day](https://img.shields.io/badge/Day-5%2F30-blue)](https://github.com/rmnicholson0612/cloudops-assistant)
 [![Status](https://img.shields.io/badge/Status-Building-green)](https://github.com/rmnicholson0612/cloudops-assistant)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
@@ -42,7 +42,8 @@ In a world where "vibe coding" is taking over, code quality suffers and security
 - [x] **Day 2**: Plan History & Comparison ✅ COMPLETE
 - [x] **Day 3**: Cost Dashboard with AWS Cost Explorer ✅ COMPLETE
 - [x] **Day 4**: Budget Management & Security Hardening ✅ COMPLETE
-- [ ] **Day 5**: JWT Authentication with Cognito
+- [x] **Day 5**: JWT Authentication with Cognito ✅ COMPLETE
+
 - [ ] **Day 6**: Lambda Deployment Pipeline
 - [ ] **Day 7**: Scheduled Drift Monitoring
 
@@ -96,7 +97,7 @@ Built for **maximum functionality at minimum cost**:
 
 **Estimated monthly cost for moderate usage: $5-15**
 
-## 🚀 Quick Start (Day 4)
+## 🚀 Quick Start (Day 5)
 
 ```bash
 # Clone and deploy
@@ -112,6 +113,7 @@ make deploy-guided
 
 # Update config.js with the API URL from deployment output
 # Then open frontend/index.html in your browser
+# Register/login required to access all features
 ```
 
 ## 📈 Current Features (Day 4)
@@ -130,7 +132,10 @@ make deploy-guided
 ✅ **Budget Management**: Configurable budget alerts and thresholds  
 ✅ **Budget Monitoring**: Real-time budget status and spending tracking  
 ✅ **Alert System**: SNS-based budget notifications  
+✅ **JWT Authentication**: AWS Cognito User Pool integration with enforced login  
+✅ **User Management**: Registration, login, and secure token handling  
 ✅ **Security Hardening**: Input sanitization and injection prevention  
+✅ **User Data Isolation**: All data scoped to authenticated users  
 ✅ **DynamoDB Storage**: Secure plan storage with TTL and encryption  
 ✅ **Serverless Architecture**: AWS Lambda + API Gateway + DynamoDB  
 
@@ -156,12 +161,12 @@ Unlike other DevOps tools that cost $$$$ per month:
 ## 📊 Progress Tracker
 
 ```
-Foundation:    ████████████████████████████████████████ 71.4% (5/7 days)
+Foundation:    ██████████████████████████████████████████████ 85.7% (6/7 days)
 AI Layer:      ░░░░░░░░░░  0% (0/7 days)
 Observability: ░░░░░░░░░░  0% (0/7 days)
 Advanced:      ░░░░░░░░░░  0% (0/9 days)
 
-Overall:       ██████░░░░ 16.7% (5/30 days)
+Overall:       ████████░░ 20.0% (6/30 days)
 ```
 
 ## 🎯 The End Goal

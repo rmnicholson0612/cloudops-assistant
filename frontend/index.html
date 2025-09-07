@@ -18,10 +18,20 @@
                     <i class="fas fa-cloud"></i>
                     <h1>CloudOps Assistant</h1>
                 </div>
-                <div class="progress-badge">
-                    <span>Day <span id="current-day">1</span>/<span id="total-days">30</span></span>
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="progress-fill" style="width: 3.3%"></div>
+                <div class="header-right">
+                    <div class="progress-badge">
+                        <span>Day <span id="current-day">1</span>/<span id="total-days">30</span></span>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progress-fill" style="width: 3.3%"></div>
+                        </div>
+                    </div>
+                    <div class="auth-section" id="auth-section">
+                        <button class="btn btn-primary" onclick="showLoginModal()">Login</button>
+                        <button class="btn btn-secondary" onclick="showRegisterModal()">Register</button>
+                    </div>
+                    <div class="user-section" id="user-section" style="display: none;">
+                        <span id="user-email"></span>
+                        <button class="btn btn-secondary" onclick="logout()">Logout</button>
                     </div>
                 </div>
             </div>
@@ -852,6 +862,68 @@ terraform plan > plan.txt</code>
         </div>
     </div>
 
+    <!-- Login Modal -->
+    <div id="login-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-sign-in-alt"></i> Login</h2>
+                <span class="close" onclick="closeLoginModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="auth-form">
+                    <div class="form-group">
+                        <label for="login-email">Email</label>
+                        <input type="email" id="login-email" placeholder="your-email@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Password</label>
+                        <input type="password" id="login-password" placeholder="Your password">
+                    </div>
+                </div>
+                <div class="auth-actions">
+                    <button class="btn btn-primary" onclick="login()">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </button>
+                    <button class="btn btn-secondary" onclick="closeLoginModal()">
+                        Cancel
+                    </button>
+                </div>
+                <div id="login-result" class="auth-result"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div id="register-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-user-plus"></i> Register</h2>
+                <span class="close" onclick="closeRegisterModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="auth-form">
+                    <div class="form-group">
+                        <label for="register-email">Email</label>
+                        <input type="email" id="register-email" placeholder="your-email@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password">Password</label>
+                        <input type="password" id="register-password" placeholder="Minimum 8 characters">
+                    </div>
+                </div>
+                <div class="auth-actions">
+                    <button class="btn btn-primary" onclick="register()">
+                        <i class="fas fa-user-plus"></i> Register
+                    </button>
+                    <button class="btn btn-secondary" onclick="closeRegisterModal()">
+                        Cancel
+                    </button>
+                </div>
+                <div id="register-result" class="auth-result"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- Budget Configuration Modal -->
     <div id="budget-modal" class="modal">
         <div class="modal-content">
@@ -940,6 +1012,9 @@ terraform plan > plan.txt</code>
             // Update page title with current day
             document.title = `CloudOps Assistant - Day ${CONFIG.CURRENT_DAY}/${CONFIG.TOTAL_DAYS}`;
             
+            // Check authentication status
+            checkAuthStatus();
+            
             // Initialize month selector immediately
             initializeMonthSelector();
             
@@ -960,13 +1035,20 @@ terraform plan > plan.txt</code>
                 return;
             }
             
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                resultsElement.innerHTML = '<div class="error"><i class="fas fa-lock"></i> Please login to scan repositories</div>';
+                return;
+            }
+            
             resultsElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scanning repositories...';
             
             try {
                 const response = await fetch(`${CONFIG.API_BASE_URL}/scan-repos`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
                     },
                     body: JSON.stringify({
                         github_target: githubTarget,
@@ -1069,8 +1151,18 @@ terraform plan > plan.txt</code>
         }
         
         async function viewRepoHistory(repoName, githubTarget) {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                alert('Please login to view plan history');
+                return;
+            }
+            
             try {
-                const response = await fetch(`${CONFIG.API_BASE_URL}/plan-history/${repoName}`);
+                const response = await fetch(`${CONFIG.API_BASE_URL}/plan-history/${repoName}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
                 const data = await response.json();
                 
                 if (response.ok) {
@@ -1126,10 +1218,20 @@ terraform plan > plan.txt</code>
         }
         
         async function comparePlans(planId1, planId2) {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                alert('Please login to compare plans');
+                return;
+            }
+            
             try {
                 const encodedPlan1 = encodeURIComponent(planId1);
                 const encodedPlan2 = encodeURIComponent(planId2);
-                const response = await fetch(`${CONFIG.API_BASE_URL}/compare-plans/${encodedPlan1}/${encodedPlan2}`);
+                const response = await fetch(`${CONFIG.API_BASE_URL}/compare-plans/${encodedPlan1}/${encodedPlan2}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
                 const data = await response.json();
                 
                 if (response.ok) {
@@ -1178,9 +1280,19 @@ terraform plan > plan.txt</code>
         }
         
         async function viewPlanDetails(planId) {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                alert('Please login to view plan details');
+                return;
+            }
+            
             try {
                 const encodedPlanId = encodeURIComponent(planId);
-                const response = await fetch(`${CONFIG.API_BASE_URL}/plan-details/${encodedPlanId}`);
+                const response = await fetch(`${CONFIG.API_BASE_URL}/plan-details/${encodedPlanId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
                 const data = await response.json();
                 
                 if (response.ok) {
@@ -1305,10 +1417,17 @@ terraform plan > plan.txt</code>
             try {
                 const planContent = await file.text();
                 
+                const token = localStorage.getItem('access_token');
+                if (!token) {
+                    resultElement.innerHTML = '<div class="error">Please login to upload plans</div>';
+                    return;
+                }
+                
                 const response = await fetch(`${CONFIG.API_BASE_URL}/upload-plan`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
                     },
                     body: JSON.stringify({
                         repo_name: currentRepo,
@@ -1391,6 +1510,8 @@ terraform plan > plan.txt</code>
             const costModal = document.getElementById('cost-modal');
             const budgetModal = document.getElementById('budget-modal');
             const budgetInfoModal = document.getElementById('budget-info-modal');
+            const loginModal = document.getElementById('login-modal');
+            const registerModal = document.getElementById('register-modal');
             
             if (event.target === featureModal) {
                 featureModal.style.display = 'none';
@@ -1406,6 +1527,12 @@ terraform plan > plan.txt</code>
             }
             if (event.target === budgetInfoModal) {
                 budgetInfoModal.style.display = 'none';
+            }
+            if (event.target === loginModal) {
+                loginModal.style.display = 'none';
+            }
+            if (event.target === registerModal) {
+                registerModal.style.display = 'none';
             }
         }
 
@@ -1455,10 +1582,20 @@ terraform plan > plan.txt</code>
 
         async function loadCurrentCosts(month = null) {
             const displayElement = document.getElementById('current-cost-display');
+            const token = localStorage.getItem('access_token');
+            
+            if (!token) {
+                displayElement.innerHTML = '<div class="cost-error"><i class="fas fa-lock"></i> Please login to view costs</div>';
+                return;
+            }
             
             try {
                 const url = month ? `${CONFIG.API_BASE_URL}/costs/current?month=${month}` : `${CONFIG.API_BASE_URL}/costs/current`;
-                const response = await fetch(url);
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
                 const data = await response.json();
                 
                 if (response.ok) {
@@ -1482,10 +1619,20 @@ terraform plan > plan.txt</code>
 
         async function loadServiceCosts(month = null) {
             const displayElement = document.getElementById('service-costs-display');
+            const token = localStorage.getItem('access_token');
+            
+            if (!token) {
+                displayElement.innerHTML = '<div class="cost-error"><i class="fas fa-lock"></i> Please login to view service costs</div>';
+                return;
+            }
             
             try {
                 const url = month ? `${CONFIG.API_BASE_URL}/costs/services?month=${month}` : `${CONFIG.API_BASE_URL}/costs/services`;
-                const response = await fetch(url);
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
                 const data = await response.json();
                 
                 if (response.ok) {
@@ -1519,9 +1666,19 @@ terraform plan > plan.txt</code>
 
         async function loadCostTrends() {
             const displayElement = document.getElementById('cost-trends-display');
+            const token = localStorage.getItem('access_token');
+            
+            if (!token) {
+                displayElement.innerHTML = '<div class="cost-error"><i class="fas fa-lock"></i> Please login to view cost trends</div>';
+                return;
+            }
             
             try {
-                const response = await fetch(`${CONFIG.API_BASE_URL}/costs/trends`);
+                const response = await fetch(`${CONFIG.API_BASE_URL}/costs/trends`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
                 const data = await response.json();
                 
                 if (response.ok) {
@@ -1561,10 +1718,20 @@ terraform plan > plan.txt</code>
 
         async function loadTagCosts(month = null) {
             const displayElement = document.getElementById('tag-costs-display');
+            const token = localStorage.getItem('access_token');
+            
+            if (!token) {
+                displayElement.innerHTML = '<div class="cost-error"><i class="fas fa-lock"></i> Please login to view tagged costs</div>';
+                return;
+            }
             
             try {
                 const url = month ? `${CONFIG.API_BASE_URL}/costs/by-tag?month=${month}` : `${CONFIG.API_BASE_URL}/costs/by-tag`;
-                const response = await fetch(url);
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
                 const data = await response.json();
                 
                 if (response.ok) {
@@ -1643,11 +1810,18 @@ terraform plan > plan.txt</code>
                 return;
             }
             
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                alert('Please login to configure budgets');
+                return;
+            }
+            
             try {
                 const response = await fetch(`${CONFIG.API_BASE_URL}/budgets/configure`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
                     },
                     body: JSON.stringify({
                         budget_name: budgetName,
@@ -1674,9 +1848,19 @@ terraform plan > plan.txt</code>
 
         async function loadBudgetStatus() {
             const displayElement = document.getElementById('budget-status-display');
+            const token = localStorage.getItem('access_token');
+            
+            if (!token) {
+                displayElement.innerHTML = '<div class="budget-error"><i class="fas fa-lock"></i> Please login to view budget status</div>';
+                return;
+            }
             
             try {
-                const response = await fetch(`${CONFIG.API_BASE_URL}/budgets/status`);
+                const response = await fetch(`${CONFIG.API_BASE_URL}/budgets/status`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
                 const data = await response.json();
                 
                 if (response.ok) {
@@ -1724,9 +1908,18 @@ terraform plan > plan.txt</code>
                 return;
             }
             
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                alert('Please login to delete budgets');
+                return;
+            }
+            
             try {
                 const response = await fetch(`${CONFIG.API_BASE_URL}/budgets/delete/${budgetId}`, {
-                    method: 'DELETE'
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
                 });
                 
                 const data = await response.json();
@@ -1739,6 +1932,151 @@ terraform plan > plan.txt</code>
                 }
             } catch (error) {
                 alert('Failed to delete budget');
+            }
+        }
+
+        // Authentication Functions
+        function showLoginModal() {
+            document.getElementById('login-modal').style.display = 'block';
+        }
+        
+        function closeLoginModal() {
+            document.getElementById('login-modal').style.display = 'none';
+            document.getElementById('login-result').innerHTML = '';
+        }
+        
+        function showRegisterModal() {
+            document.getElementById('register-modal').style.display = 'block';
+        }
+        
+        function closeRegisterModal() {
+            document.getElementById('register-modal').style.display = 'none';
+            document.getElementById('register-result').innerHTML = '';
+        }
+        
+        async function login() {
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value;
+            const resultElement = document.getElementById('login-result');
+            
+            if (!email || !password) {
+                resultElement.innerHTML = '<div class="error">Please enter email and password</div>';
+                return;
+            }
+            
+            resultElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
+            
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Store tokens
+                    localStorage.setItem('access_token', data.access_token);
+                    localStorage.setItem('id_token', data.id_token);
+                    localStorage.setItem('refresh_token', data.refresh_token);
+                    localStorage.setItem('user_email', email);
+                    
+                    // Update UI
+                    updateAuthUI(true, email);
+                    closeLoginModal();
+                    
+                    resultElement.innerHTML = '<div class="success">Login successful!</div>';
+                } else {
+                    resultElement.innerHTML = `<div class="error">${data.error}</div>`;
+                }
+            } catch (error) {
+                resultElement.innerHTML = '<div class="error">Login failed. Please try again.</div>';
+            }
+        }
+        
+        async function register() {
+            const email = document.getElementById('register-email').value.trim();
+            const password = document.getElementById('register-password').value;
+            const resultElement = document.getElementById('register-result');
+            
+            if (!email || !password) {
+                resultElement.innerHTML = '<div class="error">Please enter email and password</div>';
+                return;
+            }
+            
+            if (password.length < 8) {
+                resultElement.innerHTML = '<div class="error">Password must be at least 8 characters</div>';
+                return;
+            }
+            
+            resultElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating account...';
+            
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/auth/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultElement.innerHTML = '<div class="success">Account created! You can now login.</div>';
+                    setTimeout(() => {
+                        closeRegisterModal();
+                        showLoginModal();
+                    }, 2000);
+                } else {
+                    resultElement.innerHTML = `<div class="error">${data.error}</div>`;
+                }
+            } catch (error) {
+                resultElement.innerHTML = '<div class="error">Registration failed. Please try again.</div>';
+            }
+        }
+        
+        function logout() {
+            // Clear tokens
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('id_token');
+            localStorage.removeItem('refresh_token');
+            localStorage.removeItem('user_email');
+            
+            // Update UI
+            updateAuthUI(false);
+        }
+        
+        function updateAuthUI(isLoggedIn, email = '') {
+            const authSection = document.getElementById('auth-section');
+            const userSection = document.getElementById('user-section');
+            const userEmailSpan = document.getElementById('user-email');
+            
+            if (isLoggedIn) {
+                authSection.style.display = 'none';
+                userSection.style.display = 'block';
+                userEmailSpan.textContent = email;
+            } else {
+                authSection.style.display = 'block';
+                userSection.style.display = 'none';
+            }
+        }
+        
+        function checkAuthStatus() {
+            const token = localStorage.getItem('access_token');
+            const email = localStorage.getItem('user_email');
+            
+            if (token && email) {
+                updateAuthUI(true, email);
             }
         }
 

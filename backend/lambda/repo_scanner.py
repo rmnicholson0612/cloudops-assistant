@@ -6,6 +6,12 @@ import re
 import random
 from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed
+try:
+    from auth_utils import auth_required
+except ImportError:
+    # Fallback if auth_utils not available
+    def auth_required(func):
+        return func
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -46,13 +52,19 @@ def sanitize_db_input(value):
     return value
 
 def lambda_handler(event, context):
-    # Handle CORS preflight
+    # Handle CORS preflight BEFORE authentication
     if event.get('httpMethod') == 'OPTIONS':
         return {
             "statusCode": 200,
             "headers": get_cors_headers(),
             "body": ""
         }
+    
+    # Apply authentication for non-OPTIONS requests
+    return _authenticated_handler(event, context)
+
+@auth_required
+def _authenticated_handler(event, context):
     
     try:
         body_str = event.get('body', '{}')
@@ -191,32 +203,128 @@ def scan_repos_parallel(terraform_repos, github_token):
     return results
 
 def scan_repo_drift(repo, token=None):
-    """Mock terraform drift scanning for a repo"""
-    # For Day 1, we'll simulate drift detection
-    # In future days, this would clone repo and run terraform plan
-    
-    has_drift = random.choice([True, False, False])  # 33% chance of drift
+    """Real terraform drift scanning by cloning and running terraform plan"""
+    import subprocess
+    import tempfile
+    import os
+    import shutil
     
     repo_name = sanitize_db_input(repo.get('name', 'unknown'))
+    clone_url = repo.get('clone_url', '')
     
-    if has_drift:
-        # Use safe string concatenation instead of f-strings for user input
-        mock_changes = [
-            "~ aws_s3_bucket." + repo_name + "_bucket changed: versioning.enabled",
-            "+ aws_cloudwatch_log_group." + repo_name + "_logs added"
-        ]
-    else:
-        mock_changes = []
+    if not clone_url:
+        return {
+            "repo_name": repo_name,
+            "repo_url": repo.get('html_url', ''),
+            "full_name": sanitize_db_input(repo.get('full_name', '')),
+            "drift_detected": False,
+            "changes": [],
+            "last_scan": datetime.now(timezone.utc).isoformat(),
+            "status": "error",
+            "error": "No clone URL available"
+        }
     
-    return {
-        "repo_name": repo_name,
-        "repo_url": repo.get('html_url', ''),
-        "full_name": sanitize_db_input(repo.get('full_name', '')),
-        "drift_detected": has_drift,
-        "changes": [sanitize_db_input(change) for change in mock_changes],
-        "last_scan": datetime.now(timezone.utc).isoformat(),
-        "status": "drift_detected" if has_drift else "no_drift"
-    }
+    with tempfile.TemporaryDirectory() as temp_dir:
+        try:
+            # Clone repository
+            clone_cmd = ['git', 'clone', '--depth', '1', clone_url, temp_dir]
+            subprocess.run(clone_cmd, check=True, capture_output=True, timeout=30)
+            
+            # Find terraform files
+            tf_dirs = []
+            for root, dirs, files in os.walk(temp_dir):
+                if any(f.endswith('.tf') for f in files):
+                    tf_dirs.append(root)
+            
+            if not tf_dirs:
+                return {
+                    "repo_name": repo_name,
+                    "repo_url": repo.get('html_url', ''),
+                    "full_name": sanitize_db_input(repo.get('full_name', '')),
+                    "drift_detected": False,
+                    "changes": [],
+                    "last_scan": datetime.now(timezone.utc).isoformat(),
+                    "status": "no_terraform"
+                }
+            
+            # Run terraform plan in first terraform directory
+            tf_dir = tf_dirs[0]
+            os.chdir(tf_dir)
+            
+            # Initialize terraform
+            init_result = subprocess.run(['terraform', 'init'], 
+                                       capture_output=True, text=True, timeout=60)
+            if init_result.returncode != 0:
+                return {
+                    "repo_name": repo_name,
+                    "repo_url": repo.get('html_url', ''),
+                    "full_name": sanitize_db_input(repo.get('full_name', '')),
+                    "drift_detected": False,
+                    "changes": [],
+                    "last_scan": datetime.now(timezone.utc).isoformat(),
+                    "status": "init_failed",
+                    "error": init_result.stderr[:500]
+                }
+            
+            # Run terraform plan
+            plan_result = subprocess.run(['terraform', 'plan', '-no-color'], 
+                                       capture_output=True, text=True, timeout=120)
+            
+            # Parse plan output for changes
+            changes = []
+            has_drift = False
+            
+            if plan_result.returncode == 0:
+                plan_output = plan_result.stdout
+                
+                # Check for "No changes" message
+                if 'No changes' in plan_output and 'infrastructure matches' in plan_output:
+                    has_drift = False
+                else:
+                    # Look for actual changes
+                    for line in plan_output.split('\n'):
+                        line = line.strip()
+                        if ('will be created' in line or 
+                            'will be updated' in line or 
+                            'will be destroyed' in line or 
+                            'must be replaced' in line):
+                            changes.append(line[:200])  # Limit line length
+                            has_drift = True
+                            if len(changes) >= 10:  # Limit number of changes
+                                break
+            
+            return {
+                "repo_name": repo_name,
+                "repo_url": repo.get('html_url', ''),
+                "full_name": sanitize_db_input(repo.get('full_name', '')),
+                "drift_detected": has_drift,
+                "changes": [sanitize_db_input(change) for change in changes],
+                "last_scan": datetime.now(timezone.utc).isoformat(),
+                "status": "drift_detected" if has_drift else "no_drift",
+                "terraform_dirs": len(tf_dirs)
+            }
+            
+        except subprocess.TimeoutExpired:
+            return {
+                "repo_name": repo_name,
+                "repo_url": repo.get('html_url', ''),
+                "full_name": sanitize_db_input(repo.get('full_name', '')),
+                "drift_detected": False,
+                "changes": [],
+                "last_scan": datetime.now(timezone.utc).isoformat(),
+                "status": "timeout"
+            }
+        except Exception as e:
+            return {
+                "repo_name": repo_name,
+                "repo_url": repo.get('html_url', ''),
+                "full_name": sanitize_db_input(repo.get('full_name', '')),
+                "drift_detected": False,
+                "changes": [],
+                "last_scan": datetime.now(timezone.utc).isoformat(),
+                "status": "error",
+                "error": str(e)[:200]
+            }
 
 # Removed store_scan_results - repo scanning should not store plans
 

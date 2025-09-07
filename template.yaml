@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: CloudOps Assistant – Day 3 Cost Dashboard with AWS Cost Explorer
+Description: CloudOps Assistant – Day 5 JWT Authentication with CORS Fix v2
 
 Globals:
   Function:
@@ -11,8 +11,8 @@ Globals:
   Api:
     Cors:
       AllowMethods: "'GET,POST,DELETE,OPTIONS'"
-      AllowHeaders: "'content-type,authorization'"
-      AllowOrigin: "'http://localhost:3000'"  # Restrict to local development
+      AllowHeaders: "'Content-Type,Authorization'"
+      AllowOrigin: "'*'"  # Allow all origins for development
 
 Resources:
   # Day 1 - Repository Scanner Function
@@ -22,11 +22,23 @@ Resources:
       Handler: repo_scanner.lambda_handler
       Runtime: python3.11
       CodeUri: backend/lambda/
-      MemorySize: 512
-      Timeout: 60
+      MemorySize: 1024
+      Timeout: 300
+      Layers:
+        - arn:aws:lambda:us-east-1:553035198032:layer:git-lambda2:8
+      Environment:
+        Variables:
+          USER_POOL_ID: !Ref CloudOpsUserPool
+          USER_POOL_CLIENT_ID: !Ref CloudOpsUserPoolClient
       Tags:
         Service: cloudops-assistant
         Feature: repo-scanning
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:GetUser
+              Resource: !GetAtt CloudOpsUserPool.Arn
       Events:
         Api:
           Type: Api
@@ -48,12 +60,21 @@ Resources:
       CodeUri: backend/lambda/
       MemorySize: 512
       Timeout: 60
+      Environment:
+        Variables:
+          USER_POOL_ID: !Ref CloudOpsUserPool
+          USER_POOL_CLIENT_ID: !Ref CloudOpsUserPoolClient
       Tags:
         Service: cloudops-assistant
         Feature: plan-processing
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TerraformPlansTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:GetUser
+              Resource: !GetAtt CloudOpsUserPool.Arn
       Events:
         Api:
           Type: Api
@@ -75,12 +96,21 @@ Resources:
       CodeUri: backend/lambda/
       MemorySize: 256
       Timeout: 30
+      Environment:
+        Variables:
+          USER_POOL_ID: !Ref CloudOpsUserPool
+          USER_POOL_CLIENT_ID: !Ref CloudOpsUserPoolClient
       Tags:
         Service: cloudops-assistant
         Feature: plan-history
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref TerraformPlansTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:GetUser
+              Resource: !GetAtt CloudOpsUserPool.Arn
       Events:
         HistoryApi:
           Type: Api
@@ -122,6 +152,10 @@ Resources:
       CodeUri: backend/lambda/
       MemorySize: 256
       Timeout: 30
+      Environment:
+        Variables:
+          USER_POOL_ID: !Ref CloudOpsUserPool
+          USER_POOL_CLIENT_ID: !Ref CloudOpsUserPoolClient
       Tags:
         Service: cloudops-assistant
         Feature: cost-analysis
@@ -134,6 +168,7 @@ Resources:
                 - ce:GetCostAndUsage
                 - ce:GetDimensionValues
                 - ce:GetUsageReport
+                - cognito-idp:GetUser
               Resource: "*"
       Events:
         CurrentCostApi:
@@ -186,6 +221,10 @@ Resources:
       CodeUri: backend/lambda/
       MemorySize: 256
       Timeout: 30
+      Environment:
+        Variables:
+          USER_POOL_ID: !Ref CloudOpsUserPool
+          USER_POOL_CLIENT_ID: !Ref CloudOpsUserPoolClient
       Tags:
         Service: cloudops-assistant
         Feature: budget-management
@@ -199,6 +238,7 @@ Resources:
               Action:
                 - ce:GetCostAndUsage
                 - sns:Publish
+                - cognito-idp:GetUser
               Resource: "*"
       Events:
         ConfigureBudgetApi:
@@ -241,6 +281,110 @@ Resources:
           Properties:
             Path: /budgets/delete/{budget_id}
             Method: OPTIONS
+
+  # Day 5 - Cognito User Pool
+  CloudOpsUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: cloudops-assistant-users
+      AutoVerifiedAttributes:
+        - email
+      UsernameAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+      Schema:
+        - Name: email
+          AttributeDataType: String
+          Required: true
+          Mutable: true
+      UserPoolTags:
+        Service: cloudops-assistant
+        Feature: authentication
+
+  # Day 5 - Authentication Handler Function
+  AuthHandlerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: auth_handler.lambda_handler
+      Runtime: python3.11
+      CodeUri: backend/lambda/
+      MemorySize: 256
+      Timeout: 30
+      Tags:
+        Service: cloudops-assistant
+        Feature: authentication
+      Environment:
+        Variables:
+          USER_POOL_ID: !Ref CloudOpsUserPool
+          USER_POOL_CLIENT_ID: !Ref CloudOpsUserPoolClient
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:AdminCreateUser
+                - cognito-idp:AdminSetUserPassword
+                - cognito-idp:AdminInitiateAuth
+                - cognito-idp:GetUser
+              Resource: !GetAtt CloudOpsUserPool.Arn
+      Events:
+        RegisterApi:
+          Type: Api
+          Properties:
+            Path: /auth/register
+            Method: POST
+        LoginApi:
+          Type: Api
+          Properties:
+            Path: /auth/login
+            Method: POST
+        VerifyApi:
+          Type: Api
+          Properties:
+            Path: /auth/verify
+            Method: POST
+        RegisterOptions:
+          Type: Api
+          Properties:
+            Path: /auth/register
+            Method: OPTIONS
+            RestApiId: !Ref ServerlessRestApi
+        LoginOptions:
+          Type: Api
+          Properties:
+            Path: /auth/login
+            Method: OPTIONS
+            RestApiId: !Ref ServerlessRestApi
+        VerifyOptions:
+          Type: Api
+          Properties:
+            Path: /auth/verify
+            Method: OPTIONS
+            RestApiId: !Ref ServerlessRestApi
+
+  # Day 5 - Cognito User Pool Client
+  CloudOpsUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref CloudOpsUserPool
+      ClientName: cloudops-assistant-client
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+        - ALLOW_ADMIN_USER_PASSWORD_AUTH
+      TokenValidityUnits:
+        AccessToken: hours
+        IdToken: hours
+        RefreshToken: days
+      AccessTokenValidity: 24
+      IdTokenValidity: 24
+      RefreshTokenValidity: 30
 
   # Day 4 - Budget Configuration Table
   BudgetConfigTable:
@@ -296,7 +440,7 @@ Resources:
   TerraformPlansTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: terraform-plans
+      TableName: cloudops-assistant-terraform-plans
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: plan_id
@@ -348,3 +492,15 @@ Outputs:
     Value: !Ref CostCacheTable
     Export:
       Name: CloudOpsCostCacheTable
+      
+  UserPoolId:
+    Description: "Cognito User Pool ID for authentication"
+    Value: !Ref CloudOpsUserPool
+    Export:
+      Name: CloudOpsUserPoolId
+      
+  UserPoolClientId:
+    Description: "Cognito User Pool Client ID"
+    Value: !Ref CloudOpsUserPoolClient
+    Export:
+      Name: CloudOpsUserPoolClientId

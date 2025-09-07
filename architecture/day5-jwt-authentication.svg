@@ -1,0 +1,224 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="awsGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF9900;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FF6600;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="cognitoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4CAF50;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2E7D32;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="lambdaGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF9800;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F57C00;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="600" fill="#f8f9fa"/>
+  
+  <!-- Title -->
+  <text x="400" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#333">
+    Day 5: JWT Authentication with AWS Cognito
+  </text>
+  
+  <!-- User/Browser -->
+  <rect x="50" y="80" width="120" height="80" rx="10" fill="#667eea" stroke="#5a67d8" stroke-width="2"/>
+  <text x="110" y="110" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">
+    User Browser
+  </text>
+  <text x="110" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    React Frontend
+  </text>
+  <text x="110" y="145" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    JWT Tokens
+  </text>
+  
+  <!-- API Gateway -->
+  <rect x="250" y="80" width="120" height="80" rx="10" fill="url(#awsGradient)" stroke="#FF6600" stroke-width="2"/>
+  <text x="310" y="110" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">
+    API Gateway
+  </text>
+  <text x="310" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    REST API
+  </text>
+  <text x="310" y="145" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    CORS Enabled
+  </text>
+  
+  <!-- Cognito User Pool -->
+  <rect x="450" y="80" width="120" height="80" rx="10" fill="url(#cognitoGradient)" stroke="#2E7D32" stroke-width="2"/>
+  <text x="510" y="105" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">
+    Cognito
+  </text>
+  <text x="510" y="120" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">
+    User Pool
+  </text>
+  <text x="510" y="135" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    JWT Tokens
+  </text>
+  <text x="510" y="150" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    User Management
+  </text>
+  
+  <!-- Auth Handler Lambda -->
+  <rect x="250" y="200" width="120" height="80" rx="10" fill="url(#lambdaGradient)" stroke="#F57C00" stroke-width="2"/>
+  <text x="310" y="225" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">
+    Auth Handler
+  </text>
+  <text x="310" y="240" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">
+    Lambda
+  </text>
+  <text x="310" y="255" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    /auth/register
+  </text>
+  <text x="310" y="270" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    /auth/login
+  </text>
+  
+  <!-- Other Lambda Functions -->
+  <rect x="50" y="320" width="100" height="60" rx="8" fill="url(#lambdaGradient)" stroke="#F57C00" stroke-width="2"/>
+  <text x="100" y="340" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white">
+    Plan Processor
+  </text>
+  <text x="100" y="355" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    Lambda
+  </text>
+  <text x="100" y="370" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">
+    🔒 JWT Auth</text>
+  
+  <rect x="170" y="320" width="100" height="60" rx="8" fill="url(#lambdaGradient)" stroke="#F57C00" stroke-width="2"/>
+  <text x="220" y="340" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white">
+    Cost Analyzer
+  </text>
+  <text x="220" y="355" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    Lambda
+  </text>
+  <text x="220" y="370" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">
+    🔒 JWT Auth</text>
+  
+  <rect x="290" y="320" width="100" height="60" rx="8" fill="url(#lambdaGradient)" stroke="#F57C00" stroke-width="2"/>
+  <text x="340" y="340" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white">
+    Budget Manager
+  </text>
+  <text x="340" y="355" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    Lambda
+  </text>
+  <text x="340" y="370" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">
+    🔒 JWT Auth</text>
+  
+  <rect x="410" y="320" width="100" height="60" rx="8" fill="url(#lambdaGradient)" stroke="#F57C00" stroke-width="2"/>
+  <text x="460" y="340" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white">
+    Plan History
+  </text>
+  <text x="460" y="355" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    Lambda
+  </text>
+  <text x="460" y="370" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">
+    🔒 JWT Auth</text>
+  
+  <rect x="530" y="320" width="100" height="60" rx="8" fill="url(#lambdaGradient)" stroke="#F57C00" stroke-width="2"/>
+  <text x="580" y="340" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white">
+    Repo Scanner
+  </text>
+  <text x="580" y="355" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    Lambda
+  </text>
+  <text x="580" y="370" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">
+    🔒 JWT Auth</text>
+  
+  <!-- DynamoDB Tables -->
+  <rect x="650" y="320" width="100" height="60" rx="8" fill="#3F51B5" stroke="#303F9F" stroke-width="2"/>
+  <text x="700" y="340" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white">
+    DynamoDB
+  </text>
+  <text x="700" y="355" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    Tables
+  </text>
+  <text x="700" y="370" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">
+    User Isolated</text>
+  
+  <!-- Authentication Flow -->
+  <rect x="50" y="450" width="700" height="120" rx="10" fill="#E8F5E8" stroke="#4CAF50" stroke-width="2"/>
+  <text x="400" y="470" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E7D32">
+    Authentication Flow
+  </text>
+  
+  <!-- Flow Steps -->
+  <circle cx="100" cy="500" r="15" fill="#4CAF50"/>
+  <text x="100" y="505" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">1</text>
+  <text x="100" y="530" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#333">
+    User registers/
+  </text>
+  <text x="100" y="545" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#333">
+    logs in
+  </text>
+  
+  <circle cx="250" cy="500" r="15" fill="#4CAF50"/>
+  <text x="250" y="505" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">2</text>
+  <text x="250" y="530" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#333">
+    Auth Lambda
+  </text>
+  <text x="250" y="545" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#333">
+    validates
+  </text>
+  
+  <circle cx="400" cy="500" r="15" fill="#4CAF50"/>
+  <text x="400" y="505" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">3</text>
+  <text x="400" y="530" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#333">
+    Cognito creates
+  </text>
+  <text x="400" y="545" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#333">
+    JWT tokens
+  </text>
+  
+  <circle cx="550" cy="500" r="15" fill="#4CAF50"/>
+  <text x="550" y="505" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">4</text>
+  <text x="550" y="530" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#333">
+    Tokens stored
+  </text>
+  <text x="550" y="545" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#333">
+    in localStorage
+  </text>
+  
+  <circle cx="700" cy="500" r="15" fill="#4CAF50"/>
+  <text x="700" y="505" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">5</text>
+  <text x="700" y="530" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#333">
+    Future API calls
+  </text>
+  <text x="700" y="545" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#333">
+    use JWT tokens
+  </text>
+  
+  <!-- Arrows -->
+  <!-- User to API Gateway -->
+  <path d="M 170 120 L 240 120" stroke="#333" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  
+  <!-- API Gateway to Auth Lambda -->
+  <path d="M 310 160 L 310 190" stroke="#333" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  
+  <!-- Auth Lambda to Cognito -->
+  <path d="M 370 240 L 440 140" stroke="#333" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  
+  <!-- API Gateway to Cognito -->
+  <path d="M 370 120 L 440 120" stroke="#333" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  
+  <!-- Lambda functions to DynamoDB -->
+  <path d="M 630 350 L 640 350" stroke="#333" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  
+  <!-- Flow arrows -->
+  <path d="M 125 500 L 225 500" stroke="#4CAF50" stroke-width="2" fill="none" marker-end="url(#greenArrow)"/>
+  <path d="M 275 500 L 375 500" stroke="#4CAF50" stroke-width="2" fill="none" marker-end="url(#greenArrow)"/>
+  <path d="M 425 500 L 525 500" stroke="#4CAF50" stroke-width="2" fill="none" marker-end="url(#greenArrow)"/>
+  <path d="M 575 500 L 675 500" stroke="#4CAF50" stroke-width="2" fill="none" marker-end="url(#greenArrow)"/>
+  
+  <!-- Arrow markers -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#333"/>
+    </marker>
+    <marker id="greenArrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#4CAF50"/>
+    </marker>
+  </defs>
+</svg>
