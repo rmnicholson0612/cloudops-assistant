@@ -4,7 +4,7 @@
 > That's what I'm building in 30 days: an open-source CloudOps Assistant.  
 > Day by day, feature by feature. Follow along for a front-row seat as we go from zero → full platform.
 
-[![Day](https://img.shields.io/badge/Day-5%2F30-blue)](https://github.com/rmnicholson0612/cloudops-assistant)
+[![Day](https://img.shields.io/badge/Day-6%2F30-blue)](https://github.com/rmnicholson0612/cloudops-assistant)
 [![Status](https://img.shields.io/badge/Status-Building-green)](https://github.com/rmnicholson0612/cloudops-assistant)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
@@ -44,7 +44,7 @@ In a world where "vibe coding" is taking over, code quality suffers and security
 - [x] **Day 4**: Budget Management & Security Hardening ✅ COMPLETE
 - [x] **Day 5**: JWT Authentication with Cognito ✅ COMPLETE
 
-- [ ] **Day 6**: Lambda Deployment Pipeline
+- [x] **Day 6**: Open Source Quality Pipeline ✅ COMPLETE
 - [ ] **Day 7**: Scheduled Drift Monitoring
 
 ### Week 2: AI Layer 🤖
@@ -116,7 +116,7 @@ make deploy-guided
 # Register/login required to access all features
 ```
 
-## 📈 Current Features (Day 4)
+## 📈 Current Features (Day 6)
 
 ✅ **GitHub Repository Scanning**: Discovers terraform repos automatically  
 ✅ **Real Terraform Plan Processing**: Upload and analyze actual terraform plans  
@@ -138,6 +138,12 @@ make deploy-guided
 ✅ **User Data Isolation**: All data scoped to authenticated users  
 ✅ **DynamoDB Storage**: Secure plan storage with TTL and encryption  
 ✅ **Serverless Architecture**: AWS Lambda + API Gateway + DynamoDB  
+✅ **Quality Pipeline**: Automated code formatting, linting, and security scanning  
+✅ **Contributor Guidelines**: Complete setup with issue templates and PR process  
+✅ **Pre-commit Hooks**: Automated code quality checks before commits  
+✅ **Documentation Validation**: Automated README and architecture diagram checks  
+✅ **Security Scanning**: Bandit, Safety, and secrets detection  
+✅ **Unit Testing**: Pytest with coverage reporting  
 
 ## 🎪 What Makes This Different?
 
@@ -161,12 +167,12 @@ Unlike other DevOps tools that cost $$$$ per month:
 ## 📊 Progress Tracker
 
 ```
-Foundation:    ██████████████████████████████████████████████ 85.7% (6/7 days)
+Foundation:    ██████████████████████████████████████████████████ 100% (7/7 days)
 AI Layer:      ░░░░░░░░░░  0% (0/7 days)
 Observability: ░░░░░░░░░░  0% (0/7 days)
 Advanced:      ░░░░░░░░░░  0% (0/9 days)
 
-Overall:       ████████░░ 20.0% (6/30 days)
+Overall:       █████████░ 23.3% (7/30 days)
 ```
 
 ## 🎯 The End Goal
