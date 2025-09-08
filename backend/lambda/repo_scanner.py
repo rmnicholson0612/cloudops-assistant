@@ -250,9 +250,7 @@ def scan_repo_drift(repo, token=None):
     with tempfile.TemporaryDirectory() as temp_dir:
         try:
             # Clone repository
-            clone_cmd = [
-                "git", "clone", "--depth", "1", clone_url, temp_dir
-            ]
+            clone_cmd = ["git", "clone", "--depth", "1", clone_url, temp_dir]
             subprocess.run(clone_cmd, check=True, capture_output=True, timeout=30)
 
             # Find terraform files
@@ -278,10 +276,7 @@ def scan_repo_drift(repo, token=None):
 
             # Initialize terraform
             init_result = subprocess.run(
-                ["terraform", "init"],
-                capture_output=True,
-                text=True,
-                timeout=60
+                ["terraform", "init"], capture_output=True, text=True, timeout=60
             )
             if init_result.returncode != 0:
                 return {

@@ -73,10 +73,7 @@ def register_user(event):
 
         # Set permanent password
         cognito_client.admin_set_user_password(
-            UserPoolId=user_pool_id,
-            Username=email,
-            Password=password,
-            Permanent=True
+            UserPoolId=user_pool_id, Username=email, Password=password, Permanent=True
         )
 
         return success_response(
