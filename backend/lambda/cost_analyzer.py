@@ -234,7 +234,7 @@ def get_cost_trends():
 
         result = {
             "daily_costs": daily_costs,
-            "period": f"Last 30 days",
+            "period": "Last 30 days",
             "last_updated": datetime.now().isoformat(),
         }
 
