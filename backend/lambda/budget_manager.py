@@ -269,7 +269,10 @@ def check_budgets_scheduled():
                     if alert_key not in last_alerts:
                         # Send alert
                         send_budget_alert(
-                            budget, threshold, current_spending, monthly_limit
+                            budget,
+                            threshold,
+                            current_spending,
+                            monthly_limit,
                         )
 
                         # Update last alert sent
@@ -341,7 +344,8 @@ View detailed cost breakdown in your CloudOps Assistant dashboard.
 
         budget_id_safe = sanitize_input(str(budget.get("budget_id", "unknown")))[:50]
         logger.info(
-            f"Budget alert sent for budget_id={budget_id_safe} - {int(threshold)}% threshold"
+            f"Budget alert sent for budget_id={budget_id_safe} - "
+            f"{int(threshold)}% threshold"
         )
 
     except Exception as e:
