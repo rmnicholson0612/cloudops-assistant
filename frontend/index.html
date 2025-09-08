@@ -69,7 +69,7 @@
                     <h2><i class="fas fa-exclamation-triangle"></i> Infrastructure Drift Detection</h2>
                     <p>Monitor your infrastructure for configuration drift and unauthorized changes</p>
                 </div>
-                
+
                 <div class="card">
                     <div class="card-header">
                         <div class="header-with-info">
@@ -93,11 +93,30 @@
 
 
 
+                <div class="card">
+                    <div class="card-header">
+                        <div class="header-with-info">
+                            <h3>Scheduled Drift Monitoring</h3>
+                            <div class="feature-badge">✅ Day 7 Complete</div>
+                        </div>
+                        <button class="btn btn-primary" onclick="showDriftConfigModal()">
+                            <i class="fas fa-plus"></i> Add Repository
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="drift-status-display" class="drift-status">
+                            <div class="drift-loading">
+                                <i class="fas fa-spinner fa-spin"></i> Loading drift monitoring status...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="feature-grid">
-                    <div class="feature-card coming-soon">
+                    <div class="feature-card">
                         <i class="fas fa-calendar-day"></i>
                         <h4>Scheduled Scans</h4>
-                        <p>Coming Day 7</p>
+                        <p>✅ Day 7 Complete</p>
                     </div>
                     <div class="feature-card coming-soon">
                         <i class="fas fa-bell"></i>
@@ -113,7 +132,7 @@
                     <h2><i class="fas fa-dollar-sign"></i> Cost Management</h2>
                     <p>Track AWS spending and optimize your cloud costs</p>
                 </div>
-                
+
                 <div class="card">
                     <div class="card-header">
                         <div class="header-with-info">
@@ -215,7 +234,7 @@
                     <h2><i class="fas fa-robot"></i> AI-Powered DevOps</h2>
                     <p>Leverage AI for infrastructure insights, documentation, and automation</p>
                 </div>
-                
+
                 <div class="coming-soon-banner">
                     <i class="fas fa-brain"></i>
                     <h3>Coming Week 2</h3>
@@ -252,7 +271,7 @@
                     <h2><i class="fas fa-chart-line"></i> Observability & Monitoring</h2>
                     <p>Comprehensive monitoring for uptime, performance, and system health</p>
                 </div>
-                
+
                 <div class="coming-soon-banner">
                     <i class="fas fa-eye"></i>
                     <h3>Coming Week 3</h3>
@@ -289,7 +308,7 @@
                     <h2><i class="fas fa-cogs"></i> DevOps Automation</h2>
                     <p>Automate deployments, backups, and incident response workflows</p>
                 </div>
-                
+
                 <div class="coming-soon-banner">
                     <i class="fas fa-magic"></i>
                     <h3>Coming Week 4</h3>
@@ -334,7 +353,7 @@
                     <h4>Repository: <span id="upload-repo-name"></span></h4>
                     <p>Upload your terraform plan output to detect real infrastructure drift.</p>
                 </div>
-                
+
                 <div class="upload-instructions">
                     <h4><i class="fas fa-terminal"></i> How to generate plan:</h4>
                     <div class="code-block">
@@ -342,7 +361,7 @@
 terraform plan > plan.txt</code>
                     </div>
                 </div>
-                
+
                 <div class="upload-area">
                     <input type="file" id="plan-file" accept=".txt,.log,.out" style="display: none;">
                     <div class="file-drop-zone" onclick="document.getElementById('plan-file').click()">
@@ -351,7 +370,7 @@ terraform plan > plan.txt</code>
                         <small>Supports .txt, .log, .out files</small>
                     </div>
                 </div>
-                
+
                 <div class="upload-actions">
                     <button class="btn btn-primary" onclick="uploadPlan()" id="upload-btn" disabled>
                         <i class="fas fa-upload"></i> Upload & Analyze
@@ -360,7 +379,7 @@ terraform plan > plan.txt</code>
                         Cancel
                     </button>
                 </div>
-                
+
                 <div id="upload-result" class="upload-result"></div>
             </div>
         </div>
@@ -377,7 +396,7 @@ terraform plan > plan.txt</code>
                 <div class="info-section">
                     <h3><i class="fas fa-search"></i> How It Works</h3>
                     <p>The system uses the <strong>GitHub Contents API</strong> to inspect each repository's files and detect Terraform infrastructure code.</p>
-                    
+
                     <div class="process-steps">
                         <div class="step">
                             <div class="step-number">1</div>
@@ -537,7 +556,7 @@ terraform plan > plan.txt</code>
                 <div class="info-section">
                     <h3><i class="fas fa-chart-line"></i> How It Works</h3>
                     <p>The cost dashboard integrates with <strong>AWS Cost Explorer API</strong> to provide real-time visibility into your AWS spending across multiple dimensions.</p>
-                    
+
                     <div class="process-steps">
                         <div class="step">
                             <div class="step-number">1</div>
@@ -776,7 +795,7 @@ terraform plan > plan.txt</code>
                 <div class="info-section">
                     <h3><i class="fas fa-bell"></i> How Budget Alerts Work</h3>
                     <p>Budget alerts monitor your AWS spending and send notifications when you exceed configured thresholds.</p>
-                    
+
                     <div class="process-steps">
                         <div class="step">
                             <div class="step-number">1</div>
@@ -924,6 +943,58 @@ terraform plan > plan.txt</code>
         </div>
     </div>
 
+    <!-- Drift Configuration Modal -->
+    <div id="drift-config-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-calendar-day"></i> Configure Drift Monitoring</h2>
+                <span class="close" onclick="closeDriftConfigModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="drift-config-form">
+                    <div class="form-group">
+                        <label for="drift-repo-name">Repository Name</label>
+                        <input type="text" id="drift-repo-name" placeholder="e.g., my-terraform-repo">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="drift-github-url">GitHub URL</label>
+                        <input type="url" id="drift-github-url" placeholder="https://github.com/user/repo.git">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="drift-terraform-dir">Terraform Directory</label>
+                        <input type="text" id="drift-terraform-dir" placeholder="." value=".">
+                        <small>Path to terraform files within the repository</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="drift-schedule">Scan Schedule</label>
+                        <select id="drift-schedule">
+                            <option value="daily">Daily</option>
+                            <option value="hourly">Hourly</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="drift-alert-email">Alert Email (Optional)</label>
+                        <input type="email" id="drift-alert-email" placeholder="your-email@example.com">
+                        <small>Receive email notifications when drift is detected</small>
+                    </div>
+                </div>
+
+                <div class="drift-config-actions">
+                    <button class="btn btn-primary" onclick="saveDriftConfig()">
+                        <i class="fas fa-save"></i> Configure Monitoring
+                    </button>
+                    <button class="btn btn-secondary" onclick="closeDriftConfigModal()">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Budget Configuration Modal -->
     <div id="budget-modal" class="modal">
         <div class="modal-content">
@@ -937,17 +1008,17 @@ terraform plan > plan.txt</code>
                         <label for="budget-name">Budget Name</label>
                         <input type="text" id="budget-name" placeholder="e.g., Monthly AWS Budget" value="Monthly AWS Budget">
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="budget-amount">Monthly Limit ($)</label>
                         <input type="number" id="budget-amount" placeholder="100.00" min="1" step="0.01">
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="budget-email">Email for Alerts (Optional)</label>
                         <input type="email" id="budget-email" placeholder="your-email@example.com">
                     </div>
-                    
+
                     <div class="form-group">
                         <label>Alert Thresholds</label>
                         <div class="threshold-options">
@@ -956,7 +1027,7 @@ terraform plan > plan.txt</code>
                             <label><input type="checkbox" checked> 100% of budget</label>
                         </div>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="service-filter">Service Filter</label>
                         <select id="service-filter">
@@ -968,7 +1039,7 @@ terraform plan > plan.txt</code>
                         </select>
                     </div>
                 </div>
-                
+
                 <div class="budget-actions">
                     <button class="btn btn-primary" onclick="saveBudgetConfig()">
                         <i class="fas fa-save"></i> Save Budget Alert
@@ -986,18 +1057,23 @@ terraform plan > plan.txt</code>
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const tabId = btn.dataset.tab;
-                
+
                 // Remove active class from all tabs and content
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
                 document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                
+
                 // Add active class to clicked tab and corresponding content
                 btn.classList.add('active');
                 document.getElementById(tabId).classList.add('active');
-                
+
                 // Load cost data when costs tab is activated
                 if (tabId === 'costs') {
                     loadCostData();
+                }
+
+                // Load drift status when drift tab is activated
+                if (tabId === 'drift') {
+                    loadDriftStatus();
                 }
             });
         });
@@ -1008,20 +1084,23 @@ terraform plan > plan.txt</code>
             document.getElementById('total-days').textContent = CONFIG.TOTAL_DAYS;
             const progressPercent = (CONFIG.CURRENT_DAY / CONFIG.TOTAL_DAYS * 100).toFixed(1);
             document.getElementById('progress-fill').style.width = progressPercent + '%';
-            
+
             // Update page title with current day
             document.title = `CloudOps Assistant - Day ${CONFIG.CURRENT_DAY}/${CONFIG.TOTAL_DAYS}`;
-            
+
             // Check authentication status
             checkAuthStatus();
-            
+
             // Initialize month selector immediately
             initializeMonthSelector();
-            
+
             // Load cost data if costs tab is initially active
             if (document.querySelector('.tab-btn[data-tab="costs"]').classList.contains('active')) {
                 loadCostData();
             }
+
+            // Auto-setup drift monitoring from config
+            setTimeout(autoSetupDriftMonitoring, 2000);
         });
 
         // Repository scanning functionality
@@ -1029,20 +1108,20 @@ terraform plan > plan.txt</code>
             const githubTarget = document.getElementById('github-target').value.trim();
             const githubToken = document.getElementById('github-token').value.trim();
             const resultsElement = document.getElementById('scan-results');
-            
+
             if (!githubTarget) {
                 resultsElement.innerHTML = '<div class="error"><i class="fas fa-exclamation-circle"></i> Please enter a GitHub username or organization</div>';
                 return;
             }
-            
+
             const token = localStorage.getItem('access_token');
             if (!token) {
                 resultsElement.innerHTML = '<div class="error"><i class="fas fa-lock"></i> Please login to scan repositories</div>';
                 return;
             }
-            
+
             resultsElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scanning repositories...';
-            
+
             try {
                 const response = await fetch(`${CONFIG.API_BASE_URL}/scan-repos`, {
                     method: 'POST',
@@ -1055,9 +1134,9 @@ terraform plan > plan.txt</code>
                         github_token: githubToken || null
                     })
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (response.ok) {
                     displayScanResults(data);
                 } else {
@@ -1073,10 +1152,10 @@ terraform plan > plan.txt</code>
                 </div>`;
             }
         }
-        
+
         function displayScanResults(data) {
             const resultsElement = document.getElementById('scan-results');
-            
+
             if (data.terraform_repos === 0) {
                 resultsElement.innerHTML = `<div class="no-drift">
                     <i class="fas fa-info-circle"></i> <strong>No Terraform repositories found</strong>
@@ -1084,30 +1163,30 @@ terraform plan > plan.txt</code>
                 </div>`;
                 return;
             }
-            
+
             let html = `<div class="scan-summary">
                 <h4><i class="fas fa-github"></i> Scan Results for ${data.target}</h4>
                 <p>Found ${data.terraform_repos} Terraform repositories out of ${data.total_repos} total repositories</p>
             </div>`;
-            
+
             html += '<div class="repo-results">';
-            
+
             data.results.forEach(repo => {
-                const statusIcon = repo.drift_detected ? 
-                    '<i class="fas fa-exclamation-triangle" style="color: #ffc107;"></i>' : 
+                const statusIcon = repo.drift_detected ?
+                    '<i class="fas fa-exclamation-triangle" style="color: #ffc107;"></i>' :
                     '<i class="fas fa-check-circle" style="color: #28a745;"></i>';
-                
-                const statusText = repo.drift_detected ? 
-                    `${repo.changes.length} changes detected` : 
+
+                const statusText = repo.drift_detected ?
+                    `${repo.changes.length} changes detected` :
                     'No drift detected';
-                
+
                 html += `<div class="repo-item ${repo.drift_detected ? 'has-drift' : 'no-drift'}">
                     <div class="repo-header">
                         ${statusIcon}
                         <strong><a href="${repo.repo_url}" target="_blank">${repo.repo_name}</a></strong>
                         <span class="status">${statusText}</span>
                     </div>
-                    
+
                     <div class="repo-actions">
                         <button class="btn btn-primary btn-sm" onclick="showUploadModal('${repo.repo_name}', '${data.target}')">
                             <i class="fas fa-upload"></i> Upload Plan
@@ -1116,7 +1195,7 @@ terraform plan > plan.txt</code>
                             <i class="fas fa-history"></i> History
                         </button>
                     </div>`;
-                
+
                 if (repo.drift_detected && repo.changes.length > 0) {
                     html += '<div class="drift-details">';
                     repo.changes.forEach(change => {
@@ -1124,10 +1203,10 @@ terraform plan > plan.txt</code>
                     });
                     html += '</div>';
                 }
-                
+
                 html += '</div>';
             });
-            
+
             html += '</div>';
             resultsElement.innerHTML = html;
         }
@@ -1135,7 +1214,7 @@ terraform plan > plan.txt</code>
         // Plan upload functionality
         let currentRepo = null;
         let currentTarget = null;
-        
+
         function showUploadModal(repoName, githubTarget) {
             currentRepo = repoName;
             currentTarget = githubTarget;
@@ -1143,20 +1222,20 @@ terraform plan > plan.txt</code>
             document.getElementById('upload-modal').style.display = 'block';
             document.getElementById('upload-result').innerHTML = '';
         }
-        
+
         function closeUploadModal() {
             document.getElementById('upload-modal').style.display = 'none';
             document.getElementById('plan-file').value = '';
             document.getElementById('upload-btn').disabled = true;
         }
-        
+
         async function viewRepoHistory(repoName, githubTarget) {
             const token = localStorage.getItem('access_token');
             if (!token) {
                 alert('Please login to view plan history');
                 return;
             }
-            
+
             try {
                 const response = await fetch(`${CONFIG.API_BASE_URL}/plan-history/${repoName}`, {
                     headers: {
@@ -1164,7 +1243,7 @@ terraform plan > plan.txt</code>
                     }
                 });
                 const data = await response.json();
-                
+
                 if (response.ok) {
                     showHistoryModal(data);
                 } else {
@@ -1174,12 +1253,12 @@ terraform plan > plan.txt</code>
                 alert('Failed to load plan history');
             }
         }
-        
+
         function showHistoryModal(historyData) {
             const modal = document.createElement('div');
             modal.className = 'modal';
             modal.style.display = 'block';
-            
+
             let historyHtml = `
                 <div class="modal-content">
                     <div class="modal-header">
@@ -1189,7 +1268,7 @@ terraform plan > plan.txt</code>
                     <div class="modal-body">
                         <p>Found ${historyData.total} plan(s) for this repository</p>
                         <div class="history-timeline">`;
-            
+
             historyData.plans.forEach((plan, index) => {
                 const date = new Date(plan.timestamp).toLocaleString();
                 historyHtml += `
@@ -1200,30 +1279,30 @@ terraform plan > plan.txt</code>
                             <button class="btn btn-sm btn-secondary" onclick="viewPlanDetails('${plan.plan_id}')">
                                 <i class="fas fa-eye"></i> View
                             </button>
-                            ${index < historyData.plans.length - 1 ? 
+                            ${index < historyData.plans.length - 1 ?
                                 `<button class="btn btn-sm btn-primary" onclick="comparePlans('${plan.plan_id}', '${historyData.plans[index + 1].plan_id}')">
                                     <i class="fas fa-code-branch"></i> Compare
                                 </button>` : ''}
                         </div>
                     </div>`;
             });
-            
+
             historyHtml += `
                         </div>
                     </div>
                 </div>`;
-            
+
             modal.innerHTML = historyHtml;
             document.body.appendChild(modal);
         }
-        
+
         async function comparePlans(planId1, planId2) {
             const token = localStorage.getItem('access_token');
             if (!token) {
                 alert('Please login to compare plans');
                 return;
             }
-            
+
             try {
                 const encodedPlan1 = encodeURIComponent(planId1);
                 const encodedPlan2 = encodeURIComponent(planId2);
@@ -1233,7 +1312,7 @@ terraform plan > plan.txt</code>
                     }
                 });
                 const data = await response.json();
-                
+
                 if (response.ok) {
                     showComparisonModal(data);
                 } else {
@@ -1243,18 +1322,18 @@ terraform plan > plan.txt</code>
                 alert('Failed to compare plans');
             }
         }
-        
+
         function showComparisonModal(comparisonData) {
             const modal = document.createElement('div');
             modal.className = 'modal';
             modal.style.display = 'block';
-            
+
             let diffHtml = comparisonData.diff.map(line => {
                 if (line.startsWith('+')) return `<div class="diff-added">${line}</div>`;
                 if (line.startsWith('-')) return `<div class="diff-removed">${line}</div>`;
                 return `<div class="diff-context">${line}</div>`;
             }).join('');
-            
+
             modal.innerHTML = `
                 <div class="modal-content">
                     <div class="modal-header">
@@ -1275,17 +1354,17 @@ terraform plan > plan.txt</code>
                         <div class="diff-viewer">${diffHtml}</div>
                     </div>
                 </div>`;
-            
+
             document.body.appendChild(modal);
         }
-        
+
         async function viewPlanDetails(planId) {
             const token = localStorage.getItem('access_token');
             if (!token) {
                 alert('Please login to view plan details');
                 return;
             }
-            
+
             try {
                 const encodedPlanId = encodeURIComponent(planId);
                 const response = await fetch(`${CONFIG.API_BASE_URL}/plan-details/${encodedPlanId}`, {
@@ -1294,7 +1373,7 @@ terraform plan > plan.txt</code>
                     }
                 });
                 const data = await response.json();
-                
+
                 if (response.ok) {
                     showPlanDetailsModal(data);
                 } else {
@@ -1304,15 +1383,15 @@ terraform plan > plan.txt</code>
                 alert('Failed to load plan details');
             }
         }
-        
+
         function showPlanDetailsModal(planData) {
             const modal = document.createElement('div');
             modal.className = 'modal';
             modal.style.display = 'block';
-            
+
             const date = new Date(planData.timestamp).toLocaleString();
             let content = planData.plan_content || 'No plan content available';
-            
+
             // Clean up and format terraform plan content
             content = content
                 .replace(/\x1b\[[0-9;]*m/g, '') // Remove ANSI color codes
@@ -1340,7 +1419,7 @@ terraform plan > plan.txt</code>
                 .map(line => line.trim())
                 .filter(line => line.length > 0)
                 .join('\n');
-            
+
             modal.innerHTML = `
                 <div class="modal-content" style="max-width: 800px;">
                     <div class="modal-header">
@@ -1359,13 +1438,13 @@ terraform plan > plan.txt</code>
                         <div class="plan-content">
                             <h4>Terraform Plan Output:</h4>
                             <div style="
-                                background: #f8f9fa; 
+                                background: #f8f9fa;
                                 border: 1px solid #dee2e6;
-                                border-radius: 8px; 
-                                max-height: 500px; 
-                                overflow-y: auto; 
-                                font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; 
-                                font-size: 14px; 
+                                border-radius: 8px;
+                                max-height: 500px;
+                                overflow-y: auto;
+                                font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+                                font-size: 14px;
                                 line-height: 1.6;
                             ">
                                 ${content.split('\n').map(line => {
@@ -1383,10 +1462,10 @@ terraform plan > plan.txt</code>
                         </div>
                     </div>
                 </div>`;
-            
+
             document.body.appendChild(modal);
         }
-        
+
         // File selection handling
         document.addEventListener('DOMContentLoaded', function() {
             const fileInput = document.getElementById('plan-file');
@@ -1400,29 +1479,29 @@ terraform plan > plan.txt</code>
                 });
             }
         });
-        
+
         async function uploadPlan() {
             const fileInput = document.getElementById('plan-file');
             const file = fileInput.files[0];
             const resultElement = document.getElementById('upload-result');
-            
+
             if (!file) {
                 resultElement.innerHTML = '<div class="error">Please select a file first</div>';
                 return;
             }
-            
+
             resultElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing terraform plan...';
             document.getElementById('upload-btn').disabled = true;
-            
+
             try {
                 const planContent = await file.text();
-                
+
                 const token = localStorage.getItem('access_token');
                 if (!token) {
                     resultElement.innerHTML = '<div class="error">Please login to upload plans</div>';
                     return;
                 }
-                
+
                 const response = await fetch(`${CONFIG.API_BASE_URL}/upload-plan`, {
                     method: 'POST',
                     headers: {
@@ -1435,9 +1514,9 @@ terraform plan > plan.txt</code>
                         plan_content: planContent
                     })
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (response.ok) {
                     displayPlanResult(data);
                 } else {
@@ -1455,16 +1534,16 @@ terraform plan > plan.txt</code>
                 document.getElementById('upload-btn').disabled = false;
             }
         }
-        
+
         function displayPlanResult(data) {
             const resultElement = document.getElementById('upload-result');
-            
+
             if (data.drift_detected) {
                 let html = `<div class="drift-detected">
                     <i class="fas fa-exclamation-triangle"></i> <strong>Drift Detected!</strong>
                     <p>Found ${data.total_changes} changes in your infrastructure</p>
                 </div>`;
-                
+
                 if (data.changes.length > 0) {
                     html += '<div class="drift-details">';
                     data.changes.forEach(change => {
@@ -1475,7 +1554,7 @@ terraform plan > plan.txt</code>
                     }
                     html += '</div>';
                 }
-                
+
                 resultElement.innerHTML = html;
             } else {
                 resultElement.innerHTML = `<div class="no-drift">
@@ -1489,20 +1568,20 @@ terraform plan > plan.txt</code>
         function showFeatureInfo() {
             document.getElementById('feature-modal').style.display = 'block';
         }
-        
+
         function closeFeatureInfo() {
             document.getElementById('feature-modal').style.display = 'none';
         }
-        
+
         // Cost info modal functionality
         function showCostInfo() {
             document.getElementById('cost-modal').style.display = 'block';
         }
-        
+
         function closeCostInfo() {
             document.getElementById('cost-modal').style.display = 'none';
         }
-        
+
         // Close modals when clicking outside
         window.onclick = function(event) {
             const featureModal = document.getElementById('feature-modal');
@@ -1512,7 +1591,7 @@ terraform plan > plan.txt</code>
             const budgetInfoModal = document.getElementById('budget-info-modal');
             const loginModal = document.getElementById('login-modal');
             const registerModal = document.getElementById('register-modal');
-            
+
             if (event.target === featureModal) {
                 featureModal.style.display = 'none';
             }
@@ -1543,27 +1622,27 @@ terraform plan > plan.txt</code>
                 return;
             }
             const currentDate = new Date();
-            
+
             // Generate last 12 months
             for (let i = 0; i < 12; i++) {
                 const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
                 const value = date.toISOString().slice(0, 7); // YYYY-MM format
                 const text = date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
-                
+
                 const option = document.createElement('option');
                 option.value = value;
                 option.textContent = text;
                 if (i === 0) option.selected = true; // Current month selected
-                
+
                 selector.appendChild(option);
             }
-            
+
             // Add event listener
             selector.addEventListener('change', function() {
                 loadCostData();
             });
         }
-        
+
         function getSelectedMonth() {
             const selector = document.getElementById('month-selector');
             return selector.value || null;
@@ -1583,12 +1662,12 @@ terraform plan > plan.txt</code>
         async function loadCurrentCosts(month = null) {
             const displayElement = document.getElementById('current-cost-display');
             const token = localStorage.getItem('access_token');
-            
+
             if (!token) {
                 displayElement.innerHTML = '<div class="cost-error"><i class="fas fa-lock"></i> Please login to view costs</div>';
                 return;
             }
-            
+
             try {
                 const url = month ? `${CONFIG.API_BASE_URL}/costs/current?month=${month}` : `${CONFIG.API_BASE_URL}/costs/current`;
                 const response = await fetch(url, {
@@ -1597,7 +1676,7 @@ terraform plan > plan.txt</code>
                     }
                 });
                 const data = await response.json();
-                
+
                 if (response.ok) {
                     displayElement.innerHTML = `
                         <div class="current-cost">
@@ -1620,12 +1699,12 @@ terraform plan > plan.txt</code>
         async function loadServiceCosts(month = null) {
             const displayElement = document.getElementById('service-costs-display');
             const token = localStorage.getItem('access_token');
-            
+
             if (!token) {
                 displayElement.innerHTML = '<div class="cost-error"><i class="fas fa-lock"></i> Please login to view service costs</div>';
                 return;
             }
-            
+
             try {
                 const url = month ? `${CONFIG.API_BASE_URL}/costs/services?month=${month}` : `${CONFIG.API_BASE_URL}/costs/services`;
                 const response = await fetch(url, {
@@ -1634,13 +1713,13 @@ terraform plan > plan.txt</code>
                     }
                 });
                 const data = await response.json();
-                
+
                 if (response.ok) {
                     if (data.services.length === 0) {
                         displayElement.innerHTML = '<div class="no-costs">No service costs found for this period</div>';
                         return;
                     }
-                    
+
                     let html = '<div class="service-list">';
                     data.services.forEach(service => {
                         html += `
@@ -1650,7 +1729,7 @@ terraform plan > plan.txt</code>
                             </div>`;
                     });
                     html += '</div>';
-                    
+
                     displayElement.innerHTML = html;
                 } else {
                     displayElement.innerHTML = `<div class="cost-error">
@@ -1667,12 +1746,12 @@ terraform plan > plan.txt</code>
         async function loadCostTrends() {
             const displayElement = document.getElementById('cost-trends-display');
             const token = localStorage.getItem('access_token');
-            
+
             if (!token) {
                 displayElement.innerHTML = '<div class="cost-error"><i class="fas fa-lock"></i> Please login to view cost trends</div>';
                 return;
             }
-            
+
             try {
                 const response = await fetch(`${CONFIG.API_BASE_URL}/costs/trends`, {
                     headers: {
@@ -1680,17 +1759,17 @@ terraform plan > plan.txt</code>
                     }
                 });
                 const data = await response.json();
-                
+
                 if (response.ok) {
                     if (data.daily_costs.length === 0) {
                         displayElement.innerHTML = '<div class="no-costs">No cost trend data available</div>';
                         return;
                     }
-                    
+
                     // Simple text-based chart for now
                     let html = '<div class="trends-list">';
                     const recentDays = data.daily_costs.slice(-7); // Last 7 days
-                    
+
                     recentDays.forEach(day => {
                         const date = new Date(day.date).toLocaleDateString();
                         html += `
@@ -1699,10 +1778,10 @@ terraform plan > plan.txt</code>
                                 <div class="trend-cost">$${parseFloat(day.cost).toFixed(2)}</div>
                             </div>`;
                     });
-                    
+
                     html += '</div>';
                     html += `<div class="trends-summary">Showing last 7 days of ${data.daily_costs.length} total days</div>`;
-                    
+
                     displayElement.innerHTML = html;
                 } else {
                     displayElement.innerHTML = `<div class="cost-error">
@@ -1719,12 +1798,12 @@ terraform plan > plan.txt</code>
         async function loadTagCosts(month = null) {
             const displayElement = document.getElementById('tag-costs-display');
             const token = localStorage.getItem('access_token');
-            
+
             if (!token) {
                 displayElement.innerHTML = '<div class="cost-error"><i class="fas fa-lock"></i> Please login to view tagged costs</div>';
                 return;
             }
-            
+
             try {
                 const url = month ? `${CONFIG.API_BASE_URL}/costs/by-tag?month=${month}` : `${CONFIG.API_BASE_URL}/costs/by-tag`;
                 const response = await fetch(url, {
@@ -1733,13 +1812,13 @@ terraform plan > plan.txt</code>
                     }
                 });
                 const data = await response.json();
-                
+
                 if (response.ok) {
                     if (data.services.length === 0) {
                         displayElement.innerHTML = '<div class="no-costs">No tagged resources found. Add "Service" tags to your AWS resources.</div>';
                         return;
                     }
-                    
+
                     let html = '<div class="service-list">';
                     data.services.forEach(service => {
                         html += `
@@ -1749,7 +1828,7 @@ terraform plan > plan.txt</code>
                             </div>`;
                     });
                     html += '</div>';
-                    
+
                     displayElement.innerHTML = html;
                 } else {
                     displayElement.innerHTML = `<div class="cost-error">
@@ -1767,25 +1846,25 @@ terraform plan > plan.txt</code>
         function showBudgetModal() {
             document.getElementById('budget-modal').style.display = 'block';
         }
-        
+
         function closeBudgetModal() {
             document.getElementById('budget-modal').style.display = 'none';
         }
-        
+
         function showBudgetInfo() {
             document.getElementById('budget-info-modal').style.display = 'block';
         }
-        
+
         function closeBudgetInfo() {
             document.getElementById('budget-info-modal').style.display = 'none';
         }
-        
+
         async function saveBudgetConfig() {
             const budgetName = document.getElementById('budget-name').value.trim();
             const budgetAmount = document.getElementById('budget-amount').value;
             const budgetEmail = document.getElementById('budget-email').value.trim();
             const serviceFilter = document.getElementById('service-filter').value;
-            
+
             // Get selected thresholds
             const thresholdCheckboxes = document.querySelectorAll('.threshold-options input[type="checkbox"]');
             const thresholds = [];
@@ -1794,28 +1873,28 @@ terraform plan > plan.txt</code>
                     thresholds.push([50, 80, 100][index]);
                 }
             });
-            
+
             if (!budgetName) {
                 alert('Please enter a budget name');
                 return;
             }
-            
+
             if (!budgetAmount || budgetAmount <= 0) {
                 alert('Please enter a valid budget amount');
                 return;
             }
-            
+
             if (thresholds.length === 0) {
                 alert('Please select at least one alert threshold');
                 return;
             }
-            
+
             const token = localStorage.getItem('access_token');
             if (!token) {
                 alert('Please login to configure budgets');
                 return;
             }
-            
+
             try {
                 const response = await fetch(`${CONFIG.API_BASE_URL}/budgets/configure`, {
                     method: 'POST',
@@ -1831,9 +1910,9 @@ terraform plan > plan.txt</code>
                         service_filter: serviceFilter
                     })
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (response.ok) {
                     alert('Budget alert configured successfully!');
                     closeBudgetModal();
@@ -1849,12 +1928,12 @@ terraform plan > plan.txt</code>
         async function loadBudgetStatus() {
             const displayElement = document.getElementById('budget-status-display');
             const token = localStorage.getItem('access_token');
-            
+
             if (!token) {
                 displayElement.innerHTML = '<div class="budget-error"><i class="fas fa-lock"></i> Please login to view budget status</div>';
                 return;
             }
-            
+
             try {
                 const response = await fetch(`${CONFIG.API_BASE_URL}/budgets/status`, {
                     headers: {
@@ -1862,18 +1941,18 @@ terraform plan > plan.txt</code>
                     }
                 });
                 const data = await response.json();
-                
+
                 if (response.ok) {
                     if (data.budgets.length === 0) {
                         displayElement.innerHTML = '<div class="no-budget">No budget alerts configured</div>';
                         return;
                     }
-                    
+
                     let html = '<div class="budget-list">';
                     data.budgets.forEach(budget => {
-                        const statusClass = budget.status === 'over_budget' ? 'over-budget' : 
+                        const statusClass = budget.status === 'over_budget' ? 'over-budget' :
                                           budget.status === 'warning' ? 'warning' : 'on-track';
-                        
+
                         html += `
                             <div class="budget-item ${statusClass}">
                                 <div class="budget-info">
@@ -1889,7 +1968,7 @@ terraform plan > plan.txt</code>
                             </div>`;
                     });
                     html += '</div>';
-                    
+
                     displayElement.innerHTML = html;
                 } else {
                     displayElement.innerHTML = `<div class="budget-error">
@@ -1907,13 +1986,13 @@ terraform plan > plan.txt</code>
             if (!confirm('Are you sure you want to delete this budget alert?')) {
                 return;
             }
-            
+
             const token = localStorage.getItem('access_token');
             if (!token) {
                 alert('Please login to delete budgets');
                 return;
             }
-            
+
             try {
                 const response = await fetch(`${CONFIG.API_BASE_URL}/budgets/delete/${budgetId}`, {
                     method: 'DELETE',
@@ -1921,9 +2000,9 @@ terraform plan > plan.txt</code>
                         'Authorization': `Bearer ${token}`
                     }
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (response.ok) {
                     alert('Budget deleted successfully!');
                     loadBudgetStatus();
@@ -1935,37 +2014,280 @@ terraform plan > plan.txt</code>
             }
         }
 
+        // Drift Monitoring Functions
+        function showDriftConfigModal() {
+            document.getElementById('drift-config-modal').style.display = 'block';
+        }
+
+        function closeDriftConfigModal() {
+            document.getElementById('drift-config-modal').style.display = 'none';
+        }
+
+        async function saveDriftConfig() {
+            const repoName = document.getElementById('drift-repo-name').value.trim();
+            const githubUrl = document.getElementById('drift-github-url').value.trim();
+            const terraformDir = document.getElementById('drift-terraform-dir').value.trim() || '.';
+            const schedule = document.getElementById('drift-schedule').value;
+            const alertEmail = document.getElementById('drift-alert-email').value.trim();
+
+            if (!repoName || !githubUrl) {
+                alert('Repository name and GitHub URL are required');
+                return;
+            }
+
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                alert('Please login to configure drift monitoring');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/drift/configure`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        repo_name: repoName,
+                        github_url: githubUrl,
+                        terraform_dir: terraformDir,
+                        schedule: schedule,
+                        alert_email: alertEmail
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('Drift monitoring configured successfully!');
+                    closeDriftConfigModal();
+                    loadDriftStatus();
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+            } catch (error) {
+                alert('Failed to configure drift monitoring');
+            }
+        }
+
+        async function loadDriftStatus() {
+            const displayElement = document.getElementById('drift-status-display');
+            const token = localStorage.getItem('access_token');
+
+            if (!token) {
+                displayElement.innerHTML = '<div class="drift-error"><i class="fas fa-lock"></i> Please login to view drift status</div>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/drift/status`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    if (data.configurations.length === 0) {
+                        displayElement.innerHTML = '<div class="no-drift-config">No repositories configured for drift monitoring</div>';
+                        return;
+                    }
+
+                    let html = '<div class="drift-config-list">';
+                    data.configurations.forEach(config => {
+                        const lastScan = config.last_scan ? new Date(config.last_scan.timestamp).toLocaleString() : 'Never';
+                        const driftStatus = config.last_scan?.drift_detected ? 'Drift Detected' : 'No Drift';
+                        const statusClass = config.last_scan?.drift_detected ? 'has-drift' : 'no-drift';
+
+                        html += `
+                            <div class="drift-config-item ${statusClass}">
+                                <div class="drift-config-info">
+                                    <div class="drift-repo-name">${config.repo_name}</div>
+                                    <div class="drift-schedule">Schedule: ${config.schedule}</div>
+                                    <div class="drift-last-scan">Last scan: ${lastScan}</div>
+                                    <div class="drift-status">${driftStatus}</div>
+                                </div>
+                                <div class="drift-config-actions">
+                                    <button class="btn btn-sm btn-danger" onclick="deleteDriftConfig('${config.config_id}')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>`;
+                    });
+                    html += '</div>';
+
+                    displayElement.innerHTML = html;
+                } else {
+                    displayElement.innerHTML = `<div class="drift-error">
+                        <i class="fas fa-exclamation-triangle"></i> Error loading drift status: ${data.error}
+                    </div>`;
+                }
+            } catch (error) {
+                displayElement.innerHTML = `<div class="drift-error">
+                    <i class="fas fa-times-circle"></i> Failed to load drift status
+                </div>`;
+            }
+        }
+
+        async function deleteDriftConfig(configId) {
+            if (!confirm('Are you sure you want to stop monitoring this repository?')) {
+                return;
+            }
+
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                alert('Please login to delete configurations');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/drift/delete/${configId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('Configuration deleted successfully!');
+                    loadDriftStatus();
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+            } catch (error) {
+                alert('Failed to delete configuration');
+            }
+        }
+
+        // Auto-setup drift monitoring from config
+        async function autoSetupDriftMonitoring() {
+            const token = localStorage.getItem('access_token');
+            if (!token || !CONFIG.GITHUB_TARGETS || CONFIG.GITHUB_TARGETS.length === 0) {
+                return;
+            }
+
+            console.log('Auto-discovering terraform repos for drift monitoring...');
+
+            for (const githubTarget of CONFIG.GITHUB_TARGETS) {
+                try {
+                    // Scan GitHub target for terraform repos
+                    const scanResponse = await fetch(`${CONFIG.API_BASE_URL}/scan-repos`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            github_target: githubTarget,
+                            github_token: CONFIG.GITHUB_TOKEN || null
+                        })
+                    });
+
+                    if (!scanResponse.ok) continue;
+
+                    const scanData = await scanResponse.json();
+
+                    // Get existing drift configurations
+                    const existingResponse = await fetch(`${CONFIG.API_BASE_URL}/drift/status`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    const existingConfigs = existingResponse.ok ?
+                        (await existingResponse.json()).configurations : [];
+
+                    // Auto-configure each terraform repo found
+                    for (const repo of scanData.results || []) {
+                        const alreadyExists = existingConfigs.some(config =>
+                            config.repo_name === repo.repo_name
+                        );
+
+                        if (alreadyExists) {
+                            console.log(`Repo ${repo.repo_name} already configured`);
+                            continue;
+                        }
+
+                        // Auto-configure this terraform repo
+                        const configResponse = await fetch(`${CONFIG.API_BASE_URL}/drift/configure`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({
+                                repo_name: repo.repo_name,
+                                github_url: repo.repo_url.replace('https://github.com/', 'https://github.com/') + '.git',
+                                terraform_dir: '.',
+                                schedule: 'daily',
+                                alert_email: CONFIG.AUTO_MONITOR_DEFAULTS?.alert_email || ''
+                            })
+                        });
+
+                        if (configResponse.ok) {
+                            console.log(`Auto-configured drift monitoring for ${repo.repo_name}`);
+                        }
+                    }
+                } catch (error) {
+                    console.log(`Failed to auto-discover repos for ${githubTarget}:`, error);
+                }
+            }
+
+            // Refresh drift status after auto-setup
+            setTimeout(loadDriftStatus, 1000);
+        }
+
+        // Auto-populate GitHub targets
+        function populateGitHubTargets() {
+            const githubInput = document.getElementById('github-target');
+            if (CONFIG.GITHUB_TARGETS && CONFIG.GITHUB_TARGETS.length > 0) {
+                githubInput.placeholder = `e.g., ${CONFIG.GITHUB_TARGETS[0]}`;
+
+                // Add dropdown for quick selection
+                const datalist = document.createElement('datalist');
+                datalist.id = 'github-targets';
+                CONFIG.GITHUB_TARGETS.forEach(target => {
+                    const option = document.createElement('option');
+                    option.value = target;
+                    datalist.appendChild(option);
+                });
+                githubInput.setAttribute('list', 'github-targets');
+                githubInput.parentNode.appendChild(datalist);
+            }
+        }
+
         // Authentication Functions
         function showLoginModal() {
             document.getElementById('login-modal').style.display = 'block';
         }
-        
+
         function closeLoginModal() {
             document.getElementById('login-modal').style.display = 'none';
             document.getElementById('login-result').innerHTML = '';
         }
-        
+
         function showRegisterModal() {
             document.getElementById('register-modal').style.display = 'block';
         }
-        
+
         function closeRegisterModal() {
             document.getElementById('register-modal').style.display = 'none';
             document.getElementById('register-result').innerHTML = '';
         }
-        
+
         async function login() {
             const email = document.getElementById('login-email').value.trim();
             const password = document.getElementById('login-password').value;
             const resultElement = document.getElementById('login-result');
-            
+
             if (!email || !password) {
                 resultElement.innerHTML = '<div class="error">Please enter email and password</div>';
                 return;
             }
-            
+
             resultElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
-            
+
             try {
                 const response = await fetch(`${CONFIG.API_BASE_URL}/auth/login`, {
                     method: 'POST',
@@ -1977,20 +2299,20 @@ terraform plan > plan.txt</code>
                         password: password
                     })
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (response.ok) {
                     // Store tokens
                     localStorage.setItem('access_token', data.access_token);
                     localStorage.setItem('id_token', data.id_token);
                     localStorage.setItem('refresh_token', data.refresh_token);
                     localStorage.setItem('user_email', email);
-                    
+
                     // Update UI
                     updateAuthUI(true, email);
                     closeLoginModal();
-                    
+
                     resultElement.innerHTML = '<div class="success">Login successful!</div>';
                 } else {
                     resultElement.innerHTML = `<div class="error">${data.error}</div>`;
@@ -1999,24 +2321,24 @@ terraform plan > plan.txt</code>
                 resultElement.innerHTML = '<div class="error">Login failed. Please try again.</div>';
             }
         }
-        
+
         async function register() {
             const email = document.getElementById('register-email').value.trim();
             const password = document.getElementById('register-password').value;
             const resultElement = document.getElementById('register-result');
-            
+
             if (!email || !password) {
                 resultElement.innerHTML = '<div class="error">Please enter email and password</div>';
                 return;
             }
-            
+
             if (password.length < 8) {
                 resultElement.innerHTML = '<div class="error">Password must be at least 8 characters</div>';
                 return;
             }
-            
+
             resultElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating account...';
-            
+
             try {
                 const response = await fetch(`${CONFIG.API_BASE_URL}/auth/register`, {
                     method: 'POST',
@@ -2028,9 +2350,9 @@ terraform plan > plan.txt</code>
                         password: password
                     })
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (response.ok) {
                     resultElement.innerHTML = '<div class="success">Account created! You can now login.</div>';
                     setTimeout(() => {
@@ -2044,23 +2366,23 @@ terraform plan > plan.txt</code>
                 resultElement.innerHTML = '<div class="error">Registration failed. Please try again.</div>';
             }
         }
-        
+
         function logout() {
             // Clear tokens
             localStorage.removeItem('access_token');
             localStorage.removeItem('id_token');
             localStorage.removeItem('refresh_token');
             localStorage.removeItem('user_email');
-            
+
             // Update UI
             updateAuthUI(false);
         }
-        
+
         function updateAuthUI(isLoggedIn, email = '') {
             const authSection = document.getElementById('auth-section');
             const userSection = document.getElementById('user-section');
             const userEmailSpan = document.getElementById('user-email');
-            
+
             if (isLoggedIn) {
                 authSection.style.display = 'none';
                 userSection.style.display = 'block';
@@ -2070,11 +2392,11 @@ terraform plan > plan.txt</code>
                 userSection.style.display = 'none';
             }
         }
-        
+
         function checkAuthStatus() {
             const token = localStorage.getItem('access_token');
             const email = localStorage.getItem('user_email');
-            
+
             if (token && email) {
                 updateAuthUI(true, email);
             }
