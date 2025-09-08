@@ -38,7 +38,7 @@ jobs:
 
     - name: Check dependencies for vulnerabilities
       run: |
-        safety check -r backend/lambda/requirements.txt
+        safety scan -r backend/lambda/requirements.txt
 
     - name: Scan for secrets
       uses: trufflesecurity/trufflehog@main
