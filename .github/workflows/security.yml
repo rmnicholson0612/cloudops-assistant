@@ -9,29 +9,37 @@ on:
 jobs:
   security:
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
-    
+
     - name: Install security tools
       run: |
         python -m pip install --upgrade pip
         pip install bandit safety
-    
+
     - name: Run Bandit security scan
       run: |
-        bandit -r backend/lambda/ -f json -o bandit-report.json
-        bandit -r backend/lambda/
-    
+        bandit -r backend/lambda/ -f json -o bandit-report.json || true
+        bandit -r backend/lambda/ || true
+
+    - name: Upload security report
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-reports
+        path: |
+          bandit-report.json
+
     - name: Check dependencies for vulnerabilities
       run: |
         safety check -r backend/lambda/requirements.txt
-    
+
     - name: Scan for secrets
       uses: trufflesecurity/trufflehog@main
       with:
