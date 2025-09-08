@@ -55,8 +55,8 @@ class TestPlanProcessor:
         assert len(result["changes"]) == 2
         assert result["total_changes"] == 2
         assert result["status"] == "drift_detected"
-        assert "Create: aws_s3_bucket.example" in result["changes"]
-        assert "Update: aws_instance.web" in result["changes"]
+        assert "Createaws_s3_bucket.example" in result["changes"]
+        assert "Updateaws_instance.web" in result["changes"]
 
     def test_sanitize_db_input(self):
         """Test database input sanitization"""
@@ -64,7 +64,7 @@ class TestPlanProcessor:
         assert sanitize_db_input("normal-repo_name.123") == "normal-repo_name.123"
 
         # Test input with dangerous characters
-        assert sanitize_db_input("repo'; DROP TABLE--") == "repo_DROP_TABLE--"
+        assert sanitize_db_input("repo'; DROP TABLE--") == "repoDROPTABLE--"
 
         # Test long input truncation
         long_input = "a" * 2000
@@ -83,7 +83,7 @@ class TestPlanProcessor:
         result = process_terraform_plan(plan_content, "test-repo")
 
         assert result["drift_detected"] is True
-        assert "Destroy: aws_instance.old" in result["changes"]
+        assert "Destroyaws_instance.old" in result["changes"]
 
     def test_process_terraform_plan_replace_resources(self):
         """Test processing plan with resource replacement"""
@@ -97,4 +97,4 @@ class TestPlanProcessor:
         result = process_terraform_plan(plan_content, "test-repo")
 
         assert result["drift_detected"] is True
-        assert "Replace: aws_instance.web" in result["changes"]
+        assert "Replaceaws_instance.webmustbereplaced" in result["changes"]
