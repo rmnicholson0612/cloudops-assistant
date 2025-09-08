@@ -20,9 +20,6 @@ exclude = [
     "https://aws.amazon.com/compliance/data-privacy-faq/"
 ]
 
-# Include these file patterns (glob patterns)
-include = ["**/*.md"]
-
 # Exclude these file patterns
 exclude_file = []
 
