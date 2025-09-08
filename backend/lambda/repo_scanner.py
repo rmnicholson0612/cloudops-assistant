@@ -1,6 +1,5 @@
 import json
 import logging
-import random
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
@@ -29,7 +28,9 @@ def get_cors_headers():
     """Return CORS headers for API responses"""
     return {
         "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+        "Access-Control-Allow-Headers": (
+            "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token"
+        ),
         "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
     }
 
@@ -156,8 +157,7 @@ def filter_terraform_repos(repos, token=None):
     if token:
         headers["Authorization"] = f"token {token}"
 
-    # Terraform detection patterns
-    terraform_patterns = [".tf", "terraform", "infrastructure", "infra"]
+    # Terraform detection patterns (defined but not used in this function)
 
     # Use ThreadPoolExecutor for parallel repo filtering
     with ThreadPoolExecutor(max_workers=3) as executor:
@@ -189,9 +189,9 @@ def _check_repo_terraform(repo, headers):
 
         if response.status == 200:
             contents = json.loads(response.data.decode("utf-8"))
-            terraform_patterns = [".tf", "terraform", "infrastructure", "infra"]
+            patterns = [".tf", "terraform", "infrastructure", "infra"]
             return any(
-                any(pattern in file["name"].lower() for pattern in terraform_patterns)
+                any(pattern in file["name"].lower() for pattern in patterns)
                 for file in contents
                 if isinstance(file, dict)
             )
@@ -229,7 +229,6 @@ def scan_repos_parallel(terraform_repos, github_token):
 def scan_repo_drift(repo, token=None):
     """Real terraform drift scanning by cloning and running terraform plan"""
     import os
-    import shutil
     import subprocess
     import tempfile
 
@@ -251,7 +250,9 @@ def scan_repo_drift(repo, token=None):
     with tempfile.TemporaryDirectory() as temp_dir:
         try:
             # Clone repository
-            clone_cmd = ["git", "clone", "--depth", "1", clone_url, temp_dir]
+            clone_cmd = [
+                "git", "clone", "--depth", "1", clone_url, temp_dir
+            ]
             subprocess.run(clone_cmd, check=True, capture_output=True, timeout=30)
 
             # Find terraform files
@@ -277,7 +278,10 @@ def scan_repo_drift(repo, token=None):
 
             # Initialize terraform
             init_result = subprocess.run(
-                ["terraform", "init"], capture_output=True, text=True, timeout=60
+                ["terraform", "init"],
+                capture_output=True,
+                text=True,
+                timeout=60
             )
             if init_result.returncode != 0:
                 return {
@@ -324,7 +328,8 @@ def scan_repo_drift(repo, token=None):
                         ):
                             changes.append(line[:200])  # Limit line length
                             has_drift = True
-                            if len(changes) >= 10:  # Limit number of changes
+                            # Limit number of changes
+                            if len(changes) >= 10:
                                 break
 
             return {

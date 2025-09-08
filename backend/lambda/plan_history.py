@@ -1,11 +1,10 @@
 import difflib
 import json
 import logging
-from datetime import datetime
 from decimal import Decimal
 
 import boto3
-from boto3.dynamodb.conditions import Attr, Key
+from boto3.dynamodb.conditions import Attr
 
 try:
     from auth_utils import auth_required
@@ -51,7 +50,7 @@ def lambda_handler(event, context):
 def _authenticated_handler(event, context):
     try:
         path = event.get("path", "")
-        method = event.get("httpMethod", "")
+        # method = event.get("httpMethod", "")
 
         if path.startswith("/plan-history/"):
             parts = path.split("/")

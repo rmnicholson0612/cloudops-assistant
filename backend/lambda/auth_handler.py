@@ -1,6 +1,5 @@
 import json
 import logging
-from datetime import datetime
 
 import boto3
 
@@ -61,7 +60,7 @@ def register_user(event):
             return error_response(500, "Service configuration error")
 
         # Register with Cognito
-        response = cognito_client.admin_create_user(
+        cognito_client.admin_create_user(
             UserPoolId=user_pool_id,
             Username=email,
             UserAttributes=[
@@ -74,7 +73,10 @@ def register_user(event):
 
         # Set permanent password
         cognito_client.admin_set_user_password(
-            UserPoolId=user_pool_id, Username=email, Password=password, Permanent=True
+            UserPoolId=user_pool_id,
+            Username=email,
+            Password=password,
+            Permanent=True
         )
 
         return success_response(

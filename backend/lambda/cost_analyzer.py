@@ -1,9 +1,7 @@
 import json
 import logging
-import os
 import re
 from datetime import datetime, timedelta
-from decimal import Decimal
 
 import boto3
 
@@ -50,7 +48,7 @@ def _authenticated_handler(event, context):
     """
     try:
         path = event.get("path", "")
-        method = event.get("httpMethod", "")
+        # method = event.get("httpMethod", "")
 
         # Get query parameters
         query_params = event.get("queryStringParameters") or {}
