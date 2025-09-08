@@ -1,6 +1,6 @@
 # CloudOps Assistant - Architecture Overview (Day 3)
 
-![Day 3 Architecture](architecture/architecture-day3.svg)
+![Day 3 Architecture](architecture-day3.svg)
 
 ## 🏗️ Current Infrastructure Architecture
 
@@ -161,7 +161,7 @@
 
 ### ✅ Completed Features
 - **Real Terraform Plan Processing**: Upload and analyze actual terraform plans
-- **Plan History Tracking**: Store and retrieve historical terraform plans  
+- **Plan History Tracking**: Store and retrieve historical terraform plans
 - **Visual Plan Comparison**: Side-by-side diff viewer with syntax highlighting
 - **Clean Plan Display**: Formatted terraform output with color coding
 - **Individual Plan Details**: View complete plan content with metadata

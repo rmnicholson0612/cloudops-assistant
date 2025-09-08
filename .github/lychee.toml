@@ -1,0 +1,30 @@
+# Lychee link checker configuration
+# https://lychee.cli.rs/
+
+# Maximum number of concurrent network requests
+max_concurrency = 10
+
+# Request timeout in seconds
+timeout = 10
+
+# Number of retries for failed requests
+max_retries = 3
+
+# Accept these HTTP status codes as valid
+accept = [200, 206, 429]
+
+# Exclude these URLs from checking
+exclude = [
+    "https://linkedin.com/in/your-profile",
+    "https://calculator.aws",
+    "https://aws.amazon.com/compliance/data-privacy-faq/"
+]
+
+# Exclude these file patterns
+exclude_file = []
+
+# User agent string
+user_agent = "lychee/CloudOps-Assistant"
+
+# Follow redirects
+include_verbatim = false

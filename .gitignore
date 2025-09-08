@@ -78,7 +78,9 @@ DAILY_TEMPLATE.md
 .amazonq/
 
 # Test/Demo Files
-*.txt
 *.log
 plan.*
 terraform.plan
+
+# Allow requirements files
+!requirements*.txt

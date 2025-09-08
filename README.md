@@ -1,10 +1,10 @@
 # 🚀 CloudOps Assistant: 30 Days, Zero to Hero
 
-> **What if Datadog, Terraform, and ChatGPT had a baby?**  
-> That's what I'm building in 30 days: an open-source CloudOps Assistant.  
+> **What if Datadog, Terraform, and ChatGPT had a baby?**
+> That's what I'm building in 30 days: an open-source CloudOps Assistant.
 > Day by day, feature by feature. Follow along for a front-row seat as we go from zero → full platform.
 
-[![Day](https://img.shields.io/badge/Day-5%2F30-blue)](https://github.com/rmnicholson0612/cloudops-assistant)
+[![Day](https://img.shields.io/badge/Day-6%2F30-blue)](https://github.com/rmnicholson0612/cloudops-assistant)
 [![Status](https://img.shields.io/badge/Status-Building-green)](https://github.com/rmnicholson0612/cloudops-assistant)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
@@ -22,7 +22,7 @@ Every DevOps engineer has felt the pain:
 
 In a world where "vibe coding" is taking over, code quality suffers and security becomes an afterthought. This project proves that you can build production-ready DevOps tools with:
 - **Security-first design** from day one
-- **Battle-tested patterns** from 6+ years of SRE experience  
+- **Battle-tested patterns** from 6+ years of SRE experience
 - **AI integration** that actually adds value, not just buzzwords
 - **Cost transparency** - see exactly what each AWS service costs
 
@@ -44,7 +44,7 @@ In a world where "vibe coding" is taking over, code quality suffers and security
 - [x] **Day 4**: Budget Management & Security Hardening ✅ COMPLETE
 - [x] **Day 5**: JWT Authentication with Cognito ✅ COMPLETE
 
-- [ ] **Day 6**: Lambda Deployment Pipeline
+- [x] **Day 6**: Open Source Quality Pipeline ✅ COMPLETE
 - [ ] **Day 7**: Scheduled Drift Monitoring
 
 ### Week 2: AI Layer 🤖
@@ -57,11 +57,11 @@ In a world where "vibe coding" is taking over, code quality suffers and security
 - [ ] **Day 14**: Intelligent Search & Discovery
 
 ### Week 3: Observability 📊
-- [ ] **Day 15**: Uptime Monitoring
-- [ ] **Day 16**: Latency Tracking Dashboard
-- [ ] **Day 17**: Feature Flag Management
-- [ ] **Day 18**: Smart Alert Routing
-- [ ] **Day 19**: One-Click Lambda Rollbacks
+- [ ] **Day 15**: AWS Compliance Scanning (Prowler Integration)
+- [ ] **Day 16**: Uptime Monitoring
+- [ ] **Day 17**: Latency Tracking Dashboard
+- [ ] **Day 18**: Feature Flag Management
+- [ ] **Day 19**: Smart Alert Routing
 - [ ] **Day 20**: Cold Start Analytics
 - [ ] **Day 21**: Public Status Page
 
@@ -78,12 +78,12 @@ In a world where "vibe coding" is taking over, code quality suffers and security
 
 ## 🛠️ Tech Stack
 
-**Frontend**: React + Vite (S3 hosted, CloudFront CDN)  
-**Backend**: Python Lambda Functions (API Gateway)  
-**Database**: DynamoDB + S3 (free-tier friendly)  
-**AI**: AWS Bedrock (pay-per-call, cost-effective)  
-**Infrastructure**: AWS SAM + Terraform  
-**CI/CD**: GitHub Actions  
+**Frontend**: React + Vite (S3 hosted, CloudFront CDN)
+**Backend**: Python Lambda Functions (API Gateway)
+**Database**: DynamoDB + S3 (free-tier friendly)
+**AI**: AWS Bedrock (pay-per-call, cost-effective)
+**Infrastructure**: AWS SAM + Terraform
+**CI/CD**: GitHub Actions
 
 ## 💰 Cost-Optimized Architecture
 
@@ -97,8 +97,9 @@ Built for **maximum functionality at minimum cost**:
 
 **Estimated monthly cost for moderate usage: $5-15**
 
-## 🚀 Quick Start (Day 5)
+## 🚀 Quick Start (Day 6)
 
+### For Users
 ```bash
 # Clone and deploy
 git clone https://github.com/rmnicholson0612/cloudops-assistant
@@ -116,28 +117,54 @@ make deploy-guided
 # Register/login required to access all features
 ```
 
-## 📈 Current Features (Day 4)
+### For Developers
+```bash
+# Clone the repo
+git clone https://github.com/rmnicholson0612/cloudops-assistant
+cd cloudops-assistant
 
-✅ **GitHub Repository Scanning**: Discovers terraform repos automatically  
-✅ **Real Terraform Plan Processing**: Upload and analyze actual terraform plans  
-✅ **Drift Detection**: Parse plan output for infrastructure changes  
-✅ **Plan History Tracking**: Store and retrieve historical terraform plans  
-✅ **Visual Plan Comparison**: Side-by-side diff viewer with syntax highlighting  
-✅ **Clean Plan Display**: Formatted terraform output with color coding  
-✅ **Professional Dashboard**: Modern UI with tabbed navigation  
-✅ **AWS Cost Dashboard**: Real-time cost tracking with Cost Explorer integration  
-✅ **Service Cost Breakdown**: See which AWS services cost the most  
-✅ **Cost Trends**: 30-day daily spending analysis  
-✅ **Cost Caching**: Hourly cached data to minimize API calls  
-✅ **Budget Management**: Configurable budget alerts and thresholds  
-✅ **Budget Monitoring**: Real-time budget status and spending tracking  
-✅ **Alert System**: SNS-based budget notifications  
-✅ **JWT Authentication**: AWS Cognito User Pool integration with enforced login  
-✅ **User Management**: Registration, login, and secure token handling  
-✅ **Security Hardening**: Input sanitization and injection prevention  
-✅ **User Data Isolation**: All data scoped to authenticated users  
-✅ **DynamoDB Storage**: Secure plan storage with TTL and encryption  
-✅ **Serverless Architecture**: AWS Lambda + API Gateway + DynamoDB  
+# Install development dependencies
+pip install -r requirements-dev.txt
+
+# Set up pre-commit hooks (auto-formats code)
+pre-commit install
+
+# Run quality checks
+pytest tests/ --cov=backend/lambda/
+black backend/lambda/
+flake8 backend/lambda/
+
+# See CONTRIBUTING.md for full development guide
+```
+
+## 📈 Current Features (Day 6)
+
+✅ **GitHub Repository Scanning**: Discovers terraform repos automatically
+✅ **Real Terraform Plan Processing**: Upload and analyze actual terraform plans
+✅ **Drift Detection**: Parse plan output for infrastructure changes
+✅ **Plan History Tracking**: Store and retrieve historical terraform plans
+✅ **Visual Plan Comparison**: Side-by-side diff viewer with syntax highlighting
+✅ **Clean Plan Display**: Formatted terraform output with color coding
+✅ **Professional Dashboard**: Modern UI with tabbed navigation
+✅ **AWS Cost Dashboard**: Real-time cost tracking with Cost Explorer integration
+✅ **Service Cost Breakdown**: See which AWS services cost the most
+✅ **Cost Trends**: 30-day daily spending analysis
+✅ **Cost Caching**: Hourly cached data to minimize API calls
+✅ **Budget Management**: Configurable budget alerts and thresholds
+✅ **Budget Monitoring**: Real-time budget status and spending tracking
+✅ **Alert System**: SNS-based budget notifications
+✅ **JWT Authentication**: AWS Cognito User Pool integration with enforced login
+✅ **User Management**: Registration, login, and secure token handling
+✅ **Security Hardening**: Input sanitization and injection prevention
+✅ **User Data Isolation**: All data scoped to authenticated users
+✅ **DynamoDB Storage**: Secure plan storage with TTL and encryption
+✅ **Serverless Architecture**: AWS Lambda + API Gateway + DynamoDB
+✅ **Quality Pipeline**: Automated code formatting, linting, and security scanning
+✅ **Contributor Guidelines**: Complete setup with issue templates and PR process
+✅ **Pre-commit Hooks**: Automated code quality checks before commits
+✅ **Documentation Validation**: Automated README and architecture diagram checks
+✅ **Security Scanning**: Bandit, Safety, and secrets detection
+✅ **Unit Testing**: Pytest with coverage reporting
 
 ## 🎪 What Makes This Different?
 
@@ -161,12 +188,12 @@ Unlike other DevOps tools that cost $$$$ per month:
 ## 📊 Progress Tracker
 
 ```
-Foundation:    ██████████████████████████████████████████████ 85.7% (6/7 days)
+Foundation:    ██████████████████████████████████████████████████ 100% (7/7 days)
 AI Layer:      ░░░░░░░░░░  0% (0/7 days)
 Observability: ░░░░░░░░░░  0% (0/7 days)
 Advanced:      ░░░░░░░░░░  0% (0/9 days)
 
-Overall:       ████████░░ 20.0% (6/30 days)
+Overall:       █████████░ 23.3% (7/30 days)
 ```
 
 ## 🎯 The End Goal
