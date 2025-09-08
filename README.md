@@ -4,7 +4,7 @@
 > That's what I'm building in 30 days: an open-source CloudOps Assistant.
 > Day by day, feature by feature. Follow along for a front-row seat as we go from zero → full platform.
 
-[![Day](https://img.shields.io/badge/Day-6%2F30-blue)](https://github.com/rmnicholson0612/cloudops-assistant)
+[![Day](https://img.shields.io/badge/Day-7%2F30-blue)](https://github.com/rmnicholson0612/cloudops-assistant)
 [![Status](https://img.shields.io/badge/Status-Building-green)](https://github.com/rmnicholson0612/cloudops-assistant)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
@@ -45,7 +45,7 @@ In a world where "vibe coding" is taking over, code quality suffers and security
 - [x] **Day 5**: JWT Authentication with Cognito ✅ COMPLETE
 
 - [x] **Day 6**: Open Source Quality Pipeline ✅ COMPLETE
-- [ ] **Day 7**: Scheduled Drift Monitoring
+- [x] **Day 7**: Scheduled Drift Monitoring ✅ COMPLETE
 
 ### Week 2: AI Layer 🤖
 - [ ] **Day 8**: AI Terraform Explainer (Bedrock)
@@ -97,7 +97,7 @@ Built for **maximum functionality at minimum cost**:
 
 **Estimated monthly cost for moderate usage: $5-15**
 
-## 🚀 Quick Start (Day 6)
+## 🚀 Quick Start (Day 7)
 
 ### For Users
 ```bash
@@ -137,7 +137,7 @@ flake8 backend/lambda/
 # See CONTRIBUTING.md for full development guide
 ```
 
-## 📈 Current Features (Day 6)
+## 📈 Current Features (Day 7)
 
 ✅ **GitHub Repository Scanning**: Discovers terraform repos automatically
 ✅ **Real Terraform Plan Processing**: Upload and analyze actual terraform plans
@@ -165,6 +165,11 @@ flake8 backend/lambda/
 ✅ **Documentation Validation**: Automated README and architecture diagram checks
 ✅ **Security Scanning**: Bandit, Safety, and secrets detection
 ✅ **Unit Testing**: Pytest with coverage reporting
+✅ **Scheduled Drift Monitoring**: Automatic terraform plan execution on configured repositories
+✅ **Auto-Discovery**: Automatically finds and monitors terraform repositories from GitHub
+✅ **Drift Alerts**: SNS notifications when infrastructure drift is detected
+✅ **Configuration Management**: Web UI for setting up repository monitoring
+✅ **Mock Drift Detection**: Day 7 MVP with simulated terraform execution
 
 ## 🎪 What Makes This Different?
 
@@ -193,7 +198,7 @@ AI Layer:      ░░░░░░░░░░  0% (0/7 days)
 Observability: ░░░░░░░░░░  0% (0/7 days)
 Advanced:      ░░░░░░░░░░  0% (0/9 days)
 
-Overall:       █████████░ 23.3% (7/30 days)
+Overall:       ██████████ 23.3% (7/30 days)
 ```
 
 ## 🎯 The End Goal

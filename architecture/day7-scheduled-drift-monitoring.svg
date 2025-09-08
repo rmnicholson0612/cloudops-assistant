@@ -1,0 +1,166 @@
+<svg width="1200" height="900" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="schedulerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff6b35;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d63031;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="githubGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#24292e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1a1e22;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="lambdaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff9500;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#e67e22;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="alertGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#e74c3c;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#c0392b;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="configGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3498db;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2980b9;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="storageGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#27ae60;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#229954;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="2" dy="4" stdDeviation="3" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#4a5568"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="900" fill="#f8fafc"/>
+
+  <!-- Title -->
+  <text x="600" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#1a202c">CloudOps Assistant - Day 7 Architecture</text>
+  <text x="600" y="55" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#4a5568">Scheduled Drift Monitoring</text>
+
+  <!-- EventBridge Scheduler Layer -->
+  <rect x="50" y="80" width="1100" height="100" rx="10" fill="url(#schedulerGrad)" filter="url(#shadow)" stroke="#FFD700" stroke-width="4"/>
+  <text x="70" y="105" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white">EVENTBRIDGE SCHEDULER - Automated Drift Detection</text>
+  <rect x="1050" y="85" width="40" height="20" rx="5" fill="#FFD700"/>
+  <text x="1070" y="98" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#000">NEW</text>
+  <text x="70" y="125" font-family="Arial, sans-serif" font-size="12" fill="white">Configurable Schedule (15min, 1hr, 6hr, 12hr, 24hr) - Repository-specific monitoring</text>
+  <text x="70" y="145" font-family="Arial, sans-serif" font-size="12" fill="white">Automatic terraform plan execution - Drift detection alerts - Serverless scheduling</text>
+  <text x="70" y="165" font-family="Arial, sans-serif" font-size="12" fill="white">Rules: schedule-drift-monitoring-repo - Target: DriftMonitorFunction</text>
+
+  <!-- GitHub Auto-Discovery -->
+  <rect x="50" y="200" width="360" height="160" rx="10" fill="url(#githubGrad)" filter="url(#shadow)" stroke="#FFD700" stroke-width="3"/>
+  <text x="70" y="225" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">GitHub Auto-Discovery</text>
+  <rect x="330" y="205" width="30" height="15" rx="3" fill="#FFD700"/>
+  <text x="345" y="215" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="#000">NEW</text>
+  <text x="70" y="245" font-family="Arial, sans-serif" font-size="11" fill="white">Automatic terraform repo detection</text>
+  <text x="70" y="260" font-family="Arial, sans-serif" font-size="11" fill="white">Scan user and organization repos</text>
+  <text x="70" y="275" font-family="Arial, sans-serif" font-size="11" fill="white">Find .tf files and terraform configs</text>
+  <text x="70" y="290" font-family="Arial, sans-serif" font-size="11" fill="white">Repository metadata extraction</text>
+  <text x="70" y="305" font-family="Arial, sans-serif" font-size="11" fill="white">Branch and path detection</text>
+  <text x="70" y="320" font-family="Arial, sans-serif" font-size="11" fill="white">Monitoring configuration setup</text>
+  <text x="70" y="340" font-family="Arial, sans-serif" font-size="10" fill="white">API: /discover-repos - /configure-monitoring</text>
+
+  <!-- Configuration Management -->
+  <rect x="430" y="200" width="360" height="160" rx="10" fill="url(#configGrad)" filter="url(#shadow)" stroke="#FFD700" stroke-width="3"/>
+  <text x="450" y="225" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">Configuration Management</text>
+  <rect x="710" y="205" width="30" height="15" rx="3" fill="#FFD700"/>
+  <text x="725" y="215" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="#000">NEW</text>
+  <text x="450" y="245" font-family="Arial, sans-serif" font-size="11" fill="white">Web UI for monitoring setup</text>
+  <text x="450" y="260" font-family="Arial, sans-serif" font-size="11" fill="white">Schedule configuration (15min-24hr)</text>
+  <text x="450" y="275" font-family="Arial, sans-serif" font-size="11" fill="white">Repository enable/disable toggle</text>
+  <text x="450" y="290" font-family="Arial, sans-serif" font-size="11" fill="white">Alert threshold settings</text>
+  <text x="450" y="305" font-family="Arial, sans-serif" font-size="11" fill="white">Terraform path specification</text>
+  <text x="450" y="320" font-family="Arial, sans-serif" font-size="11" fill="white">Environment variable config</text>
+  <text x="450" y="340" font-family="Arial, sans-serif" font-size="10" fill="white">Storage: monitoring-config table</text>
+
+  <!-- Mock Drift Detection -->
+  <rect x="810" y="200" width="340" height="160" rx="10" fill="url(#lambdaGrad)" filter="url(#shadow)" stroke="#FFD700" stroke-width="3"/>
+  <text x="830" y="225" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">Mock Drift Detection (MVP)</text>
+  <rect x="1080" y="205" width="30" height="15" rx="3" fill="#FFD700"/>
+  <text x="1095" y="215" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="#000">NEW</text>
+  <text x="830" y="245" font-family="Arial, sans-serif" font-size="11" fill="white">Simulated terraform plan execution</text>
+  <text x="830" y="260" font-family="Arial, sans-serif" font-size="11" fill="white">Random drift scenario generation</text>
+  <text x="830" y="275" font-family="Arial, sans-serif" font-size="11" fill="white">Resource change simulation</text>
+  <text x="830" y="290" font-family="Arial, sans-serif" font-size="11" fill="white">Infrastructure state variations</text>
+  <text x="830" y="305" font-family="Arial, sans-serif" font-size="11" fill="white">Realistic plan output format</text>
+  <text x="830" y="320" font-family="Arial, sans-serif" font-size="11" fill="white">Configurable drift probability</text>
+  <text x="830" y="340" font-family="Arial, sans-serif" font-size="10" fill="white">Handler: drift_monitor.lambda_handler</text>
+
+  <!-- Lambda Functions Layer -->
+  <rect x="50" y="380" width="1100" height="120" rx="10" fill="url(#lambdaGrad)" filter="url(#shadow)" stroke="#FFD700" stroke-width="4"/>
+  <text x="70" y="405" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white">LAMBDA FUNCTIONS - Drift Monitoring Engine</text>
+  <rect x="1050" y="385" width="40" height="20" rx="5" fill="#FFD700"/>
+  <text x="1070" y="398" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#000">NEW</text>
+  <text x="70" y="425" font-family="Arial, sans-serif" font-size="12" fill="white">DriftMonitorFunction - ConfigManagerFunction - RepoDiscoveryFunction</text>
+  <text x="70" y="445" font-family="Arial, sans-serif" font-size="12" fill="white">Scheduled execution - Repository scanning - Configuration management - Alert generation</text>
+  <text x="70" y="465" font-family="Arial, sans-serif" font-size="12" fill="white">Runtime: Python 3.11 - Memory: 512MB - Timeout: 300s - EventBridge triggers</text>
+  <text x="70" y="485" font-family="Arial, sans-serif" font-size="12" fill="white">Features: Mock terraform execution - Drift simulation - SNS notifications - Config validation</text>
+
+  <!-- SNS Alert System -->
+  <rect x="50" y="520" width="540" height="140" rx="10" fill="url(#alertGrad)" filter="url(#shadow)" stroke="#FFD700" stroke-width="3"/>
+  <text x="70" y="545" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">SNS Alert System</text>
+  <rect x="520" y="525" width="30" height="15" rx="3" fill="#FFD700"/>
+  <text x="535" y="535" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="#000">NEW</text>
+  <text x="70" y="565" font-family="Arial, sans-serif" font-size="12" fill="white">Email Notifications - SMS Alerts - Webhook Integration</text>
+  <text x="70" y="585" font-family="Arial, sans-serif" font-size="12" fill="white">Drift Detection Alerts - Configuration Errors - Monitoring Status</text>
+  <text x="70" y="605" font-family="Arial, sans-serif" font-size="12" fill="white">Alert Details: Repository, Changes, Timestamp, Severity</text>
+  <text x="70" y="625" font-family="Arial, sans-serif" font-size="12" fill="white">Configurable thresholds - Alert suppression - Alert history</text>
+  <text x="70" y="645" font-family="Arial, sans-serif" font-size="10" fill="white">Topic: drift-alerts-topic - Subscription management via UI</text>
+
+  <!-- DynamoDB Storage -->
+  <rect x="610" y="520" width="540" height="140" rx="10" fill="url(#storageGrad)" filter="url(#shadow)" stroke="#FFD700" stroke-width="3"/>
+  <text x="630" y="545" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">DynamoDB Storage</text>
+  <rect x="1080" y="525" width="30" height="15" rx="3" fill="#FFD700"/>
+  <text x="1095" y="535" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="#000">NEW</text>
+  <text x="630" y="565" font-family="Arial, sans-serif" font-size="12" fill="white">monitoring-config: Repository configurations and schedules</text>
+  <text x="630" y="585" font-family="Arial, sans-serif" font-size="12" fill="white">drift-history: Historical drift detection results</text>
+  <text x="630" y="605" font-family="Arial, sans-serif" font-size="12" fill="white">alert-log: Alert delivery tracking and suppression</text>
+  <text x="630" y="625" font-family="Arial, sans-serif" font-size="12" fill="white">Encryption at rest - TTL policies - GSI for queries</text>
+  <text x="630" y="645" font-family="Arial, sans-serif" font-size="10" fill="white">Keys: repo_name, config_id, timestamp - Auto-scaling enabled</text>
+
+  <!-- Web Dashboard -->
+  <rect x="50" y="680" width="1100" height="100" rx="10" fill="#6c5ce7" filter="url(#shadow)" stroke="#FFD700" stroke-width="4"/>
+  <text x="70" y="705" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white">WEB DASHBOARD - Monitoring Control Center</text>
+  <rect x="1050" y="685" width="40" height="20" rx="5" fill="#FFD700"/>
+  <text x="1070" y="698" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#000">NEW</text>
+  <text x="70" y="725" font-family="Arial, sans-serif" font-size="12" fill="white">Repository Discovery UI - Monitoring Configuration Panel - Drift History Timeline</text>
+  <text x="70" y="745" font-family="Arial, sans-serif" font-size="12" fill="white">Alert Management - Schedule Configuration - Real-time Status Dashboard</text>
+  <text x="70" y="765" font-family="Arial, sans-serif" font-size="12" fill="white">Features: Enable/disable monitoring - Schedule selection - Alert preferences - Repository status</text>
+
+  <!-- Connection Lines -->
+  <line x1="600" y1="180" x2="600" y2="200" stroke="#4a5568" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="600" y1="360" x2="600" y2="380" stroke="#4a5568" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="600" y1="500" x2="600" y2="520" stroke="#4a5568" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="600" y1="660" x2="600" y2="680" stroke="#4a5568" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+  <!-- Scheduler to Lambda -->
+  <line x1="230" y1="180" x2="230" y2="380" stroke="#ff6b35" stroke-width="3" marker-end="url(#arrowhead)" stroke-dasharray="5,5"/>
+  <text x="240" y="280" font-family="Arial, sans-serif" font-size="10" fill="#ff6b35" font-weight="bold">Triggers</text>
+
+  <!-- Lambda to SNS -->
+  <line x1="320" y1="500" x2="320" y2="520" stroke="#ff9500" stroke-width="3" marker-end="url(#arrowhead)"/>
+
+  <!-- Lambda to DynamoDB -->
+  <line x1="880" y1="500" x2="880" y2="520" stroke="#ff9500" stroke-width="3" marker-end="url(#arrowhead)"/>
+
+  <!-- Day 7 Badge -->
+  <circle cx="1100" cy="130" r="30" fill="#ff6b35" filter="url(#shadow)"/>
+  <text x="1100" y="125" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">DAY</text>
+  <text x="1100" y="140" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white">7/30</text>
+
+  <!-- Feature Status -->
+  <text x="50" y="820" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#059669">Scheduled Monitoring</text>
+  <text x="220" y="820" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#059669">Auto-Discovery</text>
+  <text x="350" y="820" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#059669">Drift Alerts</text>
+  <text x="480" y="820" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#059669">Configuration UI</text>
+  <text x="620" y="820" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#059669">Mock Detection</text>
+
+  <text x="50" y="840" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#dc2626">Real Terraform Execution (Day 8)</text>
+  <text x="300" y="840" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#dc2626">AI Plan Analysis (Day 8)</text>
+  <text x="520" y="840" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#dc2626">Bedrock Integration (Day 8)</text>
+
+  <!-- Architecture Notes -->
+  <text x="50" y="870" font-family="Arial, sans-serif" font-size="10" fill="#6b7280">Architecture: EventBridge - Lambda - DynamoDB + SNS - Cost: ~$2-5/month - Scalability: Auto-scaling enabled</text>
+  <text x="50" y="885" font-family="Arial, sans-serif" font-size="10" fill="#6b7280">Security: IAM roles, encryption at rest, input validation - Monitoring: CloudWatch logs and metrics</text>
+</svg>

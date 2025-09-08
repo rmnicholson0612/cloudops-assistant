@@ -3,7 +3,16 @@ import logging
 from datetime import datetime, timezone
 
 import boto3
-from plan_processor import store_plan_result
+
+# Import store_plan_result with error handling
+try:
+    from plan_processor import store_plan_result
+except ImportError:
+
+    def store_plan_result(*args, **kwargs):
+        logger.warning("store_plan_result not available - using mock storage")
+        return {"plan_id": f"mock_{datetime.now().isoformat()}"}
+
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -50,7 +59,7 @@ def get_monitored_repos():
         dynamodb = boto3.resource("dynamodb")
         table = dynamodb.Table("cloudops-assistant-drift-config")
 
-        response = table.scan()
+        response = table.scan(Limit=100)
         return response.get("Items", [])
 
     except Exception as e:

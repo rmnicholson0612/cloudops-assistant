@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 from datetime import datetime, timezone
 
 import boto3
@@ -14,6 +15,9 @@ except ImportError:
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+
+# Module-level DynamoDB resource for connection reuse
+dynamodb = boto3.resource("dynamodb")
 
 
 @auth_required
@@ -44,13 +48,38 @@ def configure_drift_monitoring(event):
     """Configure a repository for drift monitoring"""
     try:
         body = json.loads(event.get("body", "{}"))
-        user_id = event["user_info"]["user_id"]
+        user_id = str(event["user_info"]["user_id"]).replace("'", "").replace('"', "")
 
-        repo_name = body.get("repo_name")
-        github_url = body.get("github_url")
-        terraform_dir = body.get("terraform_dir", ".")
-        schedule = body.get("schedule", "daily")  # daily, hourly
-        alert_email = body.get("alert_email")
+        # Sanitize and validate inputs
+        repo_name = (
+            str(body.get("repo_name", "")).strip()[:100]
+            if body.get("repo_name")
+            else None
+        )
+        github_url = (
+            str(body.get("github_url", "")).strip()[:500]
+            if body.get("github_url")
+            else None
+        )
+        terraform_dir = str(body.get("terraform_dir", ".")).strip()[:100]
+        schedule = str(body.get("schedule", "daily")).strip()[:20]
+        alert_email = (
+            str(body.get("alert_email", "")).strip()[:100]
+            if body.get("alert_email")
+            else None
+        )
+
+        # Validate GitHub URL format
+        if github_url and not github_url.startswith("https://github.com/"):
+            return error_response("Invalid GitHub URL format")
+
+        # Validate schedule
+        if schedule not in ["daily", "hourly"]:
+            return error_response("Invalid schedule. Must be 'daily' or 'hourly'")
+
+        # Validate email format if provided
+        if alert_email and "@" not in alert_email:
+            return error_response("Invalid email format")
 
         if not repo_name or not github_url:
             return error_response("repo_name and github_url are required")
@@ -61,7 +90,6 @@ def configure_drift_monitoring(event):
             alert_topic_arn = create_alert_topic(user_id, repo_name, alert_email)
 
         # Store configuration
-        dynamodb = boto3.resource("dynamodb")
         table = dynamodb.Table("cloudops-assistant-drift-config")
 
         config_id = f"{user_id}#{repo_name}"
@@ -103,13 +131,13 @@ def get_drift_status(event):
     try:
         user_id = event["user_info"]["user_id"]
 
-        dynamodb = boto3.resource("dynamodb")
         config_table = dynamodb.Table("cloudops-assistant-drift-config")
 
-        # Get user's drift configurations
-        response = config_table.scan(
-            FilterExpression="user_id = :uid",
-            ExpressionAttributeValues={":uid": user_id},
+        # Get user's drift configurations using proper parameterization
+        from boto3.dynamodb.conditions import Key
+
+        response = config_table.query(
+            IndexName="user-id-index", KeyConditionExpression=Key("user_id").eq(user_id)
         )
 
         configs = response.get("Items", [])
@@ -118,14 +146,20 @@ def get_drift_status(event):
         plans_table = dynamodb.Table("cloudops-assistant-terraform-plans")
 
         for config in configs:
-            # Get latest scan result
-            plan_response = plans_table.query(
-                IndexName="repo-timestamp-index",
-                KeyConditionExpression="repo_name = :repo",
-                ExpressionAttributeValues={":repo": config["repo_name"]},
-                ScanIndexForward=False,
-                Limit=1,
-            )
+            # Get latest scan result with parameterized query
+            from boto3.dynamodb.conditions import Key
+
+            # Sanitize repo_name from database record
+            repo_name = str(config.get("repo_name", "")).strip()
+            if repo_name:
+                plan_response = plans_table.query(
+                    IndexName="repo-timestamp-index",
+                    KeyConditionExpression=Key("repo_name").eq(repo_name),
+                    ScanIndexForward=False,
+                    Limit=1,
+                )
+            else:
+                plan_response = {"Items": []}
 
             latest_scan = plan_response.get("Items", [])
             if latest_scan:
@@ -156,10 +190,11 @@ def delete_drift_config(event):
         if not config_id.startswith(user_id):
             return error_response("Unauthorized", 403)
 
-        dynamodb = boto3.resource("dynamodb")
         table = dynamodb.Table("cloudops-assistant-drift-config")
 
-        table.delete_item(Key={"config_id": config_id})
+        # Sanitize config_id to prevent injection
+        sanitized_config_id = str(config_id).strip()[:100]
+        table.delete_item(Key={"config_id": sanitized_config_id})
 
         return {
             "statusCode": 200,
@@ -177,9 +212,8 @@ def create_alert_topic(user_id, repo_name, email):
     try:
         sns = boto3.client("sns")
 
-        topic_name = f"cloudops-drift-{user_id}-{repo_name}".replace("@", "-").replace(
-            ".", "-"
-        )
+        topic_name = f"cloudops-drift-{user_id}-{repo_name}"
+        topic_name = topic_name.replace("@", "-").replace(".", "-")
 
         # Create topic
         response = sns.create_topic(Name=topic_name)
@@ -197,7 +231,9 @@ def create_alert_topic(user_id, repo_name, email):
 
 def get_cors_headers():
     return {
-        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Origin": os.environ.get(
+            "ALLOWED_ORIGIN", "http://localhost:3000"
+        ),
         "Access-Control-Allow-Headers": "Content-Type,Authorization",
         "Access-Control-Allow-Methods": "GET,POST,DELETE,OPTIONS",
     }
