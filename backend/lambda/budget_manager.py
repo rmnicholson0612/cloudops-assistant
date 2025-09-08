@@ -180,9 +180,7 @@ def get_budget_status(user_id):
                     "status": (
                         "over_budget"
                         if current_spending > monthly_limit
-                        else "warning"
-                        if exceeded_thresholds
-                        else "on_track"
+                        else "warning" if exceeded_thresholds else "on_track"
                     ),
                 }
             )
