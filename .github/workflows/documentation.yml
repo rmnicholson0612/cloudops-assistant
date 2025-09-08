@@ -2,7 +2,7 @@ name: Documentation Checks
 
 on:
   push:
-    branches: [ main, develop, Day6 ]
+    branches: [ main, develop ]
   pull_request:
     branches: [ main, develop ]
 
