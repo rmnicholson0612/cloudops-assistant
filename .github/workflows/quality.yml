@@ -2,41 +2,41 @@ name: Code Quality Checks
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, develop, Day6 ]
   pull_request:
     branches: [ main, develop ]
 
 jobs:
   quality:
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
-    
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements-dev.txt
-    
+
     - name: Check Python formatting
       run: |
         black --check backend/lambda/
         isort --check-only backend/lambda/
-    
+
     - name: Lint Python code
       run: |
         flake8 backend/lambda/
         pylint backend/lambda/ --disable=C0114,C0115,C0116
-    
+
     - name: Run unit tests
       run: |
         pytest tests/ --cov=backend/lambda/ --cov-report=xml
-    
+
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
       with:
@@ -45,12 +45,12 @@ jobs:
 
   sam-validate:
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Setup SAM CLI
       uses: aws-actions/setup-sam@v2
-    
+
     - name: Validate SAM template
       run: sam validate --lint
