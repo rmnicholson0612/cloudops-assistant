@@ -57,11 +57,11 @@ In a world where "vibe coding" is taking over, code quality suffers and security
 - [ ] **Day 14**: Intelligent Search & Discovery
 
 ### Week 3: Observability 📊
-- [ ] **Day 15**: Uptime Monitoring
-- [ ] **Day 16**: Latency Tracking Dashboard
-- [ ] **Day 17**: Feature Flag Management
-- [ ] **Day 18**: Smart Alert Routing
-- [ ] **Day 19**: One-Click Lambda Rollbacks
+- [ ] **Day 15**: AWS Compliance Scanning (Prowler Integration)
+- [ ] **Day 16**: Uptime Monitoring
+- [ ] **Day 17**: Latency Tracking Dashboard
+- [ ] **Day 18**: Feature Flag Management
+- [ ] **Day 19**: Smart Alert Routing
 - [ ] **Day 20**: Cold Start Analytics
 - [ ] **Day 21**: Public Status Page
 
