@@ -373,7 +373,8 @@ def get_current_spending(service_filter="all"):
         ]
         if service_filter not in allowed_services:
             logger.warning(
-                f"Unauthorized service filter attempted: {sanitize_input(str(service_filter))}"
+                f"Unauthorized service filter attempted: "
+                f"{sanitize_input(str(service_filter))}"
             )
             service_filter = "all"
 
