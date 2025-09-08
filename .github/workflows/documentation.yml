@@ -11,12 +11,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         fetch-depth: 0
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v6
       with:
         python-version: '3.11'
 
@@ -32,11 +32,10 @@ jobs:
       run: python scripts/validate-architecture.py
 
     - name: Check for broken links
-      uses: gaurav-nelson/github-action-markdown-link-check@v1
+      uses: lycheeverse/lychee-action@v2
       with:
-        use-quiet-mode: 'yes'
-        use-verbose-mode: 'yes'
-        config-file: '.github/mlc_config.json'
+        args: '--verbose --no-progress --config .github/lychee.toml *.md **/*.md'
+        fail: true
 
     - name: Update badges and progress
       if: github.ref == 'refs/heads/main'

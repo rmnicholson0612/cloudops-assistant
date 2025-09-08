@@ -11,10 +11,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v6
       with:
         python-version: '3.11'
 
@@ -34,11 +34,15 @@ jobs:
         pylint backend/lambda/ --disable=C0114,C0115,C0116,W0718,W1203,R1705,C0415,W0613,R0911,R0914,R0912,R1702,W0621,R0801,W0237,R1725,W1510,W0612
 
     - name: Run unit tests
+      env:
+        AWS_DEFAULT_REGION: us-east-1
+        AWS_ACCESS_KEY_ID: test
+        AWS_SECRET_ACCESS_KEY: test
       run: |
         pytest tests/ --cov=backend/lambda/ --cov-report=xml
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v5
       with:
         file: ./coverage.xml
         fail_ci_if_error: false
@@ -47,7 +51,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Setup SAM CLI
       uses: aws-actions/setup-sam@v2
