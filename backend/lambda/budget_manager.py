@@ -125,12 +125,13 @@ def configure_budget(event, user_id):
 def get_budget_status(user_id):
     """Get current budget status vs actual spending"""
     try:
-        # Get budget configurations for this user
-        from boto3.dynamodb.conditions import Attr
+        # Get budget configurations for this user using GSI query instead of scan
+        from boto3.dynamodb.conditions import Key
 
-        response = budget_table.scan(
-            FilterExpression=Attr("user_id").eq(user_id),
-            Limit=50,  # Limit scan results to prevent performance issues
+        response = budget_table.query(
+            IndexName="user-id-index",
+            KeyConditionExpression=Key("user_id").eq(user_id),
+            Limit=50,
         )
         budgets = response.get("Items", [])
 
@@ -180,7 +181,9 @@ def get_budget_status(user_id):
                     "status": (
                         "over_budget"
                         if current_spending > monthly_limit
-                        else "warning" if exceeded_thresholds else "on_track"
+                        else "warning"
+                        if exceeded_thresholds
+                        else "on_track"
                     ),
                 }
             )
@@ -197,10 +200,14 @@ def get_budget_status(user_id):
 def get_budget_alerts(user_id):
     """Get budget alert history"""
     try:
-        # Get budgets with alert history for this user
-        from boto3.dynamodb.conditions import Attr
+        # Get budgets with alert history for this user using GSI query instead of scan
+        from boto3.dynamodb.conditions import Key
 
-        response = budget_table.scan(FilterExpression=Attr("user_id").eq(user_id))
+        response = budget_table.query(
+            IndexName="user-id-index",
+            KeyConditionExpression=Key("user_id").eq(user_id),
+            Limit=50,
+        )
         budgets = response.get("Items", [])
 
         alerts = []
@@ -234,7 +241,7 @@ def check_budgets_scheduled():
         logger.info("Running scheduled budget check")
 
         # Get all enabled budgets
-        response = budget_table.scan()
+        response = budget_table.scan(Limit=100)
         budgets = response.get("Items", [])
 
         alerts_sent = 0
@@ -343,9 +350,10 @@ View detailed cost breakdown in your CloudOps Assistant dashboard.
         sns_client.publish(TopicArn=topic_arn, Subject=subject, Message=message)
 
         budget_id_safe = sanitize_input(str(budget.get("budget_id", "unknown")))[:50]
+        # Prevent log injection by using structured logging
         logger.info(
-            f"Budget alert sent for budget_id={budget_id_safe} - "
-            f"{int(threshold)}% threshold"
+            "Budget alert sent",
+            extra={"budget_id": budget_id_safe, "threshold": int(threshold)},
         )
 
     except Exception as e:
@@ -374,7 +382,7 @@ def get_current_spending(service_filter="all"):
         if service_filter not in allowed_services:
             logger.warning(
                 f"Unauthorized service filter attempted: "
-                f"{sanitize_input(str(service_filter))}"
+                f"{sanitize_input(service_filter)}"
             )
             service_filter = "all"
 
@@ -447,9 +455,7 @@ def get_from_cache(cache_key):
             r"^cost_trends_\d{4}-\d{2}-\d{2}-\d{2}$",
         ]
         if not any(re.match(pattern, cache_key) for pattern in allowed_patterns):
-            logger.warning(
-                f"Unauthorized cache key pattern: {sanitize_input(str(cache_key))}"
-            )
+            logger.warning("Unauthorized cache key pattern detected")
             return None
 
         response = cost_cache_table.get_item(Key={"cache_key": str(cache_key)})

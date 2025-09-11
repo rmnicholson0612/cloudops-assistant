@@ -127,9 +127,13 @@ def _authenticated_handler(event, context):
 
 def get_plan_history(repo_name, user_id):
     try:
-        response = table.scan(
-            FilterExpression=Attr("repo_name").eq(repo_name)
-            & Attr("user_id").eq(user_id),
+        from boto3.dynamodb.conditions import Key
+
+        response = table.query(
+            IndexName="repo-timestamp-index",
+            KeyConditionExpression=Key("repo_name").eq(repo_name),
+            FilterExpression=Attr("user_id").eq(user_id),
+            ScanIndexForward=False,  # Sort by timestamp descending (newest first)
             Limit=20,
         )
 

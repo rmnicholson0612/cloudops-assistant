@@ -262,31 +262,31 @@
         flex-direction: column;
         align-items: stretch;
     }
-    
+
     .budget-header {
         flex-direction: column;
         align-items: stretch;
         text-align: center;
         gap: 0.5rem;
     }
-    
+
     .budget-amounts {
         flex-direction: column;
         align-items: stretch;
         text-align: center;
         gap: 0.5rem;
     }
-    
+
     .budget-meta {
         flex-direction: column;
         align-items: stretch;
         text-align: center;
     }
-    
+
     .threshold-checkboxes {
         flex-direction: column;
     }
-    
+
     .form-actions {
         flex-direction: column;
     }

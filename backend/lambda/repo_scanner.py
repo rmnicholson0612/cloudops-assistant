@@ -184,17 +184,38 @@ def filter_terraform_repos(repos, token=None):
 def _check_repo_terraform(repo, headers):
     """Check if a single repo contains terraform files"""
     try:
+        # First check repo name/description for terraform keywords (faster)
+        repo_name = repo.get("name", "").lower()
+        repo_desc = (
+            repo.get("description", "").lower() if repo.get("description") else ""
+        )
+
+        # Quick heuristic check first
+        terraform_keywords = ["terraform", "infra", "infrastructure", "iac"]
+        if any(
+            keyword in repo_name or keyword in repo_desc
+            for keyword in terraform_keywords
+        ):
+            return True
+
+        # Only make API call if heuristic doesn't match
         url = f"https://api.github.com/repos/{repo['full_name']}/contents"
-        response = http.request("GET", url, headers=headers)
+        response = http.request("GET", url, headers=headers, timeout=5)
 
         if response.status == 200:
             contents = json.loads(response.data.decode("utf-8"))
-            patterns = [".tf", "terraform", "infrastructure", "infra"]
-            return any(
-                any(pattern in file["name"].lower() for pattern in patterns)
-                for file in contents
-                if isinstance(file, dict)
-            )
+            # Check only first 20 files for performance
+            for i, file in enumerate(contents[:20]):
+                if isinstance(file, dict):
+                    name_lower = file["name"].lower()
+                    if (
+                        ".tf" in name_lower
+                        or "terraform" in name_lower
+                        or "infrastructure" in name_lower
+                        or "infra" in name_lower
+                    ):
+                        return True
+            return False
     except (urllib3.exceptions.HTTPError, json.JSONDecodeError, KeyError):
         pass
     return False
@@ -253,11 +274,35 @@ def scan_repo_drift(repo, token=None):
             clone_cmd = ["git", "clone", "--depth", "1", clone_url, temp_dir]
             subprocess.run(clone_cmd, check=True, capture_output=True, timeout=30)
 
-            # Find terraform files
+            # Find terraform files efficiently - limit depth and check common paths
             tf_dirs = []
-            for root, dirs, files in os.walk(temp_dir):
-                if any(f.endswith(".tf") for f in files):
-                    tf_dirs.append(root)
+            common_tf_paths = [
+                temp_dir,
+                os.path.join(temp_dir, "terraform"),
+                os.path.join(temp_dir, "infra"),
+                os.path.join(temp_dir, "infrastructure"),
+            ]
+
+            # Check common paths first
+            for path in common_tf_paths:
+                if os.path.exists(path) and any(
+                    f.endswith(".tf")
+                    for f in os.listdir(path)
+                    if os.path.isfile(os.path.join(path, f))
+                ):
+                    tf_dirs.append(path)
+
+            # If no terraform files found in common paths, do limited walk
+            if not tf_dirs:
+                for root, dirs, files in os.walk(temp_dir):
+                    # Limit depth to 2 levels for performance
+                    level = root.replace(temp_dir, "").count(os.sep)
+                    if level >= 2:
+                        dirs[:] = []  # Don't recurse deeper
+                    if any(f.endswith(".tf") for f in files):
+                        tf_dirs.append(root)
+                        if len(tf_dirs) >= 3:  # Limit to first 3 terraform directories
+                            break
 
             if not tf_dirs:
                 return {
@@ -272,11 +317,18 @@ def scan_repo_drift(repo, token=None):
 
             # Run terraform plan in first terraform directory
             tf_dir = tf_dirs[0]
-            os.chdir(tf_dir)
+            # Validate path to prevent directory traversal
+            if not os.path.commonpath([temp_dir, tf_dir]) == temp_dir:
+                raise ValueError("Invalid terraform directory path")
 
             # Initialize terraform
             init_result = subprocess.run(
-                ["terraform", "init"], capture_output=True, text=True, timeout=60
+                ["terraform", "init"],
+                capture_output=True,
+                text=True,
+                timeout=60,
+                cwd=tf_dir,
+                env={"PATH": os.environ.get("PATH", "")},
             )
             if init_result.returncode != 0:
                 return {
@@ -296,6 +348,8 @@ def scan_repo_drift(repo, token=None):
                 capture_output=True,
                 text=True,
                 timeout=120,
+                cwd=tf_dir,
+                env={"PATH": os.environ.get("PATH", "")},
             )
 
             # Parse plan output for changes

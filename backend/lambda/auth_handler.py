@@ -109,7 +109,7 @@ def login_user(event):
         response = cognito_client.admin_initiate_auth(
             UserPoolId=user_pool_id,
             ClientId=user_pool_client_id,
-            AuthFlow="ADMIN_NO_SRP_AUTH",
+            AuthFlow="ADMIN_USER_PASSWORD_AUTH",
             AuthParameters={"USERNAME": email, "PASSWORD": password},
         )
 
