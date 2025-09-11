@@ -19,7 +19,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: repo_scanner.lambda_handler
-      Runtime: python3.11
+      Runtime: python3.13
       CodeUri: backend/lambda/
       MemorySize: 1024
       Timeout: 300
@@ -57,7 +57,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: plan_processor.lambda_handler
-      Runtime: python3.11
+      Runtime: python3.13
       CodeUri: backend/lambda/
       MemorySize: 512
       Timeout: 60
@@ -96,7 +96,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: plan_history.lambda_handler
-      Runtime: python3.11
+      Runtime: python3.13
       CodeUri: backend/lambda/
       MemorySize: 256
       Timeout: 30
@@ -155,7 +155,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: cost_analyzer.lambda_handler
-      Runtime: python3.11
+      Runtime: python3.13
       CodeUri: backend/lambda/
       MemorySize: 256
       Timeout: 30
@@ -226,7 +226,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: budget_manager.lambda_handler
-      Runtime: python3.11
+      Runtime: python3.13
       CodeUri: backend/lambda/
       MemorySize: 256
       Timeout: 30
@@ -299,7 +299,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: drift_scheduler.lambda_handler
-      Runtime: python3.11
+      Runtime: python3.13
       CodeUri: backend/lambda/
       MemorySize: 1024
       Timeout: 900
@@ -329,20 +329,22 @@ Resources:
                 - sns:Publish
               Resource: "*"
       Events:
-        ScheduleDaily:
+        ScheduleHourly:
           Type: Schedule
           Properties:
-            Schedule: rate(24 hours)
-            Description: "Daily drift monitoring check"
+            Schedule: rate(1 hour)
+            Description: "Hourly drift monitoring check (respects per-repo schedules)"
 
   DriftConfigFunction:
     Type: AWS::Serverless::Function
     Properties:
       Handler: drift_config.lambda_handler
-      Runtime: python3.11
+      Runtime: python3.13
       CodeUri: backend/lambda/
-      MemorySize: 256
-      Timeout: 30
+      MemorySize: 1024
+      Timeout: 600
+      Layers:
+        - arn:aws:lambda:us-east-1:553035198032:layer:git-lambda2:8
       Environment:
         Variables:
           USER_POOL_ID:
@@ -356,7 +358,7 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName:
               Ref: DriftConfigTable
-        - DynamoDBReadPolicy:
+        - DynamoDBCrudPolicy:
             TableName:
               Ref: TerraformPlansTable
         - Statement:
@@ -393,10 +395,20 @@ Resources:
           Properties:
             Path: /drift/status
             Method: OPTIONS
+        ManualScanApi:
+          Type: Api
+          Properties:
+            Path: /drift/scan/{config_id}
+            Method: POST
         DeleteOptions:
           Type: Api
           Properties:
             Path: /drift/delete/{config_id}
+            Method: OPTIONS
+        ManualScanOptions:
+          Type: Api
+          Properties:
+            Path: /drift/scan/{config_id}
             Method: OPTIONS
 
   CloudOpsUserPool:
@@ -427,7 +439,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: auth_handler.lambda_handler
-      Runtime: python3.11
+      Runtime: python3.13
       CodeUri: backend/lambda/
       MemorySize: 256
       Timeout: 30
@@ -493,7 +505,7 @@ Resources:
     Properties:
       UserPoolId:
         Ref: CloudOpsUserPool
-      ClientName: cloudops-assistant-client
+      ClientName: cloudops-assistant-client-v2
       GenerateSecret: false
       ExplicitAuthFlows:
         - ALLOW_USER_SRP_AUTH

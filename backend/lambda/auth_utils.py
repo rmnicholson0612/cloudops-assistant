@@ -43,6 +43,22 @@ def verify_jwt_token(event):
         return None, "Token verification failed"
 
 
+def verify_token(token):
+    """Verify JWT token and return user info"""
+    try:
+        response = cognito_client.get_user(AccessToken=token)
+        user_attributes = {
+            attr["Name"]: attr["Value"] for attr in response["UserAttributes"]
+        }
+        return {
+            "user_id": user_attributes.get("sub"),
+            "email": user_attributes.get("email"),
+            "username": response["Username"],
+        }
+    except Exception:
+        return None
+
+
 def auth_required(handler_func):
     """Decorator to require authentication for Lambda handlers"""
 

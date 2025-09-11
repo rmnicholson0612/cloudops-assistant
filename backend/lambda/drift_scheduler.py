@@ -1,6 +1,6 @@
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import boto3
 
@@ -27,6 +27,10 @@ def lambda_handler(event, context):
         results = []
         for repo_config in repos:
             try:
+                # Check if repo is due for scanning based on schedule
+                if not is_scan_due(repo_config):
+                    continue
+
                 result = check_repo_drift(repo_config)
                 results.append(result)
 
@@ -71,59 +75,46 @@ def check_repo_drift(repo_config):
     """Run terraform plan on a repository and detect drift"""
     repo_name = repo_config["repo_name"]
     github_url = repo_config["github_url"]
+    terraform_dir = repo_config.get("terraform_dir", ".")
 
     logger.info(f"Checking drift for {repo_name}")
 
-    # For Day 7 MVP: Mock drift detection since real terraform requires AWS creds
     try:
-        import random
+        # Import and use real terraform scanning
+        from drift_config import execute_terraform_scan
 
-        has_changes = random.choice([True, False])  # 50% chance of drift
+        drift_result = execute_terraform_scan(github_url, terraform_dir)
 
-        if has_changes:
-            mock_changes = [
-                f"Update: aws_instance.{repo_name}_server",
-                f"Create: aws_s3_bucket.{repo_name}_logs",
-            ]
-            drift_result = {
+        # Store result in DynamoDB
+        dynamodb = boto3.resource("dynamodb")
+        plans_table = dynamodb.Table("cloudops-assistant-terraform-plans")
+
+        from datetime import timedelta
+
+        plan_id = f"{repo_name}-scheduled-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
+
+        plans_table.put_item(
+            Item={
+                "plan_id": plan_id,
                 "repo_name": repo_name,
-                "drift_detected": True,
-                "changes": mock_changes,
-                "total_changes": len(mock_changes),
-                "last_scan": datetime.now(timezone.utc).isoformat(),
-                "status": "drift_detected",
+                "user_id": repo_config["user_id"],
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "drift_detected": drift_result["drift_detected"],
+                "changes_detected": drift_result["changes_count"],
+                "plan_content": drift_result["plan_output"],
                 "scan_type": "scheduled",
+                "ttl": int(
+                    (datetime.now(timezone.utc) + timedelta(days=30)).timestamp()
+                ),
             }
-        else:
-            drift_result = {
-                "repo_name": repo_name,
-                "drift_detected": False,
-                "changes": [],
-                "total_changes": 0,
-                "last_scan": datetime.now(timezone.utc).isoformat(),
-                "status": "no_drift",
-                "scan_type": "scheduled",
-            }
-
-        # Store result using existing function
-        store_plan_result(
-            github_target=github_url,
-            repo_name=repo_name,
-            drift_result=drift_result,
-            plan_content=f"Mock terraform plan for {repo_name}\n"
-            + (
-                "\n".join([f"# {change}" for change in drift_result["changes"]])
-                if drift_result["changes"]
-                else "No changes."
-            ),
-            user_id=repo_config["user_id"],
         )
 
         return {
             "repo_name": repo_name,
             "drift_detected": drift_result["drift_detected"],
-            "changes": drift_result["changes"],
-            "scan_time": drift_result["last_scan"],
+            "changes_count": drift_result["changes_count"],
+            "scan_time": datetime.now(timezone.utc).isoformat(),
+            "plan_id": plan_id,
         }
 
     except Exception as e:
@@ -131,9 +122,48 @@ def check_repo_drift(repo_config):
         return {
             "repo_name": repo_name,
             "drift_detected": False,
-            "changes": [],
+            "changes_count": 0,
             "scan_time": datetime.now(timezone.utc).isoformat(),
+            "error": str(e),
         }
+
+
+def is_scan_due(repo_config):
+    """Check if repository is due for scanning based on schedule"""
+    try:
+        schedule = repo_config.get("schedule", "daily")
+
+        # Get last scan time from DynamoDB
+        dynamodb = boto3.resource("dynamodb")
+        plans_table = dynamodb.Table("cloudops-assistant-terraform-plans")
+
+        from boto3.dynamodb.conditions import Key
+
+        response = plans_table.query(
+            IndexName="repo-timestamp-index",
+            KeyConditionExpression=Key("repo_name").eq(repo_config["repo_name"]),
+            ScanIndexForward=False,
+            Limit=1,
+        )
+
+        if not response.get("Items"):
+            return True  # No previous scan, scan now
+
+        last_scan = response["Items"][0]["timestamp"]
+        last_scan_time = datetime.fromisoformat(last_scan.replace("Z", "+00:00"))
+        now = datetime.now(timezone.utc)
+
+        # Check if enough time has passed based on schedule
+        if schedule == "hourly":
+            return (now - last_scan_time).total_seconds() >= 3600  # 1 hour
+        elif schedule == "daily":
+            return (now - last_scan_time).total_seconds() >= 86400  # 24 hours
+        else:
+            return (now - last_scan_time).total_seconds() >= 86400  # Default daily
+
+    except Exception as e:
+        logger.error(f"Error checking scan schedule: {str(e)}")
+        return True  # Default to scanning if error
 
 
 def send_drift_alert(repo_config, drift_result):
@@ -149,18 +179,20 @@ def send_drift_alert(repo_config, drift_result):
 🚨 Infrastructure Drift Detected!
 
 Repository: {repo_config['repo_name']}
-Changes Detected: {len(drift_result['changes'])}
+Changes Detected: {drift_result.get('changes_count', 0)}
 
-Changes:
-{chr(10).join(drift_result['changes'][:5])}
+Scan Time: {drift_result.get('scan_time', 'Unknown')}
 
-Scan Time: {drift_result['scan_time']}
+View full details in CloudOps Assistant dashboard.
         """
 
         sns.publish(
             TopicArn=topic_arn,
             Subject=f"Drift Alert: {repo_config['repo_name']}",
-            Message=message,
+            Message=message.format(
+                changes_count=drift_result.get("changes_count", 0),
+                scan_time=drift_result.get("scan_time", "Unknown"),
+            ),
         )
 
         logger.info(f"Sent drift alert for {repo_config['repo_name']}")

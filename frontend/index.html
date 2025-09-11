@@ -97,6 +97,9 @@
                     <div class="card-header">
                         <div class="header-with-info">
                             <h3>Scheduled Drift Monitoring</h3>
+                            <button class="btn btn-info" onclick="showDriftInfo()" title="About drift monitoring">
+                                <i class="fas fa-info-circle"></i>
+                            </button>
                             <div class="feature-badge">✅ Day 7 Complete</div>
                         </div>
                         <button class="btn btn-primary" onclick="showDriftConfigModal()">
@@ -113,11 +116,6 @@
                 </div>
 
                 <div class="feature-grid">
-                    <div class="feature-card">
-                        <i class="fas fa-calendar-day"></i>
-                        <h4>Scheduled Scans</h4>
-                        <p>✅ Day 7 Complete</p>
-                    </div>
                     <div class="feature-card coming-soon">
                         <i class="fas fa-bell"></i>
                         <h4>Drift Alerts</h4>
@@ -954,12 +952,12 @@ terraform plan > plan.txt</code>
                 <div class="drift-config-form">
                     <div class="form-group">
                         <label for="drift-repo-name">Repository Name</label>
-                        <input type="text" id="drift-repo-name" placeholder="e.g., my-terraform-repo">
+                        <input type="text" id="drift-repo-name" placeholder="Enter GitHub URL first" readonly>
                     </div>
 
                     <div class="form-group">
                         <label for="drift-github-url">GitHub URL</label>
-                        <input type="url" id="drift-github-url" placeholder="https://github.com/user/repo.git">
+                        <input type="url" id="drift-github-url" placeholder="https://github.com/user/repo.git" oninput="autoFillRepoName()">
                     </div>
 
                     <div class="form-group">
@@ -985,7 +983,7 @@ terraform plan > plan.txt</code>
 
                 <div class="drift-config-actions">
                     <button class="btn btn-primary" onclick="saveDriftConfig()">
-                        <i class="fas fa-save"></i> Configure Monitoring
+                        <i class="fas fa-save"></i> Save Configuration
                     </button>
                     <button class="btn btn-secondary" onclick="closeDriftConfigModal()">
                         Cancel
@@ -1099,8 +1097,14 @@ terraform plan > plan.txt</code>
                 loadCostData();
             }
 
-            // Auto-setup drift monitoring from config
-            setTimeout(autoSetupDriftMonitoring, 2000);
+            // Load drift status only if logged in
+            if (localStorage.getItem('access_token')) {
+                // Auto-setup drift monitoring from config
+                setTimeout(autoSetupDriftMonitoring, 2000);
+            } else {
+                // Show login message immediately if not logged in
+                loadDriftStatus();
+            }
         });
 
         // Repository scanning functionality
@@ -1391,34 +1395,37 @@ terraform plan > plan.txt</code>
 
             const date = new Date(planData.timestamp).toLocaleString();
             let content = planData.plan_content || 'No plan content available';
+            let isError = content.includes('Failed to') || content.includes('Error:') || content.includes('fatal:') || content.includes('no space left');
 
-            // Clean up and format terraform plan content
-            content = content
-                .replace(/\x1b\[[0-9;]*m/g, '') // Remove ANSI color codes
-                .replace(/\x00/g, '') // Remove null characters
-                .replace(/Reading\.\.\./g, 'Reading...\n')
-                .replace(/Readcomplete/g, 'Read complete')
-                .replace(/after0s/g, 'after 0s')
-                .replace(/id794038210725/g, 'id=794038210725')
-                .replace(/Terraformusedtheselected/g, '\n\nTerraform used the selected')
-                .replace(/providerstogenerate/g, 'providers to generate')
-                .replace(/thefollowingexecution/g, 'the following execution')
-                .replace(/plan\.Resource/g, 'plan. Resource')
-                .replace(/actionsareindicatedwith/g, 'actions are indicated with')
-                .replace(/thefollowingsymbols/g, 'the following symbols')
-                .replace(/create/g, '\n  + create')
-                .replace(/Terraformwillperform/g, '\n\nTerraform will perform')
-                .replace(/thefollowingactions/g, 'the following actions:')
-                .replace(/aws_([a-z_]+)\.([a-z_-]+)/g, '\n\n# aws_$1.$2')
-                .replace(/willbecreated/g, ' will be created')
-                .replace(/resource([a-z_]+)/g, '\n\nresource "$1"')
-                .replace(/([a-z_]+)\s+(known|false|true|us-east-1)/g, '\n    $1 = $2')
-                .replace(/knownafterapply/g, '(known after apply)')
-                .replace(/\s{2,}/g, ' ') // Normalize spaces
-                .split('\n')
-                .map(line => line.trim())
-                .filter(line => line.length > 0)
-                .join('\n');
+            if (!isError) {
+                // Clean up and format terraform plan content
+                content = content
+                    .replace(/\x1b\[[0-9;]*m/g, '') // Remove ANSI color codes
+                    .replace(/\x00/g, '') // Remove null characters
+                    .replace(/Reading\.\.\./g, 'Reading...\n')
+                    .replace(/Readcomplete/g, 'Read complete')
+                    .replace(/after0s/g, 'after 0s')
+                    .replace(/id794038210725/g, 'id=794038210725')
+                    .replace(/Terraformusedtheselected/g, '\n\nTerraform used the selected')
+                    .replace(/providerstogenerate/g, 'providers to generate')
+                    .replace(/thefollowingexecution/g, 'the following execution')
+                    .replace(/plan\.Resource/g, 'plan. Resource')
+                    .replace(/actionsareindicatedwith/g, 'actions are indicated with')
+                    .replace(/thefollowingsymbols/g, 'the following symbols')
+                    .replace(/create/g, '\n  + create')
+                    .replace(/Terraformwillperform/g, '\n\nTerraform will perform')
+                    .replace(/thefollowingactions/g, 'the following actions:')
+                    .replace(/aws_([a-z_]+)\.([a-z_-]+)/g, '\n\n# aws_$1.$2')
+                    .replace(/willbecreated/g, ' will be created')
+                    .replace(/resource([a-z_]+)/g, '\n\nresource "$1"')
+                    .replace(/([a-z_]+)\s+(known|false|true|us-east-1)/g, '\n    $1 = $2')
+                    .replace(/knownafterapply/g, '(known after apply)')
+                    .replace(/\s{2,}/g, ' ') // Normalize spaces
+                    .split('\n')
+                    .map(line => line.trim())
+                    .filter(line => line.length > 0)
+                    .join('\n');
+            }
 
             modal.innerHTML = `
                 <div class="modal-content" style="max-width: 800px;">
@@ -1438,8 +1445,8 @@ terraform plan > plan.txt</code>
                         <div class="plan-content">
                             <h4>Terraform Plan Output:</h4>
                             <div style="
-                                background: #f8f9fa;
-                                border: 1px solid #dee2e6;
+                                background: ${isError ? '#f8d7da' : '#f8f9fa'};
+                                border: 1px solid ${isError ? '#f5c6cb' : '#dee2e6'};
                                 border-radius: 8px;
                                 max-height: 500px;
                                 overflow-y: auto;
@@ -1447,17 +1454,21 @@ terraform plan > plan.txt</code>
                                 font-size: 14px;
                                 line-height: 1.6;
                             ">
-                                ${content.split('\n').map(line => {
-                                    if (line.includes('will be created')) return `<div style="color: #28a745; padding: 8px 16px; background: #d4edda; border-left: 3px solid #28a745;">➕ ${line}</div>`;
-                                    if (line.includes('will be updated')) return `<div style="color: #ffc107; padding: 8px 16px; background: #fff3cd; border-left: 3px solid #ffc107;">♾ ${line}</div>`;
-                                    if (line.includes('will be destroyed')) return `<div style="color: #dc3545; padding: 8px 16px; background: #f8d7da; border-left: 3px solid #dc3545;">❌ ${line}</div>`;
-                                    if (line.startsWith('# aws_')) return `<div style="font-weight: bold; padding: 12px 16px; background: #e3f2fd; border-left: 4px solid #2196f3; color: #1976d2;">${line}</div>`;
-                                    if (line.startsWith('resource ')) return `<div style="font-weight: bold; padding: 12px 16px; background: #e9ecef; border-left: 4px solid #007bff;">${line}</div>`;
-                                    if (line.includes('Plan:')) return `<div style="font-weight: bold; padding: 12px 16px; background: #d1ecf1; color: #0c5460;">${line}</div>`;
-                                    if (line.includes(' = ')) return `<div style="padding: 4px 32px; color: #6c757d; font-family: monospace;">${line}</div>`;
-                                    if (line.startsWith('+ create')) return `<div style="color: #28a745; padding: 6px 16px; font-weight: bold;">${line}</div>`;
-                                    return `<div style="padding: 4px 16px; color: #495057;">${line}</div>`;
-                                }).join('')}
+                                ${isError ?
+                                    `<div style="color: #721c24; padding: 16px; font-weight: bold;">⚠️ Scan Error</div>
+                                     <div style="color: #721c24; padding: 0 16px 16px; white-space: pre-wrap;">${content}</div>` :
+                                    content.split('\n').map(line => {
+                                        if (line.includes('will be created')) return `<div style="color: #28a745; padding: 8px 16px; background: #d4edda; border-left: 3px solid #28a745;">➕ ${line}</div>`;
+                                        if (line.includes('will be updated')) return `<div style="color: #ffc107; padding: 8px 16px; background: #fff3cd; border-left: 3px solid #ffc107;">♾ ${line}</div>`;
+                                        if (line.includes('will be destroyed')) return `<div style="color: #dc3545; padding: 8px 16px; background: #f8d7da; border-left: 3px solid #dc3545;">❌ ${line}</div>`;
+                                        if (line.startsWith('# aws_')) return `<div style="font-weight: bold; padding: 12px 16px; background: #e3f2fd; border-left: 4px solid #2196f3; color: #1976d2;">${line}</div>`;
+                                        if (line.startsWith('resource ')) return `<div style="font-weight: bold; padding: 12px 16px; background: #e9ecef; border-left: 4px solid #007bff;">${line}</div>`;
+                                        if (line.includes('Plan:')) return `<div style="font-weight: bold; padding: 12px 16px; background: #d1ecf1; color: #0c5460;">${line}</div>`;
+                                        if (line.includes(' = ')) return `<div style="padding: 4px 32px; color: #6c757d; font-family: monospace;">${line}</div>`;
+                                        if (line.startsWith('+ create')) return `<div style="color: #28a745; padding: 6px 16px; font-weight: bold;">${line}</div>`;
+                                        return `<div style="padding: 4px 16px; color: #495057;">${line}</div>`;
+                                    }).join('')
+                                }
                             </div>
                         </div>
                     </div>
@@ -1571,6 +1582,10 @@ terraform plan > plan.txt</code>
 
         function closeFeatureInfo() {
             document.getElementById('feature-modal').style.display = 'none';
+        }
+
+        function showDriftInfo() {
+            document.getElementById('feature-modal').style.display = 'block';
         }
 
         // Cost info modal functionality
@@ -2023,6 +2038,25 @@ terraform plan > plan.txt</code>
             document.getElementById('drift-config-modal').style.display = 'none';
         }
 
+        function autoFillRepoName() {
+            const githubUrl = document.getElementById('drift-github-url').value.trim();
+            const repoNameField = document.getElementById('drift-repo-name');
+
+            if (githubUrl && githubUrl.includes('github.com/')) {
+                const match = githubUrl.match(/github\.com\/[^/]+\/([^/.]+)/);
+                if (match && match[1]) {
+                    repoNameField.value = match[1];
+                    repoNameField.style.backgroundColor = '#e8f5e8';
+                } else {
+                    repoNameField.value = '';
+                    repoNameField.style.backgroundColor = '';
+                }
+            } else {
+                repoNameField.value = '';
+                repoNameField.style.backgroundColor = '';
+            }
+        }
+
         async function saveDriftConfig() {
             const repoName = document.getElementById('drift-repo-name').value.trim();
             const githubUrl = document.getElementById('drift-github-url').value.trim();
@@ -2080,13 +2114,21 @@ terraform plan > plan.txt</code>
                 return;
             }
 
+            displayElement.innerHTML = '<div class="drift-loading"><i class="fas fa-spinner fa-spin"></i> Loading drift monitoring status...</div>';
+
             try {
+                console.log('Fetching drift status from:', `${CONFIG.API_BASE_URL}/drift/status`);
+
                 const response = await fetch(`${CONFIG.API_BASE_URL}/drift/status`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
                 });
+
+                console.log('Response status:', response.status);
+
                 const data = await response.json();
+                console.log('Response data:', data);
 
                 if (response.ok) {
                     if (data.configurations.length === 0) {
@@ -2109,6 +2151,12 @@ terraform plan > plan.txt</code>
                                     <div class="drift-status">${driftStatus}</div>
                                 </div>
                                 <div class="drift-config-actions">
+                                    <button class="btn btn-sm btn-primary" onclick="runManualScan('${config.config_id}')" title="Run manual scan">
+                                        <i class="fas fa-play"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-secondary" onclick="viewLastScan('${config.repo_name}')" title="View last scan">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
                                     <button class="btn btn-sm btn-danger" onclick="deleteDriftConfig('${config.config_id}')">
                                         <i class="fas fa-trash"></i>
                                     </button>
@@ -2119,14 +2167,104 @@ terraform plan > plan.txt</code>
 
                     displayElement.innerHTML = html;
                 } else {
+                    console.error('API error:', data);
                     displayElement.innerHTML = `<div class="drift-error">
-                        <i class="fas fa-exclamation-triangle"></i> Error loading drift status: ${data.error}
+                        <i class="fas fa-exclamation-triangle"></i> Error loading drift status: ${data.error || 'Unknown error'}
                     </div>`;
                 }
             } catch (error) {
+                console.error('Network error:', error);
                 displayElement.innerHTML = `<div class="drift-error">
-                    <i class="fas fa-times-circle"></i> Failed to load drift status
+                    <i class="fas fa-times-circle"></i> Failed to load drift status: ${error.message}
                 </div>`;
+            }
+        }
+
+        async function runManualScan(configId) {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                alert('Please login to run manual scans');
+                return;
+            }
+
+            // Find the button and show loading state
+            const button = document.querySelector(`button[onclick="runManualScan('${configId}')"]`);
+            const originalHTML = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            button.disabled = true;
+
+            try {
+                // Properly encode the config_id for URL
+                const encodedConfigId = encodeURIComponent(configId);
+                const response = await fetch(`${CONFIG.API_BASE_URL}/drift/scan/${encodedConfigId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('Manual scan completed! Check the results.');
+                    setTimeout(loadDriftStatus, 1000);
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+            } catch (error) {
+                alert('Failed to start manual scan');
+            } finally {
+                // Restore button state
+                button.innerHTML = originalHTML;
+                button.disabled = false;
+            }
+        }
+
+        async function viewLastScan(repoName) {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                alert('Please login to view scan results');
+                return;
+            }
+
+            try {
+                console.log('Fetching plan history for:', repoName);
+                const response = await fetch(`${CONFIG.API_BASE_URL}/plan-history/${repoName}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const data = await response.json();
+                console.log('Plan history response:', data);
+
+                if (response.ok && data.plans.length > 0) {
+                    const latestPlan = data.plans[0];
+                    console.log('Latest plan:', latestPlan);
+                    // Ensure repo_name is set for the modal
+                    latestPlan.repo_name = repoName;
+
+                    // Get full plan details
+                    const detailsResponse = await fetch(`${CONFIG.API_BASE_URL}/plan-details/${encodeURIComponent(latestPlan.plan_id)}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    const detailsData = await detailsResponse.json();
+                    console.log('Plan details response:', detailsData);
+                    console.log('Plan content:', detailsData.plan_content);
+
+                    if (detailsResponse.ok) {
+                        showPlanDetailsModal(detailsData);
+                    } else {
+                        showPlanDetailsModal(latestPlan);
+                    }
+                } else {
+                    console.log('No plans found or error:', data);
+                    alert('No scan results found for this repository');
+                }
+            } catch (error) {
+                console.error('Error loading scan results:', error);
+                alert('Failed to load scan results');
             }
         }
 
@@ -2142,7 +2280,9 @@ terraform plan > plan.txt</code>
             }
 
             try {
-                const response = await fetch(`${CONFIG.API_BASE_URL}/drift/delete/${configId}`, {
+                // Properly encode the config_id for URL
+                const encodedConfigId = encodeURIComponent(configId);
+                const response = await fetch(`${CONFIG.API_BASE_URL}/drift/delete/${encodedConfigId}`, {
                     method: 'DELETE',
                     headers: {
                         'Authorization': `Bearer ${token}`
@@ -2313,6 +2453,9 @@ terraform plan > plan.txt</code>
                     updateAuthUI(true, email);
                     closeLoginModal();
 
+                    // Refresh data after login
+                    refreshDataAfterLogin();
+
                     resultElement.innerHTML = '<div class="success">Login successful!</div>';
                 } else {
                     resultElement.innerHTML = `<div class="error">${data.error}</div>`;
@@ -2376,6 +2519,30 @@ terraform plan > plan.txt</code>
 
             // Update UI
             updateAuthUI(false);
+
+            // Refresh data after logout to show login messages
+            refreshDataAfterLogout();
+        }
+
+        function refreshDataAfterLogout() {
+            // Show login messages on all tabs
+            loadDriftStatus();
+
+            // Clear cost displays
+            const costDisplays = [
+                'current-cost-display',
+                'service-costs-display',
+                'cost-trends-display',
+                'tag-costs-display',
+                'budget-status-display'
+            ];
+
+            costDisplays.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.innerHTML = '<div class="cost-error"><i class="fas fa-lock"></i> Please login to view data</div>';
+                }
+            });
         }
 
         function updateAuthUI(isLoggedIn, email = '') {
@@ -2399,6 +2566,18 @@ terraform plan > plan.txt</code>
 
             if (token && email) {
                 updateAuthUI(true, email);
+            }
+        }
+
+        function refreshDataAfterLogin() {
+            // Refresh drift status if on drift tab
+            if (document.querySelector('.tab-btn[data-tab="drift"]').classList.contains('active')) {
+                loadDriftStatus();
+            }
+
+            // Refresh cost data if on costs tab
+            if (document.querySelector('.tab-btn[data-tab="costs"]').classList.contains('active')) {
+                loadCostData();
             }
         }
 
