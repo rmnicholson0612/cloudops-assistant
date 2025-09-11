@@ -274,7 +274,7 @@ def scan_repo_drift(repo, token=None):
             clone_cmd = ["git", "clone", "--depth", "1", clone_url, temp_dir]
             subprocess.run(clone_cmd, check=True, capture_output=True, timeout=30)
 
-            # Find terraform files efficiently - limit depth and check common locations first
+            # Find terraform files efficiently - limit depth and check common paths
             tf_dirs = []
             common_tf_paths = [
                 temp_dir,
@@ -292,7 +292,7 @@ def scan_repo_drift(repo, token=None):
                 ):
                     tf_dirs.append(path)
 
-            # If no terraform files found in common paths, do limited walk (max 2 levels)
+            # If no terraform files found in common paths, do limited walk
             if not tf_dirs:
                 for root, dirs, files in os.walk(temp_dir):
                     # Limit depth to 2 levels for performance

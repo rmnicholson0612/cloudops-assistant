@@ -1,6 +1,6 @@
 import json
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 import boto3
 
@@ -91,7 +91,10 @@ def check_repo_drift(repo_config):
 
         from datetime import timedelta
 
-        plan_id = f"{repo_name}-scheduled-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
+        plan_id = (
+            f"{repo_name}-scheduled-"
+            f"{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
+        )
 
         plans_table.put_item(
             Item={

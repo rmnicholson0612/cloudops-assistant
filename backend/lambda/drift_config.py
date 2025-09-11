@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 import boto3
+from boto3.dynamodb.conditions import Key as DynamoKey
 
 # Force rebuild - fixing import issue
 
@@ -170,10 +171,10 @@ def get_drift_status(event):
         config_table = dynamodb.Table("cloudops-assistant-drift-config")
 
         # Get user's drift configurations using proper parameterization
-        from boto3.dynamodb.conditions import Key
 
         response = config_table.query(
-            IndexName="user-id-index", KeyConditionExpression=Key("user_id").eq(user_id)
+            IndexName="user-id-index",
+            KeyConditionExpression=DynamoKey("user_id").eq(user_id),
         )
 
         configs = response.get("Items", [])
@@ -183,14 +184,12 @@ def get_drift_status(event):
 
         for config in configs:
             # Get latest scan result with parameterized query
-            from boto3.dynamodb.conditions import Key
-
             # Sanitize repo_name from database record
             repo_name = str(config.get("repo_name", "")).strip()
             if repo_name:
                 plan_response = plans_table.query(
                     IndexName="repo-timestamp-index",
-                    KeyConditionExpression=Key("repo_name").eq(repo_name),
+                    KeyConditionExpression=DynamoKey("repo_name").eq(repo_name),
                     ScanIndexForward=False,
                     Limit=1,
                 )
@@ -247,7 +246,8 @@ def run_manual_scan(event):
         logger.info(f"Manual scan - user_id: {user_id}, config_id: {config_id}")
         logger.info(f"Event path: {event.get('path', 'No path')}")
         logger.info(
-            f"Event pathParameters: {event.get('pathParameters', 'No pathParameters')}"
+            f"Event pathParameters: "
+            f"{event.get('pathParameters', 'No pathParameters')}"
         )
 
         # Get configuration
@@ -257,11 +257,9 @@ def run_manual_scan(event):
         if "Item" not in response:
             logger.error(f"Configuration not found: {config_id}")
             # Try to find by user_id if direct lookup fails
-            from boto3.dynamodb.conditions import Key
-
             user_configs = config_table.query(
                 IndexName="user-id-index",
-                KeyConditionExpression=Key("user_id").eq(user_id),
+                KeyConditionExpression=DynamoKey("user_id").eq(user_id),
             )
             logger.info(
                 f"Found {len(user_configs.get('Items', []))} configs for user {user_id}"
@@ -275,7 +273,8 @@ def run_manual_scan(event):
         # Verify ownership
         if config.get("user_id") != user_id:
             logger.error(
-                f"Unauthorized access - config user_id: {config.get('user_id')}, request user_id: {user_id}"
+                f"Unauthorized access - config user_id: {config.get('user_id')}, "
+                f"request user_id: {user_id}"
             )
             return error_response("Unauthorized", 403)
 
@@ -286,7 +285,10 @@ def run_manual_scan(event):
 
         # Store scan result
         plans_table = dynamodb.Table("cloudops-assistant-terraform-plans")
-        plan_id = f"{config['repo_name']}-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
+        plan_id = (
+            f"{config['repo_name']}-"
+            f"{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
+        )
 
         plans_table.put_item(
             Item={
@@ -436,7 +438,10 @@ def execute_terraform_scan(github_url, terraform_dir):
                 return {
                     "drift_detected": False,
                     "changes_count": 0,
-                    "plan_output": f"Terraform directory '{terraform_dir}' not found in repository",
+                    "plan_output": (
+                        f"Terraform directory '{terraform_dir}' "
+                        f"not found in repository"
+                    ),
                 }
 
             logger.info(f"Found terraform directory: {tf_dir}")
@@ -473,10 +478,12 @@ def execute_terraform_scan(github_url, terraform_dir):
 
             logger.info(f"Terraform plan exit code: {plan_result.returncode}")
             logger.info(
-                f"Plan stdout length: {len(plan_result.stdout) if plan_result.stdout else 0}"
+                f"Plan stdout length: "
+                f"{len(plan_result.stdout) if plan_result.stdout else 0}"
             )
             logger.info(
-                f"Plan stderr length: {len(plan_result.stderr) if plan_result.stderr else 0}"
+                f"Plan stderr length: "
+                f"{len(plan_result.stderr) if plan_result.stderr else 0}"
             )
 
             # Parse terraform plan results
@@ -515,7 +522,10 @@ def install_terraform(temp_dir):
         import zipfile
 
         # Download terraform binary
-        tf_url = "https://releases.hashicorp.com/terraform/1.6.6/terraform_1.6.6_linux_amd64.zip"
+        tf_url = (
+            "https://releases.hashicorp.com/terraform/1.6.6/"
+            "terraform_1.6.6_linux_amd64.zip"
+        )
         zip_path = os.path.join(temp_dir, "terraform.zip")
 
         urllib.request.urlretrieve(tf_url, zip_path)
