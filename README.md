@@ -4,7 +4,7 @@
 > That's what I'm building in 30 days: an open-source CloudOps Assistant.
 > Day by day, feature by feature. Follow along for a front-row seat as we go from zero → full platform.
 
-[![Day](https://img.shields.io/badge/Day-7%2F30-blue)](https://github.com/rmnicholson0612/cloudops-assistant)
+[![Day](https://img.shields.io/badge/Day-8%2F30-blue)](https://github.com/rmnicholson0612/cloudops-assistant)
 [![Status](https://img.shields.io/badge/Status-Building-green)](https://github.com/rmnicholson0612/cloudops-assistant)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
@@ -48,7 +48,7 @@ In a world where "vibe coding" is taking over, code quality suffers and security
 - [x] **Day 7**: Scheduled Drift Monitoring ✅ COMPLETE
 
 ### Week 2: AI Layer 🤖
-- [ ] **Day 8**: AI Terraform Explainer (Bedrock)
+- [x] **Day 8**: AI Terraform Explainer (Bedrock) ✅ COMPLETE
 - [ ] **Day 9**: Automated Postmortem Generator
 - [ ] **Day 10**: RAG for Infrastructure Documentation
 - [ ] **Day 11**: AI Anomaly Detection
@@ -97,7 +97,7 @@ Built for **maximum functionality at minimum cost**:
 
 **Estimated monthly cost for moderate usage: $5-15**
 
-## 🚀 Quick Start (Day 7)
+## 🚀 Quick Start (Day 8)
 
 ### For Users
 ```bash
@@ -137,7 +137,7 @@ flake8 backend/lambda/
 # See CONTRIBUTING.md for full development guide
 ```
 
-## 📈 Current Features (Day 7)
+## 📈 Current Features (Day 8)
 
 ✅ **GitHub Repository Scanning**: Discovers terraform repos automatically
 ✅ **Real Terraform Plan Processing**: Upload and analyze actual terraform plans
@@ -172,6 +172,11 @@ flake8 backend/lambda/
 ✅ **Real Terraform Execution**: Actual terraform plan execution with proper error handling
 ✅ **Loading States**: User feedback during scan operations with spinner animations
 ✅ **Error Display**: Proper formatting and display of terraform execution errors
+✅ **AI Terraform Explainer**: AWS Bedrock-powered analysis of terraform plans
+✅ **Risk Assessment**: AI-driven risk analysis with LOW/MEDIUM/HIGH classifications
+✅ **Plain English Explanations**: Convert complex terraform changes to readable summaries
+✅ **Smart Recommendations**: AI-powered suggestions for testing, timing, and best practices
+✅ **Fallback Analysis**: Intelligent analysis when AI services are unavailable
 
 ## 🎪 What Makes This Different?
 
@@ -196,11 +201,11 @@ Unlike other DevOps tools that cost $$$$ per month:
 
 ```
 Foundation:    ██████████████████████████████████████████████████ 100% (7/7 days)
-AI Layer:      ░░░░░░░░░░  0% (0/7 days)
+AI Layer:      ██░░░░░░░░ 14.3% (1/7 days)
 Observability: ░░░░░░░░░░  0% (0/7 days)
 Advanced:      ░░░░░░░░░░  0% (0/9 days)
 
-Overall:       ███████░░░ 23.3% (7/30 days)
+Overall:       ████████░░ 26.7% (8/30 days)
 ```
 
 ## 🎯 The End Goal

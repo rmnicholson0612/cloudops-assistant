@@ -70,6 +70,8 @@ def lambda_handler(event, context):
             return get_drift_status(event)
         elif method == "POST" and "/drift/scan" in path:
             return run_manual_scan(event)
+        elif method == "PUT" and "/drift/update" in path:
+            return update_drift_config(event)
         elif method == "DELETE" and "/drift/delete" in path:
             return delete_drift_config(event)
         else:
@@ -114,8 +116,12 @@ def configure_drift_monitoring(event):
             return error_response("Invalid schedule. Must be 'daily' or 'hourly'")
 
         # Validate email format if provided
-        if alert_email and "@" not in alert_email:
-            return error_response("Invalid email format")
+        if alert_email:
+            import re
+
+            email_pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+            if not re.match(email_pattern, alert_email):
+                return error_response("Invalid email format")
 
         if not repo_name or not github_url:
             return error_response("repo_name and github_url are required")
@@ -124,6 +130,11 @@ def configure_drift_monitoring(event):
         alert_topic_arn = None
         if alert_email:
             alert_topic_arn = create_alert_topic(user_id, repo_name, alert_email)
+            if not alert_topic_arn:
+                logger.warning(
+                    f"Failed to create SNS topic for {alert_email}, "
+                    "continuing without alerts"
+                )
 
         # Store configuration
         table = dynamodb.Table("cloudops-assistant-drift-config")
@@ -324,6 +335,66 @@ def run_manual_scan(event):
         return error_response("Failed to run manual scan")
 
 
+def update_drift_config(event):
+    """Update drift monitoring configuration"""
+    try:
+        user_id = str(event["user_info"]["user_id"]).replace("'", "").replace('"', "")
+        config_id = event.get("pathParameters", {}).get("config_id")
+
+        if not config_id:
+            return error_response("Missing config_id parameter", 400)
+
+        import urllib.parse
+
+        config_id = urllib.parse.unquote(config_id)
+
+        body = json.loads(event.get("body", "{}"))
+        schedule = str(body.get("schedule", "daily")).strip()[:20]
+        alert_email = (
+            str(body.get("alert_email", "")).strip()[:100]
+            if body.get("alert_email")
+            else None
+        )
+
+        if schedule not in ["daily", "hourly"] or (
+            alert_email and "@" not in alert_email
+        ):
+            return error_response("Invalid schedule or email format")
+
+        table = dynamodb.Table("cloudops-assistant-drift-config")
+        response = table.get_item(Key={"config_id": config_id})
+
+        if "Item" not in response or response["Item"].get("user_id") != user_id:
+            return error_response("Configuration not found or unauthorized", 404)
+
+        table.update_item(
+            Key={"config_id": config_id},
+            UpdateExpression="SET schedule = :schedule, alert_email = :email, updated_at = :updated",
+            ExpressionAttributeValues={
+                ":schedule": schedule,
+                ":email": alert_email,
+                ":updated": datetime.now(timezone.utc).isoformat(),
+            },
+        )
+
+        return {
+            "statusCode": 200,
+            "headers": get_cors_headers(),
+            "body": json.dumps(
+                {
+                    "message": "Configuration updated successfully",
+                    "config_id": config_id,
+                    "schedule": schedule,
+                    "alert_email": alert_email,
+                }
+            ),
+        }
+
+    except Exception as e:
+        logger.error(f"Error updating drift config: {str(e)}")
+        return error_response("Failed to update configuration")
+
+
 def delete_drift_config(event):
     """Delete drift monitoring configuration"""
     try:
@@ -386,7 +457,7 @@ def get_cors_headers():
             "ALLOWED_ORIGIN", "http://localhost:3000"
         ),
         "Access-Control-Allow-Headers": "Content-Type,Authorization",
-        "Access-Control-Allow-Methods": "GET,POST,DELETE,OPTIONS",
+        "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
     }
 
 
@@ -397,6 +468,11 @@ def execute_terraform_scan(github_url, terraform_dir):
         with tempfile.TemporaryDirectory() as temp_dir:
             logger.info(f"Created temp directory: {temp_dir}")
             repo_dir = os.path.join(temp_dir, "repo")
+
+            # Validate terraform_dir to prevent path traversal
+            if os.path.isabs(terraform_dir) or ".." in terraform_dir:
+                raise ValueError("Unsafe terraform directory path detected")
+
             tf_dir = os.path.join(repo_dir, terraform_dir)
 
             # Install terraform
@@ -488,8 +564,15 @@ def execute_terraform_scan(github_url, terraform_dir):
 
             # Parse terraform plan results
             # Exit code 0: no changes, 1: error, 2: changes detected
-            drift_detected = plan_result.returncode == 2
-            changes_count = count_terraform_changes(plan_result.stdout)
+            plan_output = plan_result.stdout or plan_result.stderr
+
+            # Use robust drift detection (same as plan_processor)
+            drift_detected = detect_terraform_drift(plan_output)
+            changes_count = count_terraform_changes(plan_output)
+
+            # Fallback to exit code if our detection fails
+            if not drift_detected and plan_result.returncode == 2:
+                drift_detected = True
 
             logger.info(f"Drift detected: {drift_detected}, Changes: {changes_count}")
 
@@ -528,15 +611,40 @@ def install_terraform(temp_dir):
         )
         zip_path = os.path.join(temp_dir, "terraform.zip")
 
-        urllib.request.urlretrieve(tf_url, zip_path)
+        # Use secure download with proper validation
+        with urllib.request.urlopen(tf_url, timeout=30) as response:
+            if response.getcode() != 200:
+                raise ValueError(
+                    f"Failed to download terraform: HTTP {response.getcode()}"
+                )
+            with open(zip_path, "wb") as f:
+                f.write(response.read())
 
-        # Extract terraform binary
+        # Extract terraform binary with path validation
         with zipfile.ZipFile(zip_path, "r") as zip_ref:
-            zip_ref.extract("terraform", temp_dir)
+            # Validate that we're only extracting the terraform binary
+            if "terraform" not in zip_ref.namelist():
+                raise ValueError("terraform binary not found in zip")
+
+            # Secure extraction to prevent path traversal
+            for member in zip_ref.namelist():
+                if member == "terraform":
+                    # Validate member name to prevent path traversal
+                    if os.path.isabs(member) or ".." in member:
+                        raise ValueError("Unsafe zip member path detected")
+
+                    # Extract safely using extractall with specific member
+                    zip_ref.extractall(temp_dir, [member])
+                    break
 
         # Make executable
+        import stat
+
         terraform_bin = os.path.join(temp_dir, "terraform")
-        os.chmod(terraform_bin, 0o755)
+        os.chmod(
+            terraform_bin,
+            stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH,
+        )
 
         return True
 
@@ -545,14 +653,89 @@ def install_terraform(temp_dir):
         return False
 
 
+def detect_terraform_drift(plan_output):
+    """Detect if terraform plan contains drift using robust detection"""
+    if not plan_output:
+        return False
+
+    # Method 1: Check for explicit "No changes" message
+    if "No changes" in plan_output and "infrastructure matches" in plan_output:
+        return False
+
+    # Method 2: Parse Plan summary line (most reliable)
+    import re
+
+    clean_content = re.sub(r"\x1b\[[0-9;]*m", "", plan_output)
+    plan_summary_match = re.search(
+        r"Plan:\s+(\d+)\s+to\s+add,\s+(\d+)\s+to\s+change,\s+(\d+)\s+to\s+destroy",
+        clean_content,
+    )
+    if plan_summary_match:
+        add_count = int(plan_summary_match.group(1))
+        change_count = int(plan_summary_match.group(2))
+        destroy_count = int(plan_summary_match.group(3))
+        total_changes = add_count + change_count + destroy_count
+        return total_changes > 0
+
+    # Method 3: Look for resource action indicators
+    lines = plan_output.split("\n")
+    for line in lines:
+        # Remove ANSI codes for cleaner matching
+        clean_line = re.sub(r"\x1b\[[0-9;]*m", "", line)
+
+        if (
+            "will be created" in clean_line
+            or "will be updated in-place" in clean_line
+            or "will be destroyed" in clean_line
+            or "must be replaced" in clean_line
+        ):
+            return True
+
+    # Method 4: Fallback - look for any terraform action symbols
+    action_indicators = ["~", "+", "-", "-/+"]
+    for line in lines:
+        clean_line = re.sub(r"\x1b\[[0-9;]*m", "", line).strip()
+        if any(
+            clean_line.startswith(f"  {indicator} ") for indicator in action_indicators
+        ):
+            return True
+
+    return False
+
+
 def count_terraform_changes(plan_output):
-    """Count the number of changes in terraform plan output"""
+    """Count the number of changes in terraform plan output using robust detection"""
     if not plan_output:
         return 0
 
+    # Method 1: Parse Plan summary (most reliable)
+    import re
+
+    clean_content = re.sub(r"\x1b\[[0-9;]*m", "", plan_output)
+    plan_summary_match = re.search(
+        r"Plan:\s+(\d+)\s+to\s+add,\s+(\d+)\s+to\s+change,\s+(\d+)\s+to\s+destroy",
+        clean_content,
+    )
+    if plan_summary_match:
+        add_count = int(plan_summary_match.group(1))
+        change_count = int(plan_summary_match.group(2))
+        destroy_count = int(plan_summary_match.group(3))
+        return add_count + change_count + destroy_count
+
+    # Method 2: Count resource action lines (fallback)
     changes = 0
-    for line in plan_output.split("\n"):
-        if any(prefix in line for prefix in ["  + ", "  - ", "  ~ "]):
+    lines = plan_output.split("\n")
+
+    for line in lines:
+        # Remove ANSI codes for cleaner matching
+        clean_line = re.sub(r"\x1b\[[0-9;]*m", "", line)
+
+        if (
+            "will be created" in clean_line
+            or "will be updated in-place" in clean_line
+            or "will be destroyed" in clean_line
+            or "must be replaced" in clean_line
+        ):
             changes += 1
 
     return changes

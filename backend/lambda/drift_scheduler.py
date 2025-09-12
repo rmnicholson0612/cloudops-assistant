@@ -142,9 +142,23 @@ def is_scan_due(repo_config):
 
         from boto3.dynamodb.conditions import Key
 
+        # Sanitize repo_name to prevent injection
+        repo_name = str(repo_config.get("repo_name", "")).strip()
+
+        # Validate repo_name format (alphanumeric, hyphens, underscores, dots only)
+        import re
+
+        if (
+            not repo_name
+            or not re.match(r"^[a-zA-Z0-9._-]+$", repo_name)
+            or len(repo_name) > 100
+        ):
+            logger.warning(f"Invalid repo_name format: {repo_name}")
+            return True
+
         response = plans_table.query(
             IndexName="repo-timestamp-index",
-            KeyConditionExpression=Key("repo_name").eq(repo_config["repo_name"]),
+            KeyConditionExpression=Key("repo_name").eq(repo_name),
             ScanIndexForward=False,
             Limit=1,
         )

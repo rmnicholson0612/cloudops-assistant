@@ -47,16 +47,17 @@ class TestPlanProcessor:
         ~ resource "aws_instance" "web" {
             instance_type = "t2.micro" -> "t2.small"
         }
+
+        Plan: 1 to add, 1 to change, 0 to destroy.
         """
 
         result = process_terraform_plan(plan_content, "test-repo")
 
         assert result["drift_detected"] is True
-        assert len(result["changes"]) == 2
         assert result["total_changes"] == 2
         assert result["status"] == "drift_detected"
-        assert "Createaws_s3_bucket.example" in result["changes"]
-        assert "Updateaws_instance.web" in result["changes"]
+        assert "Add: 1 resources" in result["changes"]
+        assert "Change: 1 resources" in result["changes"]
 
     def test_sanitize_db_input(self):
         """Test database input sanitization"""
@@ -64,7 +65,7 @@ class TestPlanProcessor:
         assert sanitize_db_input("normal-repo_name.123") == "normal-repo_name.123"
 
         # Test input with dangerous characters
-        assert sanitize_db_input("repo'; DROP TABLE--") == "repoDROPTABLE--"
+        assert sanitize_db_input("repo'; DROP TABLE--") == "repo DROP TABLE--"
 
         # Test long input truncation
         long_input = "a" * 2000
@@ -78,12 +79,14 @@ class TestPlanProcessor:
         - resource "aws_instance" "old" {
             - ami = "ami-12345"
         }
+
+        Plan: 0 to add, 0 to change, 1 to destroy.
         """
 
         result = process_terraform_plan(plan_content, "test-repo")
 
         assert result["drift_detected"] is True
-        assert "Destroyaws_instance.old" in result["changes"]
+        assert "Destroy: 1 resources" in result["changes"]
 
     def test_process_terraform_plan_replace_resources(self):
         """Test processing plan with resource replacement"""
@@ -92,9 +95,11 @@ class TestPlanProcessor:
         -/+ resource "aws_instance" "web" {
             ~ ami = "ami-12345" -> "ami-67890"
         }
+
+        Plan: 1 to add, 0 to change, 1 to destroy.
         """
 
         result = process_terraform_plan(plan_content, "test-repo")
 
         assert result["drift_detected"] is True
-        assert "Replaceaws_instance.webmustbereplaced" in result["changes"]
+        assert result["total_changes"] == 2

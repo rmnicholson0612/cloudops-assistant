@@ -1668,6 +1668,118 @@ body {
     font-style: italic;
 }
 
+/* AI Explanation Styles */
+.ai-explanations {
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.ai-loading {
+    padding: 2rem;
+    text-align: center;
+    color: #667eea;
+    font-weight: 500;
+}
+
+.ai-error {
+    padding: 1rem;
+    background: rgba(220, 53, 69, 0.1);
+    border: 1px solid #dc3545;
+    border-radius: 8px;
+    color: #dc3545;
+    text-align: center;
+}
+
+.no-explanations {
+    padding: 3rem 2rem;
+    text-align: center;
+    color: #666;
+    font-style: italic;
+    background: rgba(102, 126, 234, 0.05);
+    border-radius: 12px;
+    border: 2px dashed rgba(102, 126, 234, 0.2);
+}
+
+.explanations-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.explanation-item {
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+    border-left: 5px solid #667eea;
+}
+
+.explanation-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.explanation-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.explanation-repo {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #333;
+}
+
+.explanation-date {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.explanation-risk {
+    font-weight: 600;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.8);
+    font-size: 0.8rem;
+}
+
+.explanation-summary {
+    color: #333;
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    background: rgba(102, 126, 234, 0.05);
+    border-radius: 8px;
+    border-left: 3px solid #667eea;
+}
+
+.explanation-resources {
+    color: #666;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.explanation-recommendations {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.explanation-recommendations ul {
+    margin: 0.5rem 0 0 1rem;
+    padding: 0;
+}
+
+.explanation-recommendations li {
+    margin-bottom: 0.25rem;
+}
+
 /* Responsive adjustments for cost dashboard */
 @media (max-width: 768px) {
     .cost-grid {
@@ -1690,5 +1802,11 @@ body {
         align-items: stretch;
         text-align: center;
         gap: 0.25rem;
+    }
+
+    .explanation-header {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
     }
 }

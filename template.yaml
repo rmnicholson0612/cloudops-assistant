@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: CloudOps Assistant – Day 7 Scheduled Drift Monitoring
+Description: CloudOps Assistant – Day 8 AI Terraform Explainer
 
 Globals:
   Function:
@@ -10,7 +10,7 @@ Globals:
       Environment: prod
   Api:
     Cors:
-      AllowMethods: "'GET,POST,DELETE,OPTIONS'"
+      AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
       AllowHeaders: "'Content-Type,Authorization'"
       AllowOrigin: "'*'"
 
@@ -19,9 +19,9 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: repo_scanner.lambda_handler
-      Runtime: python3.13
+      Runtime: python3.12
       CodeUri: backend/lambda/
-      MemorySize: 1024
+      MemorySize: 512
       Timeout: 300
       Layers:
         - arn:aws:lambda:us-east-1:553035198032:layer:git-lambda2:8
@@ -57,7 +57,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: plan_processor.lambda_handler
-      Runtime: python3.13
+      Runtime: python3.12
       CodeUri: backend/lambda/
       MemorySize: 512
       Timeout: 60
@@ -96,7 +96,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: plan_history.lambda_handler
-      Runtime: python3.13
+      Runtime: python3.12
       CodeUri: backend/lambda/
       MemorySize: 256
       Timeout: 30
@@ -155,7 +155,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: cost_analyzer.lambda_handler
-      Runtime: python3.13
+      Runtime: python3.12
       CodeUri: backend/lambda/
       MemorySize: 256
       Timeout: 30
@@ -226,7 +226,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: budget_manager.lambda_handler
-      Runtime: python3.13
+      Runtime: python3.12
       CodeUri: backend/lambda/
       MemorySize: 256
       Timeout: 30
@@ -299,7 +299,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: drift_scheduler.lambda_handler
-      Runtime: python3.13
+      Runtime: python3.12
       CodeUri: backend/lambda/
       MemorySize: 1024
       Timeout: 900
@@ -339,7 +339,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: drift_config.lambda_handler
-      Runtime: python3.13
+      Runtime: python3.12
       CodeUri: backend/lambda/
       MemorySize: 1024
       Timeout: 600
@@ -410,6 +410,65 @@ Resources:
           Properties:
             Path: /drift/scan/{config_id}
             Method: OPTIONS
+        UpdateApi:
+          Type: Api
+          Properties:
+            Path: /drift/update/{config_id}
+            Method: PUT
+        UpdateOptions:
+          Type: Api
+          Properties:
+            Path: /drift/update/{config_id}
+            Method: OPTIONS
+
+  AIExplainerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: ai_explainer.lambda_handler
+      Runtime: python3.12
+      CodeUri: backend/lambda/
+      MemorySize: 512
+      Timeout: 60
+      Environment:
+        Variables:
+          USER_POOL_ID:
+            Ref: CloudOpsUserPool
+          USER_POOL_CLIENT_ID:
+            Ref: CloudOpsUserPoolClient
+      Tags:
+        Service: cloudops-assistant
+        Feature: ai-explainer
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName:
+              Ref: TerraformPlansTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+                - cognito-idp:GetUser
+              Resource: "*"
+      Events:
+        ExplainApi:
+          Type: Api
+          Properties:
+            Path: /ai/explain
+            Method: POST
+        ExplanationsApi:
+          Type: Api
+          Properties:
+            Path: /ai/explanations
+            Method: GET
+        ExplainOptions:
+          Type: Api
+          Properties:
+            Path: /ai/explain
+            Method: OPTIONS
+        ExplanationsOptions:
+          Type: Api
+          Properties:
+            Path: /ai/explanations
+            Method: OPTIONS
 
   CloudOpsUserPool:
     Type: AWS::Cognito::UserPool
@@ -439,7 +498,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: auth_handler.lambda_handler
-      Runtime: python3.13
+      Runtime: python3.12
       CodeUri: backend/lambda/
       MemorySize: 256
       Timeout: 30
@@ -483,22 +542,16 @@ Resources:
           Properties:
             Path: /auth/register
             Method: OPTIONS
-            RestApiId:
-              Ref: ServerlessRestApi
         LoginOptions:
           Type: Api
           Properties:
             Path: /auth/login
             Method: OPTIONS
-            RestApiId:
-              Ref: ServerlessRestApi
         VerifyOptions:
           Type: Api
           Properties:
             Path: /auth/verify
             Method: OPTIONS
-            RestApiId:
-              Ref: ServerlessRestApi
 
   CloudOpsUserPoolClient:
     Type: AWS::Cognito::UserPoolClient

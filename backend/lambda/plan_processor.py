@@ -18,7 +18,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 # Compiled regex patterns for better performance
-_DB_SANITIZE_PATTERN = re.compile(r"[^a-zA-Z0-9._/-]")
+_DB_SANITIZE_PATTERN = re.compile(r"[^a-zA-Z0-9._/: -]")
 _LOG_SANITIZE_PATTERN = re.compile(r"[\r\n\t\x00-\x1f\x7f-\x9f]")
 
 
@@ -46,12 +46,16 @@ def sanitize_db_input(value):
     return value
 
 
-@auth_required
 def lambda_handler(event, context):
-    # Handle CORS preflight
+    # Handle CORS preflight BEFORE authentication
     if event.get("httpMethod") == "OPTIONS":
         return {"statusCode": 200, "headers": get_cors_headers(), "body": ""}
 
+    return _authenticated_handler(event, context)
+
+
+@auth_required
+def _authenticated_handler(event, context):
     try:
         # Safer JSON parsing
         body_str = event.get("body", "{}")
@@ -100,75 +104,91 @@ def lambda_handler(event, context):
         return error_response("Failed to process terraform plan")
 
 
-# Compiled regex patterns for terraform plan detection
-_RESOURCE_CREATE_PATTERN = re.compile(r"^\s*#\s+.*\s+will be created$")
-_RESOURCE_UPDATE_PATTERN = re.compile(r"^\s*#\s+.*\s+will be updated in-place$")
-_RESOURCE_DESTROY_PATTERN = re.compile(r"^\s*#\s+.*\s+will be destroyed$")
-_RESOURCE_REPLACE_PATTERN = re.compile(r"^\s*#\s+.*\s+must be replaced$")
-_RESOURCE_CHANGE_PATTERN = re.compile(r'^\s*resource\s+"[^"]+"\s+"[^"]+"\s*{')
-_NO_CHANGES_PATTERN = re.compile(r"No changes.*infrastructure matches.*configuration")
-_PLAN_SUMMARY_PATTERN = re.compile(
-    r"^Plan:\s+\d+\s+to\s+add,\s+\d+\s+to\s+change,\s+\d+\s+to\s+destroy"
-)
-
-
-def _extract_resource_name(line):
-    """Extract resource name from terraform plan line"""
-    # Match patterns like: # aws_instance.example will be created
-    match = re.search(r"#\s+([^\s]+)\s+will be", line)
-    return match.group(1) if match else line.strip()
-
-
 def process_terraform_plan(plan_content, repo_name):
-    """Parse terraform plan output for changes with accurate detection"""
-    changes = []
-    has_drift = False
+    """Parse terraform plan output for changes with multiple detection methods"""
 
-    lines = plan_content.split("\n")
+    # Method 1: Check for explicit "No changes" message
+    if "No changes" in plan_content and "infrastructure matches" in plan_content:
+        return {
+            "repo_name": sanitize_db_input(repo_name),
+            "drift_detected": False,
+            "changes": [],
+            "total_changes": 0,
+            "last_scan": datetime.now(timezone.utc).isoformat(),
+            "status": "no_drift",
+            "scan_type": "plan_upload",
+        }
 
-    # Check for explicit "No changes" message first
-    for line in lines:
-        if _NO_CHANGES_PATTERN.search(line):
+    # Method 2: Parse Plan summary line (most reliable)
+    # Remove ANSI codes first for better matching
+    clean_content = re.sub(r"\x1b\[[0-9;]*m", "", plan_content)
+    plan_summary_match = re.search(
+        r"Plan:\s+(\d+)\s+to\s+add,\s+(\d+)\s+to\s+change,\s+(\d+)\s+to\s+destroy",
+        clean_content,
+    )
+    if plan_summary_match:
+        add_count = int(plan_summary_match.group(1))
+        change_count = int(plan_summary_match.group(2))
+        destroy_count = int(plan_summary_match.group(3))
+        total_changes = add_count + change_count + destroy_count
+
+        if total_changes > 0:
+            changes = []
+            if add_count > 0:
+                changes.append(f"Add: {add_count} resources")
+            if change_count > 0:
+                changes.append(f"Change: {change_count} resources")
+            if destroy_count > 0:
+                changes.append(f"Destroy: {destroy_count} resources")
+
             return {
                 "repo_name": sanitize_db_input(repo_name),
-                "drift_detected": False,
-                "changes": [],
-                "total_changes": 0,
+                "drift_detected": True,
+                "changes": changes,
+                "total_changes": total_changes,
                 "last_scan": datetime.now(timezone.utc).isoformat(),
-                "status": "no_drift",
+                "status": "drift_detected",
                 "scan_type": "plan_upload",
             }
 
-    # Parse for actual resource changes
+    # Method 3: Look for resource action indicators
+    changes = []
+    lines = plan_content.split("\n")
+
     for line in lines:
-        if len(changes) >= 10:  # Limit changes
-            break
+        # Remove ANSI codes for cleaner matching
+        clean_line = re.sub(r"\x1b\[[0-9;]*m", "", line)
 
-        stripped_line = line.strip()
-        if not stripped_line:
-            continue
+        if "will be created" in clean_line:
+            resource_match = re.search(r"#\s+([^\s]+)\s+will be created", clean_line)
+            if resource_match:
+                changes.append(f"Create: {resource_match.group(1)}")
+        elif "will be updated in-place" in clean_line:
+            resource_match = re.search(r"#\s+([^\s]+)\s+will be updated", clean_line)
+            if resource_match:
+                changes.append(f"Update: {resource_match.group(1)}")
+        elif "will be destroyed" in clean_line:
+            resource_match = re.search(r"#\s+([^\s]+)\s+will be destroyed", clean_line)
+            if resource_match:
+                changes.append(f"Destroy: {resource_match.group(1)}")
+        elif "must be replaced" in clean_line:
+            resource_match = re.search(r"#\s+([^\s]+)\s+must be replaced", clean_line)
+            if resource_match:
+                changes.append(f"Replace: {resource_match.group(1)}")
 
-        # Skip plan summary lines
-        if _PLAN_SUMMARY_PATTERN.search(stripped_line):
-            continue
+    # Method 4: Fallback - look for any terraform action symbols
+    if not changes:
+        action_indicators = ["~", "+", "-", "-/+"]
+        for line in lines:
+            clean_line = re.sub(r"\x1b\[[0-9;]*m", "", line).strip()
+            if any(
+                clean_line.startswith(f"  {indicator} ")
+                for indicator in action_indicators
+            ):
+                changes.append("Infrastructure changes detected")
+                break
 
-        # Check for resource change indicators
-        if _RESOURCE_CREATE_PATTERN.search(line):
-            resource_name = _extract_resource_name(line)
-            changes.append(f"Create: {resource_name}")
-            has_drift = True
-        elif _RESOURCE_UPDATE_PATTERN.search(line):
-            resource_name = _extract_resource_name(line)
-            changes.append(f"Update: {resource_name}")
-            has_drift = True
-        elif _RESOURCE_DESTROY_PATTERN.search(line):
-            resource_name = _extract_resource_name(line)
-            changes.append(f"Destroy: {resource_name}")
-            has_drift = True
-        elif _RESOURCE_REPLACE_PATTERN.search(line):
-            resource_name = _extract_resource_name(line)
-            changes.append(f"Replace: {resource_name}")
-            has_drift = True
+    has_drift = len(changes) > 0
 
     return {
         "repo_name": sanitize_db_input(repo_name),
@@ -190,7 +210,8 @@ def store_plan_result(github_target, repo_name, drift_result, plan_content, user
 
         sanitized_target = sanitize_db_input(github_target)
         sanitized_repo = sanitize_db_input(repo_name)
-        sanitized_content = sanitize_db_input(str(plan_content))
+        # Store full plan content without truncation
+        sanitized_content = str(plan_content)
 
         # Validate sanitized inputs are not empty
         if not sanitized_target or not sanitized_repo:
@@ -210,7 +231,7 @@ def store_plan_result(github_target, repo_name, drift_result, plan_content, user
                 "repo_name": sanitized_repo,
                 "github_target": sanitized_target,
                 "timestamp": timestamp,
-                "plan_content": sanitized_content[:50000],
+                "plan_content": sanitized_content,
                 "changes_detected": int(drift_result.get("total_changes", 0)),
                 "change_summary": drift_result.get("changes", [])[:20],
                 "drift_detected": bool(drift_result.get("drift_detected", False)),

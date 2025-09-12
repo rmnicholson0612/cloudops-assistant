@@ -100,7 +100,7 @@
                             <button class="btn btn-info" onclick="showDriftInfo()" title="About drift monitoring">
                                 <i class="fas fa-info-circle"></i>
                             </button>
-                            <div class="feature-badge">✅ Day 7 Complete</div>
+
                         </div>
                         <button class="btn btn-primary" onclick="showDriftConfigModal()">
                             <i class="fas fa-plus"></i> Add Repository
@@ -119,7 +119,7 @@
                     <div class="feature-card coming-soon">
                         <i class="fas fa-bell"></i>
                         <h4>Drift Alerts</h4>
-                        <p>Coming Day 18</p>
+                        <p>✅ Day 7 - Email notifications</p>
                     </div>
                 </div>
             </div>
@@ -221,7 +221,7 @@
                     <div class="feature-card coming-soon">
                         <i class="fas fa-lightbulb"></i>
                         <h4>Optimization Tips</h4>
-                        <p>Coming Day 8</p>
+                        <p>✅ Day 8 - AI cost analysis</p>
                     </div>
                 </div>
             </div>
@@ -233,18 +233,30 @@
                     <p>Leverage AI for infrastructure insights, documentation, and automation</p>
                 </div>
 
-                <div class="coming-soon-banner">
-                    <i class="fas fa-brain"></i>
-                    <h3>Coming Week 2</h3>
-                    <p>AI features powered by AWS Bedrock for intelligent DevOps automation</p>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="header-with-info">
+                            <h3><i class="fas fa-file-code"></i> AI Terraform Explainer</h3>
+                            <button class="btn btn-info" onclick="showAIInfo()" title="About AI Terraform Explainer">
+                                <i class="fas fa-info-circle"></i>
+                            </button>
+                            <div class="feature-badge">✅ Day 8 Complete</div>
+                        </div>
+                        <button class="btn btn-primary" onclick="loadAIExplanations()">
+                            <i class="fas fa-refresh"></i> Refresh Explanations
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="ai-explanations-display" class="ai-explanations">
+                            <div class="ai-loading">
+                                <i class="fas fa-spinner fa-spin"></i> Loading AI explanations...
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="feature-grid">
-                    <div class="feature-card coming-soon">
-                        <i class="fas fa-file-code"></i>
-                        <h4>Terraform Explainer</h4>
-                        <p>Day 8 - AI explains your IaC</p>
-                    </div>
+
                     <div class="feature-card coming-soon">
                         <i class="fas fa-clipboard-list"></i>
                         <h4>Postmortem Generator</h4>
@@ -480,7 +492,7 @@ terraform plan > plan.txt</code>
                     <h3><i class="fas fa-rocket"></i> Future Enhancements</h3>
                     <div class="future-features">
                         <div class="future-item">
-                            <div class="future-day">Day 7</div>
+                            <div class="future-day">✅ Complete</div>
                             <div class="future-desc">Scheduled automatic scanning</div>
                         </div>
                         <div class="future-item">
@@ -492,7 +504,7 @@ terraform plan > plan.txt</code>
                             <div class="future-desc">Smart alert routing to repo owners</div>
                         </div>
                         <div class="future-item">
-                            <div class="future-day">Future</div>
+                            <div class="future-day">✅ Complete</div>
                             <div class="future-desc">Real terraform plan execution</div>
                         </div>
                         <div class="future-item">
@@ -663,11 +675,11 @@ terraform plan > plan.txt</code>
                     <h3><i class="fas fa-rocket"></i> Future Enhancements</h3>
                     <div class="future-features">
                         <div class="future-item">
-                            <div class="future-day">Day 4</div>
+                            <div class="future-day">✅ Complete</div>
                             <div class="future-desc">Budget alerts and thresholds</div>
                         </div>
                         <div class="future-item">
-                            <div class="future-day">Day 8</div>
+                            <div class="future-day">✅ Complete</div>
                             <div class="future-desc">AI-powered cost optimization tips</div>
                         </div>
                         <div class="future-item">
@@ -839,8 +851,8 @@ terraform plan > plan.txt</code>
                             <span>Service-specific budget filtering</span>
                         </div>
                         <div class="capability">
-                            <i class="fas fa-clock"></i>
-                            <span>SNS email notifications (configuration pending)</span>
+                            <i class="fas fa-check-circle"></i>
+                            <span>SNS email notifications for budget alerts</span>
                         </div>
                         <div class="capability">
                             <i class="fas fa-check-circle"></i>
@@ -862,8 +874,8 @@ terraform plan > plan.txt</code>
                         <div class="benefit">
                             <i class="fas fa-envelope"></i>
                             <div>
-                                <strong>Email Alerts (Coming Soon)</strong>
-                                <p>Email field is stored but SNS topic setup is still needed</p>
+                                <strong>Email Alerts</strong>
+                                <p>Automatic SNS topic creation and email subscription</p>
                             </div>
                         </div>
                         <div class="benefit">
@@ -872,6 +884,151 @@ terraform plan > plan.txt</code>
                                 <strong>Use Service Filters</strong>
                                 <p>Create separate budgets for different AWS services</p>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Info Modal -->
+    <div id="ai-info-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-robot"></i> About AI Terraform Explainer</h2>
+                <span class="close" onclick="closeAIInfo()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="info-section">
+                    <h3><i class="fas fa-magic"></i> How It Works</h3>
+                    <p>The AI Terraform Explainer uses <strong>AWS Bedrock</strong> to analyze your terraform plans and provide human-readable explanations of infrastructure changes.</p>
+
+                    <div class="process-steps">
+                        <div class="step">
+                            <div class="step-number">1</div>
+                            <div class="step-content">
+                                <strong>Upload Terraform Plan</strong>
+                                <p>Upload your terraform plan output from any repository</p>
+                            </div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">2</div>
+                            <div class="step-content">
+                                <strong>AI Analysis</strong>
+                                <p>AWS Bedrock analyzes the plan and identifies changes, risks, and impacts</p>
+                            </div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">3</div>
+                            <div class="step-content">
+                                <strong>Plain English Explanation</strong>
+                                <p>Get clear explanations of what will change and why it matters</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3><i class="fas fa-brain"></i> AI Capabilities</h3>
+                    <div class="capabilities">
+                        <div class="capability">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Explains complex terraform changes in simple terms</span>
+                        </div>
+                        <div class="capability">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Identifies potential risks and security implications</span>
+                        </div>
+                        <div class="capability">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Provides actionable recommendations</span>
+                        </div>
+                        <div class="capability">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Analyzes resource dependencies and impacts</span>
+                        </div>
+                        <div class="capability">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Fallback analysis when AI is unavailable</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3><i class="fas fa-shield-alt"></i> Risk Assessment</h3>
+                    <div class="detection-patterns">
+                        <div class="pattern-group">
+                            <h4 style="color: #28a745;">LOW Risk</h4>
+                            <ul>
+                                <li>Tag changes and metadata updates</li>
+                                <li>Non-critical configuration changes</li>
+                                <li>Adding new resources without dependencies</li>
+                            </ul>
+                        </div>
+                        <div class="pattern-group">
+                            <h4 style="color: #ffc107;">MEDIUM Risk</h4>
+                            <ul>
+                                <li>Configuration changes affecting functionality</li>
+                                <li>Security group or IAM policy modifications</li>
+                                <li>Resource scaling or type changes</li>
+                            </ul>
+                        </div>
+                        <div class="pattern-group">
+                            <h4 style="color: #dc3545;">HIGH Risk</h4>
+                            <ul>
+                                <li>Resource destruction or replacement</li>
+                                <li>Database or storage changes</li>
+                                <li>Network or security critical modifications</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3><i class="fas fa-lightbulb"></i> Smart Recommendations</h3>
+                    <div class="benefits">
+                        <div class="benefit">
+                            <i class="fas fa-backup"></i>
+                            <div>
+                                <strong>Backup Warnings</strong>
+                                <p>Alerts when changes might require data backups</p>
+                            </div>
+                        </div>
+                        <div class="benefit">
+                            <i class="fas fa-test-tube"></i>
+                            <div>
+                                <strong>Testing Advice</strong>
+                                <p>Suggests testing strategies for different change types</p>
+                            </div>
+                        </div>
+                        <div class="benefit">
+                            <i class="fas fa-clock"></i>
+                            <div>
+                                <strong>Timing Guidance</strong>
+                                <p>Recommends best times to apply changes</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3><i class="fas fa-cogs"></i> Technical Details</h3>
+                    <div class="capabilities">
+                        <div class="capability">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Powered by AWS Bedrock with Claude models</span>
+                        </div>
+                        <div class="capability">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Intelligent fallback analysis when AI is unavailable</span>
+                        </div>
+                        <div class="capability">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Handles ANSI color codes and complex plan formats</span>
+                        </div>
+                        <div class="capability">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Stores explanations for future reference</span>
                         </div>
                     </div>
                 </div>
@@ -1073,6 +1230,11 @@ terraform plan > plan.txt</code>
                 if (tabId === 'drift') {
                     loadDriftStatus();
                 }
+
+                // Load AI explanations when AI tab is activated
+                if (tabId === 'ai') {
+                    loadAIExplanations();
+                }
             });
         });
 
@@ -1197,6 +1359,9 @@ terraform plan > plan.txt</code>
                         </button>
                         <button class="btn btn-secondary btn-sm" onclick="viewRepoHistory('${repo.repo_name}', '${data.target}')">
                             <i class="fas fa-history"></i> History
+                        </button>
+                        <button class="btn btn-success btn-sm" onclick="addToMonitoring('${repo.repo_name}', '${repo.repo_url}', '${data.target}')">
+                            <i class="fas fa-plus"></i> Monitor
                         </button>
                     </div>`;
 
@@ -1442,6 +1607,11 @@ terraform plan > plan.txt</code>
                                 <p><strong>Status:</strong> <span style="color: ${planData.drift_detected ? '#dc3545' : '#28a745'}">${planData.drift_detected ? 'Drift Detected' : 'No Drift'}</span></p>
                             </div>
                         </div>
+                        <div class="plan-actions" style="margin-bottom: 20px;">
+                            <button class="btn btn-primary" onclick="explainPlan('${planData.plan_id}')">
+                                <i class="fas fa-robot"></i> AI Explain Plan
+                            </button>
+                        </div>
                         <div class="plan-content">
                             <h4>Terraform Plan Output:</h4>
                             <div style="
@@ -1604,6 +1774,7 @@ terraform plan > plan.txt</code>
             const costModal = document.getElementById('cost-modal');
             const budgetModal = document.getElementById('budget-modal');
             const budgetInfoModal = document.getElementById('budget-info-modal');
+            const aiInfoModal = document.getElementById('ai-info-modal');
             const loginModal = document.getElementById('login-modal');
             const registerModal = document.getElementById('register-modal');
 
@@ -1621,6 +1792,9 @@ terraform plan > plan.txt</code>
             }
             if (event.target === budgetInfoModal) {
                 budgetInfoModal.style.display = 'none';
+            }
+            if (event.target === aiInfoModal) {
+                aiInfoModal.style.display = 'none';
             }
             if (event.target === loginModal) {
                 loginModal.style.display = 'none';
@@ -1874,6 +2048,15 @@ terraform plan > plan.txt</code>
             document.getElementById('budget-info-modal').style.display = 'none';
         }
 
+        // AI info modal functionality
+        function showAIInfo() {
+            document.getElementById('ai-info-modal').style.display = 'block';
+        }
+
+        function closeAIInfo() {
+            document.getElementById('ai-info-modal').style.display = 'none';
+        }
+
         async function saveBudgetConfig() {
             const budgetName = document.getElementById('budget-name').value.trim();
             const budgetAmount = document.getElementById('budget-amount').value;
@@ -2036,6 +2219,7 @@ terraform plan > plan.txt</code>
 
         function closeDriftConfigModal() {
             document.getElementById('drift-config-modal').style.display = 'none';
+            resetDriftConfigModal();
         }
 
         function autoFillRepoName() {
@@ -2148,6 +2332,7 @@ terraform plan > plan.txt</code>
                                     <div class="drift-repo-name">${config.repo_name}</div>
                                     <div class="drift-schedule">Schedule: ${config.schedule}</div>
                                     <div class="drift-last-scan">Last scan: ${lastScan}</div>
+                                    <div class="drift-alert-email">Alert email: ${config.alert_email || 'unset'}</div>
                                     <div class="drift-status">${driftStatus}</div>
                                 </div>
                                 <div class="drift-config-actions">
@@ -2156,6 +2341,9 @@ terraform plan > plan.txt</code>
                                     </button>
                                     <button class="btn btn-sm btn-secondary" onclick="viewLastScan('${config.repo_name}')" title="View last scan">
                                         <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-warning" onclick="editDriftConfig('${config.config_id}', '${config.repo_name}', '${config.schedule}', '${config.alert_email || ''}')" title="Edit configuration">
+                                        <i class="fas fa-edit"></i>
                                     </button>
                                     <button class="btn btn-sm btn-danger" onclick="deleteDriftConfig('${config.config_id}')">
                                         <i class="fas fa-trash"></i>
@@ -2268,6 +2456,82 @@ terraform plan > plan.txt</code>
             }
         }
 
+        function editDriftConfig(configId, repoName, currentSchedule, currentEmail) {
+            // Pre-populate the modal with current values
+            document.getElementById('drift-repo-name').value = repoName;
+            document.getElementById('drift-repo-name').readOnly = true;
+            document.getElementById('drift-github-url').style.display = 'none';
+            document.getElementById('drift-github-url').previousElementSibling.style.display = 'none';
+            document.getElementById('drift-terraform-dir').style.display = 'none';
+            document.getElementById('drift-terraform-dir').previousElementSibling.style.display = 'none';
+            document.getElementById('drift-schedule').value = currentSchedule;
+            document.getElementById('drift-alert-email').value = currentEmail;
+
+            // Change the save button to update
+            const saveBtn = document.querySelector('#drift-config-modal .btn-primary');
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> Update Configuration';
+            saveBtn.onclick = () => updateDriftConfig(configId);
+
+            showDriftConfigModal();
+        }
+
+        async function updateDriftConfig(configId) {
+            const schedule = document.getElementById('drift-schedule').value;
+            const alertEmail = document.getElementById('drift-alert-email').value.trim();
+
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                alert('Please login to update drift monitoring');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/drift/update/${encodeURIComponent(configId)}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        schedule: schedule,
+                        alert_email: alertEmail
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('Configuration updated successfully!');
+                    closeDriftConfigModal();
+                    resetDriftConfigModal();
+                    loadDriftStatus();
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+            } catch (error) {
+                alert('Failed to update configuration');
+            }
+        }
+
+        function resetDriftConfigModal() {
+            // Reset modal to original state
+            document.getElementById('drift-repo-name').readOnly = false;
+            document.getElementById('drift-repo-name').value = '';
+            document.getElementById('drift-github-url').style.display = 'block';
+            document.getElementById('drift-github-url').previousElementSibling.style.display = 'block';
+            document.getElementById('drift-github-url').value = '';
+            document.getElementById('drift-terraform-dir').style.display = 'block';
+            document.getElementById('drift-terraform-dir').previousElementSibling.style.display = 'block';
+            document.getElementById('drift-terraform-dir').value = '.';
+            document.getElementById('drift-schedule').value = 'daily';
+            document.getElementById('drift-alert-email').value = '';
+
+            // Reset save button
+            const saveBtn = document.querySelector('#drift-config-modal .btn-primary');
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Configuration';
+            saveBtn.onclick = saveDriftConfig;
+        }
+
         async function deleteDriftConfig(configId) {
             if (!confirm('Are you sure you want to stop monitoring this repository?')) {
                 return;
@@ -2376,6 +2640,61 @@ terraform plan > plan.txt</code>
 
             // Refresh drift status after auto-setup
             setTimeout(loadDriftStatus, 1000);
+        }
+
+        // Add repository to drift monitoring
+        async function addToMonitoring(repoName, repoUrl, githubTarget) {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                alert('Please login to add repositories to monitoring');
+                return;
+            }
+
+            // Check if already exists
+            try {
+                const statusResponse = await fetch(`${CONFIG.API_BASE_URL}/drift/status`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (statusResponse.ok) {
+                    const statusData = await statusResponse.json();
+                    const alreadyExists = statusData.configurations.some(config =>
+                        config.repo_name === repoName
+                    );
+
+                    if (alreadyExists) {
+                        alert(`${repoName} is already being monitored`);
+                        return;
+                    }
+                }
+
+                // Add to monitoring
+                const response = await fetch(`${CONFIG.API_BASE_URL}/drift/configure`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        repo_name: repoName,
+                        github_url: repoUrl.endsWith('.git') ? repoUrl : repoUrl + '.git',
+                        terraform_dir: '.',
+                        schedule: 'daily',
+                        alert_email: ''
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert(`${repoName} added to drift monitoring!`);
+                    loadDriftStatus();
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+            } catch (error) {
+                alert('Failed to add repository to monitoring');
+            }
         }
 
         // Auto-populate GitHub targets
@@ -2578,6 +2897,102 @@ terraform plan > plan.txt</code>
             // Refresh cost data if on costs tab
             if (document.querySelector('.tab-btn[data-tab="costs"]').classList.contains('active')) {
                 loadCostData();
+            }
+        }
+
+        // AI Explanation Functions
+        async function loadAIExplanations() {
+            const displayElement = document.getElementById('ai-explanations-display');
+            const token = localStorage.getItem('access_token');
+
+            if (!token) {
+                displayElement.innerHTML = '<div class="ai-error"><i class="fas fa-lock"></i> Please login to view AI explanations</div>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/ai/explanations`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    if (data.explanations.length === 0) {
+                        displayElement.innerHTML = '<div class="no-explanations">No AI explanations yet. Upload terraform plans and click "AI Explain Plan" to get started.</div>';
+                        return;
+                    }
+
+                    let html = '<div class="explanations-list">';
+                    data.explanations.forEach(explanation => {
+                        const date = new Date(explanation.ai_analyzed_at).toLocaleString();
+                        const riskColor = {
+                            'LOW': '#28a745',
+                            'MEDIUM': '#ffc107',
+                            'HIGH': '#dc3545',
+                            'UNKNOWN': '#6c757d'
+                        }[explanation.ai_explanation.risk_level] || '#6c757d';
+
+                        html += `
+                            <div class="explanation-item">
+                                <div class="explanation-header">
+                                    <div class="explanation-repo">${explanation.repo_name}</div>
+                                    <div class="explanation-date">${date}</div>
+                                    <div class="explanation-risk" style="color: ${riskColor}">
+                                        Risk: ${explanation.ai_explanation.risk_level}
+                                    </div>
+                                </div>
+                                <div class="explanation-summary">
+                                    ${explanation.ai_explanation.summary}
+                                </div>
+                            </div>`;
+                    });
+                    html += '</div>';
+
+                    displayElement.innerHTML = html;
+                } else {
+                    displayElement.innerHTML = `<div class="ai-error">
+                        <i class="fas fa-exclamation-triangle"></i> Error loading explanations: ${data.error}
+                    </div>`;
+                }
+            } catch (error) {
+                displayElement.innerHTML = `<div class="ai-error">
+                    <i class="fas fa-times-circle"></i> Failed to load AI explanations
+                </div>`;
+            }
+        }
+
+        async function explainPlan(planId) {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                alert('Please login to use AI explanations');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/ai/explain`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        plan_id: planId
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('AI explanation generated! Check the AI Assistant tab.');
+                    loadAIExplanations();
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+            } catch (error) {
+                alert('Failed to generate AI explanation');
             }
         }
 
