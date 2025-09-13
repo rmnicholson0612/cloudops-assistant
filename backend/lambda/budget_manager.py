@@ -468,40 +468,18 @@ def get_from_cache(cache_key):
 
 
 def validate_authorization(event):
-    """Validate user authorization and return user ID"""
+    """Validate user authorization using server-side session data"""
     try:
-        # Check for Authorization header
-        headers = event.get("headers", {})
-        auth_header = headers.get("Authorization") or headers.get("authorization")
+        # Use auth_utils for proper JWT validation instead of client-controlled data
+        from auth_utils import verify_jwt_token
 
-        if not auth_header:
-            logger.warning("Missing Authorization header")
+        user_info, error = verify_jwt_token(event)
+        if error or not user_info:
+            logger.warning(f"Authorization failed: {error}")
             return None
 
-        # Validate Bearer token format
-        if not auth_header.startswith("Bearer "):
-            logger.warning("Invalid authorization header format")
-            return None
-
-        api_key = auth_header.replace("Bearer ", "").strip()
-
-        # Enhanced API key validation
-        if not api_key or len(api_key) < 20 or len(api_key) > 100:
-            logger.warning("Invalid API key length")
-            return None
-
-        # Validate API key contains only allowed characters
-        if not re.match(r"^[a-zA-Z0-9_-]+$", api_key):
-            logger.warning("Invalid API key characters")
-            return None
-
-        # For demo purposes, derive user ID from API key
-        # In production, validate against Cognito or JWT
-        import uuid
-
-        user_id = f"user_{str(uuid.uuid5(uuid.NAMESPACE_DNS, api_key))[:8]}"
-
-        return user_id
+        # Return validated user ID from server-side JWT token
+        return user_info.get("user_id")
 
     except Exception as e:
         logger.error(f"Authorization validation error: {str(e)}")

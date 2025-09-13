@@ -237,9 +237,11 @@ def get_postmortems(event):
         }
 
     try:
-        response = postmortems_table.scan(
-            FilterExpression="user_id = :user_id",
-            ExpressionAttributeValues={":user_id": user_id},
+        from boto3.dynamodb.conditions import Key
+
+        response = postmortems_table.query(
+            KeyConditionExpression=Key("user_id").eq(user_id),
+            Limit=50,  # Limit for performance
         )
 
         postmortems = []
@@ -293,13 +295,19 @@ def get_postmortem(postmortem_id, event):
         }
 
     try:
-        response = postmortems_table.scan(
-            FilterExpression="postmortem_id = :postmortem_id AND user_id = :user_id",
-            ExpressionAttributeValues={
-                ":postmortem_id": postmortem_id,
-                ":user_id": user_id,
-            },
+        # Use get_item for direct lookup with composite key
+        response = postmortems_table.get_item(
+            Key={
+                "user_id": user_id,
+                "postmortem_id": postmortem_id,
+            }
         )
+
+        # Convert get_item response format to match scan format
+        if "Item" in response:
+            response["Items"] = [response["Item"]]
+        else:
+            response["Items"] = []
 
         if not response["Items"]:
             return {
@@ -347,14 +355,19 @@ def update_postmortem(postmortem_id, event):
     try:
         body = json.loads(event.get("body", "{}"))
 
-        # Get existing postmortem
-        response = postmortems_table.scan(
-            FilterExpression="postmortem_id = :postmortem_id AND user_id = :user_id",
-            ExpressionAttributeValues={
-                ":postmortem_id": postmortem_id,
-                ":user_id": user_id,
-            },
+        # Get existing postmortem using direct lookup
+        response = postmortems_table.get_item(
+            Key={
+                "user_id": user_id,
+                "postmortem_id": postmortem_id,
+            }
         )
+
+        # Convert get_item response format to match scan format
+        if "Item" in response:
+            response["Items"] = [response["Item"]]
+        else:
+            response["Items"] = []
 
         if not response["Items"]:
             return {

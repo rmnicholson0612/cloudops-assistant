@@ -181,11 +181,11 @@ def get_drift_status(event):
 
         config_table = dynamodb.Table("cloudops-assistant-drift-config")
 
-        # Get user's drift configurations using proper parameterization
-
+        # Get user's drift configurations using GSI query for better performance
         response = config_table.query(
             IndexName="user-id-index",
             KeyConditionExpression=DynamoKey("user_id").eq(user_id),
+            Limit=50,  # Limit results for performance
         )
 
         configs = response.get("Items", [])
@@ -640,14 +640,11 @@ def install_terraform(temp_dir):
                     zip_ref.extractall(temp_dir, [member])
                     break
 
-        # Make executable
+        # Make executable with secure permissions (owner only)
         import stat
 
         terraform_bin = os.path.join(temp_dir, "terraform")
-        os.chmod(
-            terraform_bin,
-            stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH,
-        )
+        os.chmod(terraform_bin, stat.S_IRWXU)  # Owner read/write/execute only
 
         return True
 
