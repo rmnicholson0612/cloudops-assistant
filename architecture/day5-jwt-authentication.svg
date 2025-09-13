@@ -141,4 +141,7 @@
   <text x="50" y="780" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#dc2626">🚧 Quality Pipeline (Day 6)</text>
   <text x="220" y="780" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#dc2626">🚧 AI Assistant (Week 2)</text>
   <text x="380" y="780" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#dc2626">🚧 Monitoring (Week 3)</text>
+
+  <!-- Social Handles -->
+  <text x="600" y="795" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" font-weight="bold" fill="#667eea">GitHub: @rmnicholson0612 | LinkedIn: @onevoicerandy | Instagram: @onevoicecoding</text>
 </svg>

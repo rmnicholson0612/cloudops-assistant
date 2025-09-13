@@ -169,4 +169,7 @@
   <!-- Architecture Notes -->
   <text x="50" y="920" font-family="Arial, sans-serif" font-size="10" fill="#6b7280">Architecture: Lambda → Bedrock Claude 3 Haiku → DynamoDB - Cost: ~$0.25 per 1K tokens - Pay-per-use AI</text>
   <text x="50" y="935" font-family="Arial, sans-serif" font-size="10" fill="#6b7280">Security: JWT auth + Bedrock IAM + encryption - AI: Structured prompts + JSON parsing - Production ready</text>
+
+  <!-- Social Handles -->
+  <text x="600" y="965" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" font-weight="bold" fill="#667eea">GitHub: @rmnicholson0612 | LinkedIn: @onevoicerandy | Instagram: @onevoicecoding</text>
 </svg>

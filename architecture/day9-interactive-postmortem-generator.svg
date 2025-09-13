@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="900" height="700" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="aiGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#ff6b6b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#feca57;stop-opacity:1" />
+    </linearGradient>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#667eea"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="700" fill="#f8f9fa"/>
+
+  <!-- Header -->
+  <rect x="0" y="0" width="900" height="80" fill="url(#headerGrad)"/>
+  <text x="450" y="30" text-anchor="middle" fill="white" font-size="20" font-weight="bold">CloudOps Assistant - Day 9</text>
+  <text x="450" y="55" text-anchor="middle" fill="white" font-size="14">Interactive Postmortem Generator Architecture</text>
+
+  <!-- Frontend -->
+  <rect x="50" y="100" width="180" height="140" fill="white" stroke="#e1e5e9" stroke-width="2" rx="8"/>
+  <text x="140" y="125" text-anchor="middle" fill="#333" font-size="14" font-weight="bold">Frontend</text>
+  <text x="140" y="145" text-anchor="middle" fill="#667eea" font-size="12" font-weight="bold">conversational-postmortem.html</text>
+  <text x="60" y="165" fill="#666" font-size="10">• 4-Step Wizard UI</text>
+  <text x="60" y="180" fill="#666" font-size="10">• Real-time Chat Interface</text>
+  <text x="60" y="195" fill="#666" font-size="10">• Previous Postmortem Display</text>
+  <text x="60" y="210" fill="#666" font-size="10">• Generated Report Editor</text>
+  <text x="60" y="225" fill="#666" font-size="10">• JWT Token Management</text>
+
+  <!-- API Gateway -->
+  <rect x="280" y="100" width="180" height="140" fill="white" stroke="#667eea" stroke-width="2" rx="8"/>
+  <text x="370" y="125" text-anchor="middle" fill="#333" font-size="14" font-weight="bold">API Gateway</text>
+  <text x="290" y="145" fill="#666" font-size="10">• /postmortems/conversation</text>
+  <text x="290" y="160" fill="#666" font-size="10">• /postmortems/generate</text>
+  <text x="290" y="175" fill="#666" font-size="10">• /postmortems/previous</text>
+  <text x="290" y="190" fill="#666" font-size="10">• /postmortems (CRUD)</text>
+  <text x="290" y="205" fill="#666" font-size="10">• /users</text>
+  <text x="290" y="220" fill="#666" font-size="10">• CORS + Auth Headers</text>
+
+  <!-- PostmortemGeneratorFunction -->
+  <rect x="510" y="100" width="180" height="140" fill="white" stroke="#28a745" stroke-width="2" rx="8"/>
+  <text x="600" y="125" text-anchor="middle" fill="#333" font-size="14" font-weight="bold">Lambda Function</text>
+  <text x="600" y="145" text-anchor="middle" fill="#28a745" font-size="12" font-weight="bold">PostmortemGeneratorFunction</text>
+  <text x="520" y="165" fill="#666" font-size="10">• handle_conversation()</text>
+  <text x="520" y="180" fill="#666" font-size="10">• generate_final_postmortem()</text>
+  <text x="520" y="195" fill="#666" font-size="10">• get_previous_postmortems()</text>
+  <text x="520" y="210" fill="#666" font-size="10">• CRUD operations</text>
+  <text x="520" y="225" fill="#666" font-size="10">• JWT token validation</text>
+
+  <!-- Cost Explorer -->
+  <rect x="720" y="100" width="130" height="80" fill="white" stroke="#ff9500" stroke-width="2" rx="8"/>
+  <text x="785" y="125" text-anchor="middle" fill="#333" font-size="12" font-weight="bold">Cost Explorer</text>
+  <text x="730" y="145" fill="#666" font-size="10">• Incident Cost Data</text>
+  <text x="730" y="160" fill="#666" font-size="10">• Service Breakdown</text>
+  <text x="730" y="175" fill="#666" font-size="10">• Timeline Analysis</text>
+
+  <!-- AWS Bedrock -->
+  <rect x="50" y="280" width="200" height="120" fill="url(#aiGrad)" stroke="#ff6b6b" stroke-width="2" rx="8"/>
+  <text x="150" y="305" text-anchor="middle" fill="white" font-size="14" font-weight="bold">AWS Bedrock</text>
+  <text x="60" y="325" fill="white" font-size="11">• Claude 3 Sonnet (Primary)</text>
+  <text x="60" y="340" fill="white" font-size="11">• Nova Lite (Fallback)</text>
+  <text x="60" y="355" fill="white" font-size="11">• Conversation Management</text>
+  <text x="60" y="370" fill="white" font-size="11">• Report Generation</text>
+  <text x="60" y="385" fill="white" font-size="11">• Context Analysis</text>
+
+  <!-- PostmortemsTable -->
+  <rect x="280" y="280" width="180" height="120" fill="white" stroke="#ff9500" stroke-width="2" rx="8"/>
+  <text x="370" y="305" text-anchor="middle" fill="#333" font-size="14" font-weight="bold">PostmortemsTable</text>
+  <text x="370" y="325" text-anchor="middle" fill="#ff9500" font-size="12" font-weight="bold">DynamoDB</text>
+  <text x="290" y="345" fill="#666" font-size="10">• PK: user_id</text>
+  <text x="290" y="360" fill="#666" font-size="10">• SK: postmortem_id</text>
+  <text x="290" y="375" fill="#666" font-size="10">• TTL: 90 days</text>
+  <text x="290" y="390" fill="#666" font-size="10">• Conversation State</text>
+
+  <!-- TerraformPlansTable -->
+  <rect x="490" y="280" width="180" height="120" fill="white" stroke="#6c757d" stroke-width="2" rx="8"/>
+  <text x="580" y="305" text-anchor="middle" fill="#333" font-size="14" font-weight="bold">TerraformPlansTable</text>
+  <text x="580" y="325" text-anchor="middle" fill="#6c757d" font-size="12" font-weight="bold">Historical Context</text>
+  <text x="500" y="345" fill="#666" font-size="10">• Infrastructure Changes</text>
+  <text x="500" y="360" fill="#666" font-size="10">• Timeline Correlation</text>
+  <text x="500" y="375" fill="#666" font-size="10">• Change Detection</text>
+  <text x="500" y="390" fill="#666" font-size="10">• Plan Analysis</text>
+
+  <!-- Cognito -->
+  <rect x="700" y="280" width="150" height="120" fill="white" stroke="#007bff" stroke-width="2" rx="8"/>
+  <text x="775" y="305" text-anchor="middle" fill="#333" font-size="14" font-weight="bold">Cognito</text>
+  <text x="710" y="325" fill="#666" font-size="10">• User Authentication</text>
+  <text x="710" y="340" fill="#666" font-size="10">• JWT Tokens</text>
+  <text x="710" y="355" fill="#666" font-size="10">• User Management</text>
+  <text x="710" y="370" fill="#666" font-size="10">• Data Isolation</text>
+  <text x="710" y="385" fill="#666" font-size="10">• Session Control</text>
+
+  <!-- Conversation Flow -->
+  <rect x="50" y="440" width="800" height="180" fill="white" stroke="#6c757d" stroke-width="2" rx="8"/>
+  <text x="450" y="465" text-anchor="middle" fill="#333" font-size="16" font-weight="bold">Interactive Conversation Flow</text>
+
+  <!-- Step 1 -->
+  <rect x="80" y="480" width="120" height="60" fill="#667eea" stroke="white" stroke-width="2" rx="6"/>
+  <text x="140" y="500" text-anchor="middle" fill="white" font-size="12" font-weight="bold">Step 1</text>
+  <text x="140" y="515" text-anchor="middle" fill="white" font-size="10">Basic Info</text>
+  <text x="140" y="530" text-anchor="middle" fill="white" font-size="10">Context Setup</text>
+
+  <!-- Step 2 -->
+  <rect x="220" y="480" width="120" height="60" fill="#28a745" stroke="white" stroke-width="2" rx="6"/>
+  <text x="280" y="500" text-anchor="middle" fill="white" font-size="12" font-weight="bold">Step 2</text>
+  <text x="280" y="515" text-anchor="middle" fill="white" font-size="10">Previous</text>
+  <text x="280" y="530" text-anchor="middle" fill="white" font-size="10">Postmortems</text>
+
+  <!-- Step 3 -->
+  <rect x="360" y="480" width="120" height="60" fill="#ffc107" stroke="white" stroke-width="2" rx="6"/>
+  <text x="420" y="500" text-anchor="middle" fill="white" font-size="12" font-weight="bold">Step 3</text>
+  <text x="420" y="515" text-anchor="middle" fill="white" font-size="10">AI Conversation</text>
+  <text x="420" y="530" text-anchor="middle" fill="white" font-size="10">Investigation</text>
+
+  <!-- Step 4 -->
+  <rect x="500" y="480" width="120" height="60" fill="#dc3545" stroke="white" stroke-width="2" rx="6"/>
+  <text x="560" y="500" text-anchor="middle" fill="white" font-size="12" font-weight="bold">Step 4</text>
+  <text x="560" y="515" text-anchor="middle" fill="white" font-size="10">Generate</text>
+  <text x="560" y="530" text-anchor="middle" fill="white" font-size="10">Report</text>
+
+  <!-- Step 5 -->
+  <rect x="640" y="480" width="120" height="60" fill="#6f42c1" stroke="white" stroke-width="2" rx="6"/>
+  <text x="700" y="500" text-anchor="middle" fill="white" font-size="12" font-weight="bold">Step 5</text>
+  <text x="700" y="515" text-anchor="middle" fill="white" font-size="10">Review</text>
+  <text x="700" y="530" text-anchor="middle" fill="white" font-size="10">&amp; Edit</text>
+
+  <!-- Conversation Details -->
+  <text x="80" y="570" fill="#333" font-size="11" font-weight="bold">AI Conversation Logic:</text>
+  <text x="80" y="585" fill="#666" font-size="10">• Analyzes user responses for timeline, impact, and cause keywords</text>
+  <text x="80" y="600" fill="#666" font-size="10">• Uses Claude 3 Sonnet for intelligent follow-up questions</text>
+  <text x="80" y="615" fill="#666" font-size="10">• Falls back to Nova Lite and predefined questions if AI fails</text>
+
+  <!-- Flow Arrows -->
+  <path d="M 200 510 L 220 510" stroke="#667eea" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <path d="M 340 510 L 360 510" stroke="#667eea" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <path d="M 480 510 L 500 510" stroke="#667eea" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <path d="M 620 510 L 640 510" stroke="#667eea" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+
+  <!-- Connection Lines -->
+  <path d="M 230 170 L 280 170" stroke="#667eea" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <path d="M 460 170 L 510 170" stroke="#667eea" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <path d="M 690 170 L 720 140" stroke="#667eea" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <path d="M 600 240 L 600 280" stroke="#667eea" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <path d="M 580 240 L 580 280" stroke="#667eea" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <path d="M 370 240 L 370 280" stroke="#667eea" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <path d="M 150 240 L 150 280" stroke="#667eea" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <path d="M 650 240 L 775 280" stroke="#667eea" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+
+  <!-- Key Features -->
+  <text x="50" y="660" fill="#333" font-size="12" font-weight="bold">Architecture Highlights:</text>
+  <text x="50" y="680" fill="#666" font-size="11">• Single Lambda handles all postmortem operations • Dual AI model strategy • Composite DynamoDB key for user isolation • Real-time conversation state</text>
+
+  <!-- Social Handles -->
+  <text x="450" y="695" text-anchor="middle" fill="#667eea" font-size="9" font-weight="bold">GitHub: @rmnicholson0612 | LinkedIn: @onevoicerandy | Instagram: @onevoicecoding</text>
+</svg>

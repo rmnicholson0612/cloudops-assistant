@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conversational Postmortem Creator</title>
+    <script src="config.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+            gap: 10px;
+        }
+        .step {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        .step.active {
+            background: white;
+            color: #667eea;
+        }
+        .step.completed {
+            background: #28a745;
+            color: white;
+        }
+        .content {
+            padding: 30px;
+        }
+        .step-content {
+            display: none;
+        }
+        .step-content.active {
+            display: block;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .previous-postmortem {
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            background: #f8f9fa;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .previous-postmortem:hover {
+            border-color: #667eea;
+            background: #e3f2fd;
+        }
+        .conversation-history {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+        }
+        .message {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 12px;
+            max-width: 80%;
+        }
+        .message.user {
+            background: #667eea;
+            color: white;
+            margin-left: auto;
+        }
+        .message.assistant {
+            background: white;
+            border: 1px solid #e1e5e9;
+        }
+        .conversation-input {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+        .conversation-input textarea {
+            flex: 1;
+            resize: vertical;
+            min-height: 60px;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #5a6fd8;
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .form-group textarea {
+            width: 100%;
+            min-height: 80px;
+            resize: vertical;
+        }
+        .actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e1e5e9;
+        }
+        .generated-postmortem {
+            background: #f8f9fa;
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .generated-postmortem h3 {
+            color: #667eea;
+            margin-top: 0;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Conversational Postmortem Creator</h1>
+            <p>Let AI help you create comprehensive incident reports through guided conversation</p>
+            <div class="step-indicator">
+                <div class="step active" id="step-1">1</div>
+                <div class="step" id="step-2">2</div>
+                <div class="step" id="step-3">3</div>
+                <div class="step" id="step-4">4</div>
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- Step 1: Basic Information -->
+            <div class="step-content active" id="content-1">
+                <h2>📝 Basic Information</h2>
+                <p>Let's start with the basic details about your incident.</p>
+
+                <div class="form-group">
+                    <label for="title">Incident Title *</label>
+                    <input type="text" id="title" placeholder="Brief description of what happened" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="service">Service/Component *</label>
+                    <input type="text" id="service" placeholder="Which service was affected" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="owner">Owner</label>
+                    <select id="owner">
+                        <option value="">Select owner...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Initial Description</label>
+                    <textarea id="description" rows="3" placeholder="Brief description of the incident..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="timeline">Timeline Summary</label>
+                    <textarea id="timeline" rows="3" placeholder="Brief timeline of events..."></textarea>
+                </div>
+            </div>
+
+            <!-- Step 2: Previous Postmortems -->
+            <div class="step-content" id="content-2">
+                <h2>📚 Previous Postmortems</h2>
+                <p>Here are previous postmortems for this service that might be helpful:</p>
+                <div id="previous-postmortems"></div>
+            </div>
+
+            <!-- Step 3: Conversation -->
+            <div class="step-content" id="content-3">
+                <h2>💬 Let's Gather Details</h2>
+                <p>I'll ask you some questions to gather all the information needed for a comprehensive postmortem.</p>
+
+                <div class="conversation-history" id="conversation-history"></div>
+
+                <div class="conversation-input">
+                    <textarea id="message-input" placeholder="Describe what happened..." rows="3"></textarea>
+                    <button class="btn btn-primary" onclick="sendMessage()" id="send-btn">Send</button>
+                </div>
+            </div>
+
+            <!-- Step 4: Generated Postmortem -->
+            <div class="step-content" id="content-4">
+                <h2>📋 Generated Postmortem</h2>
+                <div id="generated-postmortem"></div>
+            </div>
+
+            <div class="actions">
+                <button class="btn btn-secondary" onclick="previousStep()" id="back-btn" style="display: none;">← Back</button>
+                <button class="btn btn-primary" onclick="nextStep()" id="next-btn">Next →</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentStep = 1;
+        let conversationId = null;
+        let conversationHistory = [];
+        let readyToGenerate = false;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUsers();
+        });
+
+        function nextStep() {
+            if (currentStep === 1) {
+                if (!validateStep1()) return;
+                checkPreviousPostmortems();
+            } else if (currentStep === 2) {
+                startConversation();
+            } else if (currentStep === 3) {
+                if (!readyToGenerate) {
+                    alert('Please continue the conversation until AI indicates it has enough information.');
+                    return;
+                }
+                generateFinalPostmortem();
+            }
+        }
+
+        function previousStep() {
+            if (currentStep > 1) {
+                currentStep--;
+                updateStepDisplay();
+            }
+        }
+
+        function validateStep1() {
+            const title = document.getElementById('title').value.trim();
+            const service = document.getElementById('service').value.trim();
+
+            if (!title || !service) {
+                alert('Please fill in the required fields (Title and Service).');
+                return false;
+            }
+            return true;
+        }
+
+        function updateStepDisplay() {
+            // Hide all content
+            document.querySelectorAll('.step-content').forEach(content => {
+                content.classList.remove('active');
+            });
+
+            // Show current content
+            document.getElementById(`content-${currentStep}`).classList.add('active');
+
+            // Update step indicators
+            document.querySelectorAll('.step').forEach((step, index) => {
+                step.classList.remove('active', 'completed');
+                if (index + 1 < currentStep) {
+                    step.classList.add('completed');
+                } else if (index + 1 === currentStep) {
+                    step.classList.add('active');
+                }
+            });
+
+            // Update buttons
+            const backBtn = document.getElementById('back-btn');
+            const nextBtn = document.getElementById('next-btn');
+
+            backBtn.style.display = currentStep > 1 ? 'inline-block' : 'none';
+
+            if (currentStep === 4) {
+                nextBtn.style.display = 'none';
+            } else {
+                nextBtn.style.display = 'inline-block';
+                nextBtn.textContent = currentStep === 3 ? 'Generate Postmortem' : 'Next →';
+            }
+        }
+
+        async function loadUsers() {
+            const token = localStorage.getItem('access_token');
+            if (!token) return;
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/users`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    const select = document.getElementById('owner');
+                    data.users.forEach(user => {
+                        const option = document.createElement('option');
+                        option.value = user.user_id;
+                        option.textContent = user.email;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load users:', error);
+            }
+        }
+
+        async function checkPreviousPostmortems() {
+            const service = document.getElementById('service').value.trim();
+            const token = localStorage.getItem('access_token');
+
+            if (!token) {
+                alert('Please login to continue');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/postmortems/previous`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ service })
+                });
+
+                const data = await response.json();
+                displayPreviousPostmortems(data.previous_postmortems || []);
+                currentStep = 2;
+                updateStepDisplay();
+            } catch (error) {
+                console.error('Error checking previous postmortems:', error);
+                currentStep = 3;
+                updateStepDisplay();
+            }
+        }
+
+        function displayPreviousPostmortems(postmortems) {
+            const container = document.getElementById('previous-postmortems');
+
+            if (postmortems.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #6c757d; padding: 40px;">No previous postmortems found for this service.</p>';
+            } else {
+                container.innerHTML = postmortems.map(pm => `
+                    <div class="previous-postmortem">
+                        <h4 style="margin: 0 0 10px 0; color: #333;">${pm.title}</h4>
+                        <p style="margin: 5px 0; color: #666; font-size: 14px;"><strong>Created:</strong> ${new Date(pm.created_at).toLocaleDateString()}</p>
+                        <p style="margin: 5px 0; color: #666; font-size: 14px;"><strong>Summary:</strong> ${pm.summary}</p>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function startConversation() {
+            currentStep = 3;
+            updateStepDisplay();
+
+            const context = {
+                title: document.getElementById('title').value,
+                service: document.getElementById('service').value,
+                owner: document.getElementById('owner').value,
+                description: document.getElementById('description').value,
+                timeline: document.getElementById('timeline').value
+            };
+
+            sendConversationMessage('Please help me create a comprehensive postmortem report.', context);
+        }
+
+        function sendMessage() {
+            const message = document.getElementById('message-input').value.trim();
+            if (!message || message.length > 1000) {
+                if (message.length > 1000) {
+                    alert('Message too long. Please keep it under 1000 characters.');
+                }
+                return;
+            }
+
+            document.getElementById('message-input').value = '';
+            sendConversationMessage(message);
+        }
+
+        // Allow Enter to send message
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('message-input').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+        });
+
+        async function sendConversationMessage(message, context = null) {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                alert('Please login to continue');
+                window.close();
+                return;
+            }
+
+            // Add user message to history
+            conversationHistory.push({ role: 'user', content: message });
+            updateConversationDisplay();
+
+            // Disable send button
+            const sendBtn = document.getElementById('send-btn');
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = '<span class="spinner"></span> Thinking...';
+
+            const payload = {
+                conversation_id: conversationId,
+                message: message,
+                conversation_history: conversationHistory
+            };
+
+            if (context) {
+                payload.context = context;
+            }
+
+            try {
+                console.log('Sending conversation request:', payload);
+                const response = await fetch(`${CONFIG.API_BASE_URL}/postmortems/conversation`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                console.log('Response status:', response.status);
+                const data = await response.json();
+                console.log('Response data:', data);
+
+                if (response.ok) {
+                    conversationId = data.conversation_id;
+                    conversationHistory.push({ role: 'assistant', content: data.response });
+                    updateConversationDisplay();
+
+                    if (data.ready_to_generate) {
+                        readyToGenerate = true;
+                        const nextBtn = document.getElementById('next-btn');
+                        nextBtn.textContent = '✨ Generate Postmortem';
+                        nextBtn.style.background = '#28a745';
+
+                        // Add a visual indicator
+                        const indicator = document.createElement('div');
+                        indicator.style.cssText = 'background: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 15px; border-radius: 8px; margin-top: 20px; text-align: center; font-weight: 600;';
+                        indicator.innerHTML = '✅ I have enough information to generate a comprehensive postmortem!';
+                        document.getElementById('conversation-history').appendChild(indicator);
+                    }
+                } else {
+                    console.error('API Error:', data);
+                    alert(`Error: ${data.error || 'Unknown error'}`);
+                }
+            } catch (error) {
+                console.error('Network error:', error);
+                alert(`Failed to process message: ${error.message}`);
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = 'Send';
+            }
+        }
+
+        function updateConversationDisplay() {
+            const container = document.getElementById('conversation-history');
+            const messages = conversationHistory.map(msg => {
+                let content = msg.content;
+                if (msg.role === 'assistant') {
+                    content = content.replace(/\n/g, '<br>').replace(/\d+\./g, '<br>$&');
+                }
+                return `
+                    <div class="message ${msg.role}">
+                        <strong>${msg.role === 'user' ? 'You' : '🤖 AI Assistant'}:</strong>
+                        <div style="margin-top: 8px;">${content}</div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = messages;
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function generateFinalPostmortem() {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                alert('Please login to generate postmortem');
+                return;
+            }
+
+            const nextBtn = document.getElementById('next-btn');
+            nextBtn.disabled = true;
+            nextBtn.innerHTML = '<span class="spinner"></span> Generating...';
+
+            const context = {
+                title: document.getElementById('title').value,
+                service: document.getElementById('service').value,
+                owner: document.getElementById('owner').value,
+                description: document.getElementById('description').value,
+                timeline: document.getElementById('timeline').value
+            };
+
+            const conversationSummary = conversationHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n');
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/postmortems/generate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        conversation_id: conversationId,
+                        context: context,
+                        conversation_summary: conversationSummary
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    displayGeneratedPostmortem(data.postmortem);
+                    currentStep = 4;
+                    updateStepDisplay();
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+            } catch (error) {
+                alert('Failed to generate postmortem');
+            } finally {
+                nextBtn.disabled = false;
+                nextBtn.innerHTML = 'Generate Postmortem';
+            }
+        }
+
+        function displayGeneratedPostmortem(postmortem) {
+            const container = document.getElementById('generated-postmortem');
+
+            container.innerHTML = `
+                <div class="generated-postmortem">
+                    <h3>🎉 Postmortem Generated Successfully!</h3>
+                    <div id="postmortem-display" style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                        <h4>${postmortem.title}</h4>
+                        <p><strong>Service:</strong> ${postmortem.service}</p>
+                        <p><strong>Status:</strong> ${postmortem.status}</p>
+
+                        <div style="margin-top: 20px;">
+                            <h5>Executive Summary</h5>
+                            <p id="exec-summary">${postmortem.executive_summary || postmortem.Executive_Summary || 'Generated based on conversation'}</p>
+                        </div>
+
+                        <div style="margin-top: 20px;">
+                            <h5>Root Cause</h5>
+                            <p id="root-cause">${postmortem.root_cause_analysis || postmortem.Root_Cause_Analysis || 'Analyzed from conversation details'}</p>
+                        </div>
+
+                        <div style="margin-top: 20px;">
+                            <h5>Impact Assessment</h5>
+                            <p id="impact-assessment">${postmortem.impact_assessment || postmortem.Impact_Assessment || 'Impact determined from discussion'}</p>
+                        </div>
+                    </div>
+
+                    <div id="edit-form" style="display: none; background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                        <div class="form-group">
+                            <label>Executive Summary</label>
+                            <textarea id="edit-exec-summary" rows="4">${postmortem.executive_summary || postmortem.Executive_Summary || ''}</textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Root Cause Analysis</label>
+                            <textarea id="edit-root-cause" rows="4">${postmortem.root_cause_analysis || postmortem.Root_Cause_Analysis || ''}</textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Impact Assessment</label>
+                            <textarea id="edit-impact" rows="4">${postmortem.impact_assessment || postmortem.Impact_Assessment || ''}</textarea>
+                        </div>
+                    </div>
+
+                    <div style="text-align: center; margin-top: 30px;">
+                        <button class="btn btn-secondary" onclick="toggleEdit()" id="edit-btn">✏️ Edit</button>
+                        <button class="btn btn-primary" onclick="savePostmortem('${postmortem.postmortem_id}')" id="save-btn" style="display: none;">💾 Save</button>
+                        <button class="btn btn-secondary" onclick="cancelEdit()" id="cancel-btn" style="display: none;">❌ Cancel</button>
+                        <button class="btn btn-primary" onclick="window.close()">Close</button>
+                        <button class="btn btn-secondary" onclick="location.reload()">Create Another</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function toggleEdit() {
+            document.getElementById('postmortem-display').style.display = 'none';
+            document.getElementById('edit-form').style.display = 'block';
+            document.getElementById('edit-btn').style.display = 'none';
+            document.getElementById('save-btn').style.display = 'inline-block';
+            document.getElementById('cancel-btn').style.display = 'inline-block';
+        }
+
+        function cancelEdit() {
+            document.getElementById('postmortem-display').style.display = 'block';
+            document.getElementById('edit-form').style.display = 'none';
+            document.getElementById('edit-btn').style.display = 'inline-block';
+            document.getElementById('save-btn').style.display = 'none';
+            document.getElementById('cancel-btn').style.display = 'none';
+        }
+
+        async function savePostmortem(postmortemId) {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                alert('Please login to save changes');
+                return;
+            }
+
+            const saveBtn = document.getElementById('save-btn');
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<span class="spinner"></span> Saving...';
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/postmortems/${postmortemId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        executive_summary: document.getElementById('edit-exec-summary').value,
+                        root_cause_analysis: document.getElementById('edit-root-cause').value,
+                        impact_assessment: document.getElementById('edit-impact').value
+                    })
+                });
+
+                if (response.ok) {
+                    // Update display with new values
+                    document.getElementById('exec-summary').textContent = document.getElementById('edit-exec-summary').value;
+                    document.getElementById('root-cause').textContent = document.getElementById('edit-root-cause').value;
+                    document.getElementById('impact-assessment').textContent = document.getElementById('edit-impact').value;
+
+                    cancelEdit();
+                    alert('Postmortem updated successfully!');
+                } else {
+                    const data = await response.json();
+                    alert(`Error: ${data.error}`);
+                }
+            } catch (error) {
+                alert('Failed to save changes');
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '💾 Save';
+            }
+        }
+    </script>
+</body>
+</html>

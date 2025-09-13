@@ -240,7 +240,7 @@
                             <button class="btn btn-info" onclick="showAIInfo()" title="About AI Terraform Explainer">
                                 <i class="fas fa-info-circle"></i>
                             </button>
-                            <div class="feature-badge">✅ Day 8 Complete</div>
+
                         </div>
                         <button class="btn btn-primary" onclick="loadAIExplanations()">
                             <i class="fas fa-refresh"></i> Refresh Explanations
@@ -255,13 +255,32 @@
                     </div>
                 </div>
 
-                <div class="feature-grid">
-
-                    <div class="feature-card coming-soon">
-                        <i class="fas fa-clipboard-list"></i>
-                        <h4>Postmortem Generator</h4>
-                        <p>Day 9 - Auto incident reports</p>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="header-with-info">
+                            <h3><i class="fas fa-clipboard-list"></i> Automated Postmortem Generator</h3>
+                            <button class="btn btn-info" onclick="showPostmortemInfo()" title="About Postmortem Generator">
+                                <i class="fas fa-info-circle"></i>
+                            </button>
+                            <div class="feature-badge">✅ Day 9 Complete</div>
+                        </div>
+                        <button class="btn btn-primary" onclick="showCreatePostmortemModal()">
+                            <i class="fas fa-plus"></i> Create Postmortem
+                        </button>
+                        <button class="btn btn-secondary" onclick="loadPostmortems()">
+                            <i class="fas fa-refresh"></i> Refresh Postmortems
+                        </button>
                     </div>
+                    <div class="card-body">
+                        <div id="postmortems-display" class="postmortems">
+                            <div class="postmortem-loading">
+                                <i class="fas fa-spinner fa-spin"></i> Loading postmortems...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="feature-grid">
                     <div class="feature-card coming-soon">
                         <i class="fas fa-search"></i>
                         <h4>Smart Search</h4>
@@ -1150,6 +1169,161 @@ terraform plan > plan.txt</code>
         </div>
     </div>
 
+    <!-- Postmortem Info Modal -->
+    <div id="postmortem-info-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-clipboard-list"></i> About Automated Postmortem Generator</h2>
+                <span class="close" onclick="closePostmortemInfo()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="info-section">
+                    <h3><i class="fas fa-magic"></i> How It Works</h3>
+                    <p>The Automated Postmortem Generator creates comprehensive incident reports using <strong>AI-powered analysis</strong> combined with real infrastructure data.</p>
+
+                    <div class="process-steps">
+                        <div class="step">
+                            <div class="step-number">1</div>
+                            <div class="step-content">
+                                <strong>Create Incident</strong>
+                                <p>Define incident details: title, service, severity, time range, and summary</p>
+                            </div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">2</div>
+                            <div class="step-content">
+                                <strong>Data Collection</strong>
+                                <p>Optionally include terraform plans and cost data from the incident timeframe</p>
+                            </div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">3</div>
+                            <div class="step-content">
+                                <strong>AI Analysis</strong>
+                                <p>AWS Bedrock generates comprehensive 2-page executive-quality reports</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3><i class="fas fa-brain"></i> AI-Generated Sections</h3>
+                    <div class="capabilities">
+                        <div class="capability">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Executive Summary for stakeholders</span>
+                        </div>
+                        <div class="capability">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Detailed root cause analysis</span>
+                        </div>
+                        <div class="capability">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Comprehensive impact assessment</span>
+                        </div>
+                        <div class="capability">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Detection and response timeline</span>
+                        </div>
+                        <div class="capability">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Resolution details and procedures</span>
+                        </div>
+                        <div class="capability">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Lessons learned and strategic insights</span>
+                        </div>
+                        <div class="capability">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Prioritized action items</span>
+                        </div>
+                        <div class="capability">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Preventive measures recommendations</span>
+                        </div>
+                        <div class="capability">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Monitoring and alerting improvements</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3><i class="fas fa-users"></i> Team Features</h3>
+                    <div class="detection-patterns">
+                        <div class="pattern-group">
+                            <h4>Owner Assignment</h4>
+                            <ul>
+                                <li>Assign postmortems to team members</li>
+                                <li>Track ownership and accountability</li>
+                                <li>Integrate with Cognito user management</li>
+                            </ul>
+                        </div>
+                        <div class="pattern-group">
+                            <h4>Status Tracking</h4>
+                            <ul>
+                                <li>Draft, In Progress, Complete statuses</li>
+                                <li>Track postmortem lifecycle</li>
+                                <li>Update and collaborate on reports</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3><i class="fas fa-database"></i> Data Integration</h3>
+                    <div class="benefits">
+                        <div class="benefit">
+                            <i class="fas fa-code"></i>
+                            <div>
+                                <strong>Terraform Plans</strong>
+                                <p>Include infrastructure changes from incident timeframe</p>
+                            </div>
+                        </div>
+                        <div class="benefit">
+                            <i class="fas fa-dollar-sign"></i>
+                            <div>
+                                <strong>Cost Impact</strong>
+                                <p>Analyze financial impact during incident period</p>
+                            </div>
+                        </div>
+                        <div class="benefit">
+                            <i class="fas fa-clock"></i>
+                            <div>
+                                <strong>Time-based Analysis</strong>
+                                <p>Correlate events within specified time ranges</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3><i class="fas fa-shield-alt"></i> Professional Quality</h3>
+                    <div class="capabilities">
+                        <div class="capability">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Executive-level reporting suitable for stakeholders</span>
+                        </div>
+                        <div class="capability">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Technical depth for engineering teams</span>
+                        </div>
+                        <div class="capability">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Actionable recommendations and next steps</span>
+                        </div>
+                        <div class="capability">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Structured format for consistency</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
     <!-- Budget Configuration Modal -->
     <div id="budget-modal" class="modal">
         <div class="modal-content">
@@ -1234,6 +1408,7 @@ terraform plan > plan.txt</code>
                 // Load AI explanations when AI tab is activated
                 if (tabId === 'ai') {
                     loadAIExplanations();
+                    loadPostmortems();
                 }
             });
         });
@@ -1611,6 +1786,9 @@ terraform plan > plan.txt</code>
                             <button class="btn btn-primary" onclick="explainPlan('${planData.plan_id}')">
                                 <i class="fas fa-robot"></i> AI Explain Plan
                             </button>
+                            <button class="btn btn-warning" onclick="generatePostmortem('${planData.plan_id}')">
+                                <i class="fas fa-clipboard-list"></i> Generate Postmortem
+                            </button>
                         </div>
                         <div class="plan-content">
                             <h4>Terraform Plan Output:</h4>
@@ -1801,6 +1979,13 @@ terraform plan > plan.txt</code>
             }
             if (event.target === registerModal) {
                 registerModal.style.display = 'none';
+            }
+
+
+
+            const postmortemInfoModal = document.getElementById('postmortem-info-modal');
+            if (event.target === postmortemInfoModal) {
+                postmortemInfoModal.style.display = 'none';
             }
         }
 
@@ -2056,6 +2241,17 @@ terraform plan > plan.txt</code>
         function closeAIInfo() {
             document.getElementById('ai-info-modal').style.display = 'none';
         }
+
+        // Postmortem info modal functionality
+        function showPostmortemInfo() {
+            document.getElementById('postmortem-info-modal').style.display = 'block';
+        }
+
+        function closePostmortemInfo() {
+            document.getElementById('postmortem-info-modal').style.display = 'none';
+        }
+
+
 
         async function saveBudgetConfig() {
             const budgetName = document.getElementById('budget-name').value.trim();
@@ -2994,6 +3190,317 @@ terraform plan > plan.txt</code>
             } catch (error) {
                 alert('Failed to generate AI explanation');
             }
+        }
+
+        // Postmortem Functions
+        function showCreatePostmortemModal() {
+            // Open the conversational postmortem creator in a new window
+            window.open('conversational-postmortem.html', 'postmortem', 'width=900,height=900,scrollbars=yes,resizable=yes');
+        }
+
+
+
+
+
+
+
+        async function loadPostmortems() {
+            const displayElement = document.getElementById('postmortems-display');
+            const token = localStorage.getItem('access_token');
+
+            if (!token) {
+                displayElement.innerHTML = '<div class="postmortem-error"><i class="fas fa-lock"></i> Please login to view postmortems</div>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/postmortems`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    if (data.postmortems.length === 0) {
+                        displayElement.innerHTML = '<div class="no-postmortems">No postmortems yet. Create a postmortem to get started.</div>';
+                        return;
+                    }
+
+                    let html = '<div class="postmortems-list">';
+                    data.postmortems.forEach(postmortem => {
+                        const date = new Date(postmortem.created_at).toLocaleString();
+                        const severityColor = {
+                            'low': '#28a745',
+                            'medium': '#ffc107',
+                            'high': '#dc3545'
+                        }[postmortem.severity] || '#6c757d';
+
+                        html += `
+                            <div class="postmortem-item" style="margin-bottom: 15px; padding: 15px; border: 1px solid #dee2e6; border-radius: 8px; cursor: pointer; background: #fff;" onclick="viewPostmortem('${postmortem.postmortem_id}')">
+                                <div class="postmortem-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                    <div class="postmortem-title" style="font-weight: bold; font-size: 16px;">${postmortem.title}</div>
+                                    <button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); deletePostmortem('${postmortem.postmortem_id}')" title="Delete postmortem">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; font-size: 14px; color: #6c757d;">
+                                    <div><strong>Service:</strong> ${postmortem.service}</div>
+                                    <div><strong>Status:</strong> ${postmortem.status}</div>
+                                    <div><strong>Severity:</strong> <span style="color: ${severityColor}">${(postmortem.severity || 'unknown').toUpperCase()}</span></div>
+                                </div>
+                                <div style="margin-top: 8px; font-size: 12px; color: #6c757d;">
+                                    Created: ${date}
+                                </div>
+                            </div>`;
+                    });
+                    html += '</div>';
+
+                    displayElement.innerHTML = html;
+                } else {
+                    displayElement.innerHTML = `<div class="postmortem-error">
+                        <i class="fas fa-exclamation-triangle"></i> Error loading postmortems: ${data.error}
+                    </div>`;
+                }
+            } catch (error) {
+                displayElement.innerHTML = `<div class="postmortem-error">
+                    <i class="fas fa-times-circle"></i> Failed to load postmortems
+                </div>`;
+            }
+        }
+
+        async function generatePostmortem(planId) {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                alert('Please login to generate postmortems');
+                return;
+            }
+
+            // Get plan details first
+            try {
+                const planResponse = await fetch(`${CONFIG.API_BASE_URL}/plan-details/${encodeURIComponent(planId)}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const planData = await planResponse.json();
+
+                if (!planResponse.ok) {
+                    alert('Failed to get plan details');
+                    return;
+                }
+
+                // Create postmortem with plan data
+                const now = new Date();
+                const response = await fetch(`${CONFIG.API_BASE_URL}/postmortems`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        title: `Terraform Plan Failure - ${planData.repo_name}`,
+                        service: planData.repo_name,
+                        severity: 'medium',
+                        start_time: planData.timestamp,
+                        incident_summary: 'Terraform plan execution failed',
+                        include_terraform: true,
+                        include_costs: false
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('Postmortem created! Check the AI Assistant tab.');
+                    loadPostmortems();
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+            } catch (error) {
+                alert('Failed to generate postmortem');
+            }
+        }
+
+        async function deletePostmortem(postmortemId) {
+            if (!confirm('Are you sure you want to delete this postmortem?')) {
+                return;
+            }
+
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                alert('Please login to delete postmortems');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/postmortems/${postmortemId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    alert('Postmortem deleted successfully!');
+                    loadPostmortems();
+                } else {
+                    const data = await response.json();
+                    alert(`Error: ${data.error}`);
+                }
+            } catch (error) {
+                alert('Failed to delete postmortem');
+            }
+        }
+
+        async function viewPostmortem(postmortemId) {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                alert('Please login to view postmortem details');
+                return;
+            }
+
+            try {
+                console.log('Fetching postmortem:', postmortemId);
+                const response = await fetch(`${CONFIG.API_BASE_URL}/postmortems/${postmortemId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                console.log('Response status:', response.status);
+                const data = await response.json();
+                console.log('Response data:', data);
+
+                if (response.ok) {
+                    try {
+                        showPostmortemModal(data);
+                    } catch (modalError) {
+                        console.error('Modal error:', modalError);
+                        alert(`Modal error: ${modalError.message}`);
+                    }
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+            } catch (error) {
+                console.error('Error loading postmortem:', error);
+                alert('Failed to load postmortem details');
+            }
+        }
+
+        function showPostmortemModal(postmortemData) {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'block';
+
+            const date = new Date(postmortemData.created_at).toLocaleString();
+            const startTime = new Date(postmortemData.start_time).toLocaleString();
+            const endTime = postmortemData.end_time ? new Date(postmortemData.end_time).toLocaleString() : 'Ongoing';
+
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 900px;">
+                    <div class="modal-header">
+                        <h2><i class="fas fa-clipboard-list"></i> ${postmortemData.title}</h2>
+                        <span class="close" onclick="this.closest('.modal').remove()">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <div class="postmortem-metadata" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                                <div><strong>Service:</strong> ${postmortemData.service}</div>
+                                <div><strong>Status:</strong> ${postmortemData.status}</div>
+                                <div><strong>Severity:</strong> <span style="color: ${postmortemData.severity === 'high' ? '#dc3545' : postmortemData.severity === 'medium' ? '#ffc107' : '#28a745'}">${(postmortemData.severity || 'unknown').toUpperCase()}</span></div>
+                                <div><strong>Owner:</strong> ${postmortemData.owner_id || 'Unassigned'}</div>
+                                <div><strong>Start Time:</strong> ${startTime}</div>
+                                <div><strong>End Time:</strong> ${endTime}</div>
+                            </div>
+                        </div>
+
+                        <div class="postmortem-section" style="margin-bottom: 20px;">
+                            <h3><i class="fas fa-clipboard"></i> Executive Summary</h3>
+                            <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; line-height: 1.6;">
+                                ${postmortemData.executive_summary || postmortemData.incident_summary || 'Executive summary pending'}
+                            </div>
+                        </div>
+
+                        <div class="postmortem-section" style="margin-bottom: 20px;">
+                            <h3><i class="fas fa-search"></i> Root Cause Analysis</h3>
+                            <div style="background: #fff3cd; padding: 15px; border-radius: 6px; border-left: 4px solid #ffc107;">
+                                ${postmortemData.root_cause_analysis || postmortemData.root_cause || 'Root cause analysis pending'}
+                            </div>
+                        </div>
+
+                        <div class="postmortem-section" style="margin-bottom: 20px;">
+                            <h3><i class="fas fa-exclamation-triangle"></i> Impact Assessment</h3>
+                            <div style="background: #f8d7da; padding: 15px; border-radius: 6px; border-left: 4px solid #dc3545;">
+                                ${postmortemData.impact_assessment || postmortemData.impact || 'Impact assessment pending'}
+                            </div>
+                        </div>
+
+                        <div class="postmortem-section" style="margin-bottom: 20px;">
+                            <h3><i class="fas fa-eye"></i> Detection & Response</h3>
+                            <p>${postmortemData.detection_and_response || postmortemData.detection_narrative || 'Detection and response analysis pending'}</p>
+                        </div>
+
+                        <div class="postmortem-section" style="margin-bottom: 20px;">
+                            <h3><i class="fas fa-wrench"></i> Resolution Details</h3>
+                            <p>${postmortemData.resolution_details || postmortemData.resolution_narrative || 'Resolution details pending'}</p>
+                        </div>
+
+                        <div class="postmortem-section" style="margin-bottom: 20px;">
+                            <h3><i class="fas fa-clock"></i> Detailed Timeline</h3>
+                            <div class="timeline">
+                                ${Array.isArray(postmortemData.detailed_timeline) ? postmortemData.detailed_timeline.map(event => `
+                                    <div class="timeline-item" style="border-left: 3px solid #007bff; padding-left: 15px; margin-bottom: 15px;">
+                                        <div class="timeline-time" style="font-weight: bold; color: #007bff;">${event.timestamp ? new Date(event.timestamp).toLocaleString() : event.time || 'Time TBD'}</div>
+                                        <div class="timeline-event" style="font-weight: 500;">${event.event || event.description || 'Event details'}</div>
+                                        <div class="timeline-details" style="color: #6c757d;">${event.details || event.technical_details || ''}</div>
+                                    </div>
+                                `).join('') : '<p>Detailed timeline to be constructed</p>'}
+                            </div>
+                        </div>
+
+                        <div class="postmortem-section" style="margin-bottom: 20px;">
+                            <h3><i class="fas fa-lightbulb"></i> Lessons Learned</h3>
+                            <ul>
+                                ${(postmortemData.lessons_learned || []).map(lesson => `<li>${lesson}</li>`).join('') || '<li>Lessons learned analysis pending</li>'}
+                            </ul>
+                        </div>
+
+                        <div class="postmortem-section" style="margin-bottom: 20px;">
+                            <h3><i class="fas fa-tasks"></i> Action Items</h3>
+                            <ul>
+                                ${(postmortemData.action_items || []).map(item => `<li>${item}</li>`).join('') || '<li>Action items to be defined</li>'}
+                            </ul>
+                        </div>
+
+                        <div class="postmortem-section" style="margin-bottom: 20px;">
+                            <h3><i class="fas fa-shield-alt"></i> Preventive Measures</h3>
+                            <ul>
+                                ${(postmortemData.preventive_measures || []).map(measure => `<li>${measure}</li>`).join('') || '<li>Preventive measures to be identified</li>'}
+                            </ul>
+                        </div>
+
+                        <div class="postmortem-section" style="margin-bottom: 20px;">
+                            <h3><i class="fas fa-chart-line"></i> Monitoring Improvements</h3>
+                            <ul>
+                                ${(postmortemData.monitoring_improvements || []).map(improvement => `<li>${improvement}</li>`).join('') || '<li>Monitoring improvements to be defined</li>'}
+                            </ul>
+                        </div>
+
+                        ${postmortemData.include_terraform ? `
+                        <div class="postmortem-section" style="margin-bottom: 20px;">
+                            <h3><i class="fas fa-code"></i> Terraform Data</h3>
+                            <p>Found ${(postmortemData.terraform_data || []).length} terraform plans in the incident timeframe</p>
+                        </div>` : ''}
+
+                        ${postmortemData.include_costs ? `
+                        <div class="postmortem-section" style="margin-bottom: 20px;">
+                            <h3><i class="fas fa-dollar-sign"></i> Cost Impact</h3>
+                            <p>Total cost during incident: $${parseFloat(postmortemData.cost_data?.total_cost || 0).toFixed(2)}</p>
+                        </div>` : ''}
+                    </div>
+                </div>`;
+
+            document.body.appendChild(modal);
         }
 
     </script>

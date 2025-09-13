@@ -177,4 +177,7 @@
   <!-- Architecture Notes -->
   <text x="50" y="920" font-family="Arial, sans-serif" font-size="10" fill="#6b7280">Architecture: EventBridge(1hr) → Lambda(1024MB) → Real Terraform → DynamoDB + SNS - Cost: ~$5-15/month</text>
   <text x="50" y="935" font-family="Arial, sans-serif" font-size="10" fill="#6b7280">Security: Cognito JWT + IAM roles + encryption - Monitoring: CloudWatch + real drift detection - Production ready</text>
+
+  <!-- Social Handles -->
+  <text x="600" y="965" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" font-weight="bold" fill="#667eea">GitHub: @rmnicholson0612 | LinkedIn: @onevoicerandy | Instagram: @onevoicecoding</text>
 </svg>

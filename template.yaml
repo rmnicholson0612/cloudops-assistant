@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: CloudOps Assistant – Day 8 AI Terraform Explainer
+Description: CloudOps Assistant – Day 9 Interactive Postmortem Generator
 
 Globals:
   Function:
@@ -470,6 +470,126 @@ Resources:
             Path: /ai/explanations
             Method: OPTIONS
 
+  PostmortemGeneratorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: postmortem_generator.lambda_handler
+      Runtime: python3.12
+      CodeUri: backend/lambda/
+      MemorySize: 512
+      Timeout: 60
+      Environment:
+        Variables:
+          USER_POOL_ID:
+            Ref: CloudOpsUserPool
+          USER_POOL_CLIENT_ID:
+            Ref: CloudOpsUserPoolClient
+      Tags:
+        Service: cloudops-assistant
+        Feature: postmortem-generator
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName:
+              Ref: TerraformPlansTable
+        - DynamoDBCrudPolicy:
+            TableName:
+              Ref: PostmortemsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:GetUser
+                - cognito-idp:ListUsers
+                - ce:GetCostAndUsage
+                - bedrock:InvokeModel
+                - bedrock:InvokeModelWithResponseStream
+              Resource: "*"
+      Events:
+        CreateApi:
+          Type: Api
+          Properties:
+            Path: /postmortems
+            Method: POST
+        ListApi:
+          Type: Api
+          Properties:
+            Path: /postmortems
+            Method: GET
+        GetApi:
+          Type: Api
+          Properties:
+            Path: /postmortems/{postmortem_id}
+            Method: GET
+        UpdateApi:
+          Type: Api
+          Properties:
+            Path: /postmortems/{postmortem_id}
+            Method: PUT
+        UsersApi:
+          Type: Api
+          Properties:
+            Path: /users
+            Method: GET
+        PostmortemsOptions:
+          Type: Api
+          Properties:
+            Path: /postmortems
+            Method: OPTIONS
+        PostmortemIdOptions:
+          Type: Api
+          Properties:
+            Path: /postmortems/{postmortem_id}
+            Method: OPTIONS
+        UsersOptions:
+          Type: Api
+          Properties:
+            Path: /users
+            Method: OPTIONS
+        SuggestApi:
+          Type: Api
+          Properties:
+            Path: /postmortems/suggest
+            Method: POST
+        SuggestOptions:
+          Type: Api
+          Properties:
+            Path: /postmortems/suggest
+            Method: OPTIONS
+        PreviousApi:
+          Type: Api
+          Properties:
+            Path: /postmortems/previous
+            Method: POST
+        PreviousOptions:
+          Type: Api
+          Properties:
+            Path: /postmortems/previous
+            Method: OPTIONS
+        ConversationApi:
+          Type: Api
+          Properties:
+            Path: /postmortems/conversation
+            Method: POST
+        ConversationOptions:
+          Type: Api
+          Properties:
+            Path: /postmortems/conversation
+            Method: OPTIONS
+        GenerateApi:
+          Type: Api
+          Properties:
+            Path: /postmortems/generate
+            Method: POST
+        GenerateOptions:
+          Type: Api
+          Properties:
+            Path: /postmortems/generate
+            Method: OPTIONS
+        DeleteApi:
+          Type: Api
+          Properties:
+            Path: /postmortems/{postmortem_id}
+            Method: DELETE
+
   CloudOpsUserPool:
     Type: AWS::Cognito::UserPool
     Properties:
@@ -686,6 +806,34 @@ Resources:
           Value: cloudops-assistant
         - Key: Feature
           Value: drift-monitoring
+
+  PostmortemsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: PostmortemsTable
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: user_id
+          AttributeType: S
+        - AttributeName: postmortem_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: user_id
+          KeyType: HASH
+        - AttributeName: postmortem_id
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Service
+          Value: cloudops-assistant
+        - Key: Feature
+          Value: postmortem-generator
 
 Outputs:
   CloudOpsAssistantApi:

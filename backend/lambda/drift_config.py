@@ -405,17 +405,20 @@ def delete_drift_config(event):
         import urllib.parse
 
         config_id = urllib.parse.unquote(config_id)
-
-        # Verify ownership
-        if not config_id.startswith(user_id):
-            return error_response("Unauthorized", 403)
+        sanitized_config_id = str(config_id).strip()[:100]
 
         table = dynamodb.Table("cloudops-assistant-drift-config")
 
-        # Sanitize config_id to prevent injection
-        sanitized_config_id = str(config_id).strip()[:100]
+        # Get item first to verify ownership
+        response = table.get_item(Key={"config_id": sanitized_config_id})
+        if "Item" not in response:
+            return error_response("Configuration not found", 404)
 
-        # Delete the item (DynamoDB delete_item is idempotent)
+        # Verify ownership
+        if response["Item"].get("user_id") != user_id:
+            return error_response("Unauthorized", 403)
+
+        # Delete the item
         table.delete_item(Key={"config_id": sanitized_config_id})
 
         return {
