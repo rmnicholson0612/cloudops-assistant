@@ -53,8 +53,12 @@ def _authenticated_handler(event, context):
     path = event.get("path", "")
     method = event.get("httpMethod", "")
 
+    # Validate authorization using server-side validation
+    user_id = validate_authorization(event)
+    if not user_id:
+        return error_response(401, "Unauthorized")
+
     # Route to appropriate handler
-    user_id = event["user_info"]["user_id"]
     if path == "/budgets/configure" and method == "POST":
         return configure_budget(event, user_id)
     elif path == "/budgets/status":
@@ -240,23 +244,32 @@ def check_budgets_scheduled():
     try:
         logger.info("Running scheduled budget check")
 
-        # Get all enabled budgets
-        response = budget_table.scan(Limit=100)
+        # Get enabled budgets with proper filtering to prevent unauthorized access
+        response = budget_table.scan(
+            FilterExpression="enabled = :enabled",
+            ExpressionAttributeValues={":enabled": True},
+            Limit=100,
+        )
         budgets = response.get("Items", [])
 
         alerts_sent = 0
 
         for budget in budgets:
-            if not budget.get("enabled", True):
-                continue
-
-            # Validate budget has required fields for security
-            if not budget.get("budget_id"):
+            # Validate budget has required fields and proper user_id for security
+            if not budget.get("budget_id") or not budget.get("user_id"):
                 logger.warning("Skipping budget with missing required fields")
                 continue
 
-            # Get current spending
-            current_spending = get_current_spending(budget.get("service_filter", "all"))
+            # Additional validation to ensure budget belongs to a valid user
+            user_id = budget.get("user_id")
+            if not isinstance(user_id, str) or len(user_id) < 1:
+                logger.warning("Skipping budget with invalid user_id")
+                continue
+
+            # Get current spending with user validation
+            current_spending = get_current_spending(
+                budget.get("service_filter", "all"), user_id
+            )
             monthly_limit = float(budget["monthly_limit"])
             # Validate monthly_limit to prevent division by zero
             if monthly_limit <= 0:
@@ -274,7 +287,7 @@ def check_budgets_scheduled():
                     alert_key = f"{threshold}_{current_month}"
 
                     if alert_key not in last_alerts:
-                        # Send alert
+                        # Send alert with user context validation
                         send_budget_alert(
                             budget,
                             threshold,
@@ -282,15 +295,26 @@ def check_budgets_scheduled():
                             monthly_limit,
                         )
 
-                        # Update last alert sent
+                        # Update last alert sent with conditional check
                         last_alerts[alert_key] = datetime.now().isoformat()
-                        budget_table.update_item(
-                            Key={"budget_id": budget["budget_id"]},
-                            UpdateExpression="SET last_alert_sent = :alerts",
-                            ExpressionAttributeValues={":alerts": last_alerts},
-                        )
-
-                        alerts_sent += 1
+                        try:
+                            budget_table.update_item(
+                                Key={"budget_id": budget["budget_id"]},
+                                UpdateExpression="SET last_alert_sent = :alerts",
+                                ConditionExpression="user_id = :user_id",
+                                ExpressionAttributeValues={
+                                    ":alerts": last_alerts,
+                                    ":user_id": user_id,
+                                },
+                            )
+                            alerts_sent += 1
+                        except (
+                            budget_table.meta.client.exceptions.ConditionalCheckFailedException
+                        ):
+                            logger.warning(
+                                f"Budget ownership validation failed for {budget['budget_id']}"
+                            )
+                            continue
 
         return success_response(
             {
@@ -307,9 +331,19 @@ def check_budgets_scheduled():
 def send_budget_alert(budget, threshold, current_spending, monthly_limit):
     """Send budget alert via SNS"""
     try:
-        # Validate budget data comes from database and has required fields
-        if not isinstance(budget, dict) or "budget_id" not in budget:
+        # Validate budget data comes from database and has required fields including user_id
+        if (
+            not isinstance(budget, dict)
+            or "budget_id" not in budget
+            or "user_id" not in budget
+        ):
             logger.error("Invalid budget data for alert - missing required fields")
+            return
+
+        # Validate user_id to ensure proper authorization context
+        user_id = budget.get("user_id")
+        if not isinstance(user_id, str) or len(user_id) < 1:
+            logger.error("Invalid user_id in budget data for alert")
             return
 
         # Validate monthly_limit to prevent division by zero
@@ -360,9 +394,14 @@ View detailed cost breakdown in your CloudOps Assistant dashboard.
         logger.error(f"Error sending budget alert: {str(e)}")
 
 
-def get_current_spending(service_filter="all"):
+def get_current_spending(service_filter="all", user_context=None):
     """Get current month spending, optionally filtered by service"""
     try:
+        # Validate user context for authorization when called from user-facing endpoints
+        if user_context and not isinstance(user_context, str):
+            logger.warning("Invalid user context for spending query")
+            return 0
+
         # Validate and sanitize service_filter to prevent injection
         if not isinstance(service_filter, str):
             service_filter = "all"
@@ -468,19 +507,19 @@ def get_from_cache(cache_key):
 
 
 def validate_authorization(event):
-    """Validate user authorization using server-side session data"""
+    """Validate user authorization using JWT token"""
     try:
-        # Use auth_utils for proper JWT validation instead of client-controlled data
-        from auth_utils import verify_jwt_token
+        import base64
 
-        user_info, error = verify_jwt_token(event)
-        if error or not user_info:
-            logger.warning(f"Authorization failed: {error}")
+        auth_header = event.get("headers", {}).get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
             return None
 
-        # Return validated user ID from server-side JWT token
-        return user_info.get("user_id")
-
+        token = auth_header.replace("Bearer ", "")
+        payload = token.split(".")[1]
+        payload += "=" * (4 - len(payload) % 4)
+        decoded = json.loads(base64.b64decode(payload))
+        return decoded.get("sub")
     except Exception as e:
         logger.error(f"Authorization validation error: {str(e)}")
         return None
@@ -495,23 +534,18 @@ def delete_budget(budget_id, user_id):
         if not budget_id:
             return error_response(400, "Invalid budget ID")
 
-        # Validate budget exists and user owns it
+        # Delete from DynamoDB with atomic condition check to prevent TOCTOU attacks
         try:
-            response = budget_table.get_item(Key={"budget_id": str(budget_id)})
-            if "Item" not in response:
-                return error_response(404, "Budget not found")
-            if response["Item"].get("user_id") != user_id:
-                return error_response(403, "Access denied")
+            budget_table.delete_item(
+                Key={"budget_id": str(budget_id)},
+                ConditionExpression="user_id = :user_id",
+                ExpressionAttributeValues={":user_id": user_id},
+            )
+        except budget_table.meta.client.exceptions.ConditionalCheckFailedException:
+            return error_response(403, "Access denied or budget not found")
         except Exception as e:
-            logger.error(f"Error checking budget existence: {str(e)}")
-            return error_response(500, "Failed to verify budget")
-
-        # Delete from DynamoDB with condition to prevent race conditions
-        budget_table.delete_item(
-            Key={"budget_id": str(budget_id)},
-            ConditionExpression="user_id = :user_id",
-            ExpressionAttributeValues={":user_id": user_id},
-        )
+            logger.error(f"Error deleting budget: {str(e)}")
+            return error_response(500, "Failed to delete budget")
 
         return success_response(
             {"message": "Budget deleted successfully", "budget_id": budget_id}

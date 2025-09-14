@@ -115,13 +115,7 @@
                     </div>
                 </div>
 
-                <div class="feature-grid">
-                    <div class="feature-card coming-soon">
-                        <i class="fas fa-bell"></i>
-                        <h4>Drift Alerts</h4>
-                        <p>✅ Day 7 - Email notifications</p>
-                    </div>
-                </div>
+
             </div>
 
             <!-- Cost Dashboard Tab -->
@@ -262,7 +256,7 @@
                             <button class="btn btn-info" onclick="showPostmortemInfo()" title="About Postmortem Generator">
                                 <i class="fas fa-info-circle"></i>
                             </button>
-                            <div class="feature-badge">✅ Day 9 Complete</div>
+
                         </div>
                         <button class="btn btn-primary" onclick="showCreatePostmortemModal()">
                             <i class="fas fa-plus"></i> Create Postmortem
@@ -280,12 +274,52 @@
                     </div>
                 </div>
 
-                <div class="feature-grid">
-                    <div class="feature-card coming-soon">
-                        <i class="fas fa-search"></i>
-                        <h4>Smart Search</h4>
-                        <p>Day 10 - RAG for docs</p>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="header-with-info">
+                            <h3><i class="fas fa-search"></i> Service Documentation Search</h3>
+                            <button class="btn btn-info" onclick="showServiceDocsInfoModal()" title="About Service Documentation">
+                                <i class="fas fa-info-circle"></i>
+                            </button>
+                            <div class="feature-badge">✅ Day 10 Complete</div>
+                        </div>
+                        <button class="btn btn-primary" onclick="openServiceDocs()">
+                            <i class="fas fa-external-link-alt"></i> Open Documentation Search
+                        </button>
                     </div>
+                    <div class="card-body">
+                        <div id="service-docs-display" class="service-docs">
+                            <div class="capabilities">
+                                <div class="capability">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Register services and upload multiple documents per service</span>
+                                </div>
+                                <div class="capability">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Natural language search: "How do I restart the payment service?"</span>
+                                </div>
+                                <div class="capability">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>AI-powered conversational responses with source citations</span>
+                                </div>
+                                <div class="capability">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Document management: view, edit, and delete documentation</span>
+                                </div>
+                                <div class="capability">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Shared documentation accessible by all team members</span>
+                                </div>
+                                <div class="capability">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Perfect for incident response and daily operations</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="feature-grid">
                     <div class="feature-card coming-soon">
                         <i class="fas fa-slack"></i>
                         <h4>Slack Bot</h4>
@@ -3385,6 +3419,252 @@ terraform plan > plan.txt</code>
                 console.error('Error loading postmortem:', error);
                 alert('Failed to load postmortem details');
             }
+        }
+
+        function openServiceDocs() {
+            // Check if user is logged in
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                alert('Please login first to access service documentation');
+                return;
+            }
+
+            // Open in new tab with auth token
+            const url = `service-docs.html?token=${encodeURIComponent(token)}`;
+            const newWindow = window.open(url, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+            if (!newWindow) {
+                // Fallback if popup blocked
+                window.location.href = url;
+            }
+        }
+
+        function showServiceDocsInfoModal() {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'block';
+
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2><i class="fas fa-search"></i> About Service Documentation Search</h2>
+                        <span class="close" onclick="this.closest('.modal').remove()">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <div class="info-section">
+                            <h3><i class="fas fa-magic"></i> How It Works</h3>
+                            <p>Upload your service documentation and ask questions in natural language. AI provides step-by-step answers perfect for incident response.</p>
+
+                            <div class="process-steps">
+                                <div class="step">
+                                    <div class="step-number">1</div>
+                                    <div class="step-content">
+                                        <strong>Upload Documentation</strong>
+                                        <p>Drag & drop runbooks, troubleshooting guides, API docs</p>
+                                    </div>
+                                </div>
+                                <div class="step">
+                                    <div class="step-number">2</div>
+                                    <div class="step-content">
+                                        <strong>Ask Questions</strong>
+                                        <p>"Payment API is down, what should I check?"</p>
+                                    </div>
+                                </div>
+                                <div class="step">
+                                    <div class="step-number">3</div>
+                                    <div class="step-content">
+                                        <strong>Get AI Answers</strong>
+                                        <p>Step-by-step instructions from your documentation</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="info-section">
+                            <h3><i class="fas fa-cogs"></i> Features</h3>
+                            <div class="capabilities">
+                                <div class="capability">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Natural language queries</span>
+                                </div>
+                                <div class="capability">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>AI-powered responses with source citations</span>
+                                </div>
+                                <div class="capability">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Service-organized documentation</span>
+                                </div>
+                                <div class="capability">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Perfect for 3AM incident response</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="info-section">
+                            <h3><i class="fas fa-dollar-sign"></i> Cost-Effective Design</h3>
+                            <div class="benefits">
+                                <div class="benefit">
+                                    <i class="fas fa-database"></i>
+                                    <div>
+                                        <strong>S3 Storage</strong>
+                                        <p>~$0.50/month for document storage with lifecycle management</p>
+                                    </div>
+                                </div>
+                                <div class="benefit">
+                                    <i class="fas fa-table"></i>
+                                    <div>
+                                        <strong>DynamoDB</strong>
+                                        <p>~$0.25/month for metadata and search indexing</p>
+                                    </div>
+                                </div>
+                                <div class="benefit">
+                                    <i class="fas fa-robot"></i>
+                                    <div>
+                                        <strong>AI Processing</strong>
+                                        <p>~$1-2/month pay-per-query with Amazon Nova Lite</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="info-section">
+                            <h3><i class="fas fa-lightbulb"></i> Why This Approach Works</h3>
+                            <div class="benefits">
+                                <div class="benefit">
+                                    <i class="fas fa-tachometer-alt"></i>
+                                    <div>
+                                        <strong>Fast</strong>
+                                        <p>AI responses in seconds using optimized document retrieval</p>
+                                    </div>
+                                </div>
+                                <div class="benefit">
+                                    <i class="fas fa-bullseye"></i>
+                                    <div>
+                                        <strong>Accurate</strong>
+                                        <p>Responses include source citations from your actual documentation</p>
+                                    </div>
+                                </div>
+                                <div class="benefit">
+                                    <i class="fas fa-dollar-sign"></i>
+                                    <div>
+                                        <strong>Cost-Effective</strong>
+                                        <p>Pay-per-query model with Amazon Nova Lite keeps costs minimal</p>
+                                    </div>
+                                </div>
+                                <div class="benefit">
+                                    <i class="fas fa-shield-alt"></i>
+                                    <div>
+                                        <strong>Reliable</strong>
+                                        <p>Built on AWS serverless architecture with automatic scaling</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="info-section">
+                            <h3><i class="fas fa-rocket"></i> Future Enhancements</h3>
+                            <div class="future-features">
+                                <div class="future-item">
+                                    <div class="future-day">Day 12</div>
+                                    <div class="future-desc">Slack bot integration for documentation queries</div>
+                                </div>
+                                <div class="future-item">
+                                    <div class="future-day">Day 13</div>
+                                    <div class="future-desc">AI-powered PR reviews with documentation context</div>
+                                </div>
+                                <div class="future-item">
+                                    <div class="future-day">Future</div>
+                                    <div class="future-desc">Auto-sync with GitHub wikis and README files</div>
+                                </div>
+                                <div class="future-item">
+                                    <div class="future-day">Future</div>
+                                    <div class="future-desc">Version control and change tracking for documents</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+
+            document.body.appendChild(modal);
+        }
+
+        function showServiceDocsInfo() {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'block';
+
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2><i class="fas fa-search"></i> About Service Documentation Search</h2>
+                        <span class="close" onclick="this.closest('.modal').remove()">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <div class="info-section">
+                            <h3><i class="fas fa-magic"></i> How It Works</h3>
+                            <p>Upload your service documentation and ask questions in natural language. AI provides step-by-step answers perfect for incident response.</p>
+
+                            <div class="process-steps">
+                                <div class="step">
+                                    <div class="step-number">1</div>
+                                    <div class="step-content">
+                                        <strong>Upload Documentation</strong>
+                                        <p>Drag & drop runbooks, troubleshooting guides, API docs</p>
+                                    </div>
+                                </div>
+                                <div class="step">
+                                    <div class="step-number">2</div>
+                                    <div class="step-content">
+                                        <strong>Ask Questions</strong>
+                                        <p>"Payment API is down, what should I check?"</p>
+                                    </div>
+                                </div>
+                                <div class="step">
+                                    <div class="step-number">3</div>
+                                    <div class="step-content">
+                                        <strong>Get AI Answers</strong>
+                                        <p>Step-by-step instructions from your documentation</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="info-section">
+                            <h3><i class="fas fa-cogs"></i> Features</h3>
+                            <div class="capabilities">
+                                <div class="capability">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Natural language queries</span>
+                                </div>
+                                <div class="capability">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>AI-powered responses with source citations</span>
+                                </div>
+                                <div class="capability">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Service-organized documentation</span>
+                                </div>
+                                <div class="capability">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Perfect for 3AM incident response</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="info-section">
+                            <h3><i class="fas fa-dollar-sign"></i> Cost</h3>
+                            <p>Extremely cost-effective: ~$2-3/month total</p>
+                            <ul>
+                                <li>S3 storage: ~$0.50/month</li>
+                                <li>DynamoDB: ~$0.25/month</li>
+                                <li>AI processing: ~$1-2/month (pay per query)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>`;
+
+            document.body.appendChild(modal);
         }
 
         function showPostmortemModal(postmortemData) {

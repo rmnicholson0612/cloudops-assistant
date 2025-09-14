@@ -77,6 +77,45 @@ def lambda_handler(event, context):
         }
 
 
+def parse_postmortem_request(event):
+    """Parse and validate postmortem creation request"""
+    try:
+        body_str = event.get("body", "{}")
+        if not body_str:
+            body_str = "{}"
+        return json.loads(body_str)
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON decode error: {str(e)}")
+        return None
+
+
+def validate_postmortem_data(body):
+    """Validate and sanitize postmortem input data"""
+    title = sanitize_input(body.get("title", ""))
+    service = sanitize_input(body.get("service", ""))
+    severity = sanitize_input(body.get("severity", "medium"))
+    start_time = sanitize_input(body.get("start_time", ""))
+    end_time = sanitize_input(body.get("end_time", ""))
+
+    if severity not in ["low", "medium", "high"]:
+        severity = "medium"
+
+    if not all([title, service, start_time]):
+        return None, "title, service, and start_time are required"
+
+    return {
+        "title": title,
+        "service": service,
+        "severity": severity,
+        "start_time": start_time,
+        "end_time": end_time,
+        "include_terraform": bool(body.get("include_terraform", False)),
+        "include_costs": bool(body.get("include_costs", False)),
+        "owner_id": sanitize_input(body.get("owner_id", "")),
+        "incident_summary": sanitize_input(body.get("incident_summary", "")),
+    }, None
+
+
 def create_postmortem(event):
     user_id = get_user_id_from_token(event)
     if not user_id:
@@ -89,18 +128,8 @@ def create_postmortem(event):
             "body": json.dumps({"error": "Unauthorized"}),
         }
 
-    try:
-        body_str = event.get("body", "{}")
-        if not body_str:
-            body_str = "{}"
-
-        logger.info(f"Create postmortem body: {body_str}")
-        body = json.loads(body_str)
-    except json.JSONDecodeError as e:
-        logger.error(
-            f"JSON decode error in create postmortem: {str(e)}, "
-            f"body: {event.get('body', 'None')}"
-        )
+    body = parse_postmortem_request(event)
+    if body is None:
         return {
             "statusCode": 400,
             "headers": {
@@ -110,59 +139,42 @@ def create_postmortem(event):
             "body": json.dumps({"error": "Invalid JSON input"}),
         }
 
-    # Required fields - sanitize inputs
-    title = sanitize_input(body.get("title", ""))
-    service = sanitize_input(body.get("service", ""))
-    severity = sanitize_input(body.get("severity", "medium"))
-    start_time = sanitize_input(body.get("start_time", ""))
-    end_time = sanitize_input(body.get("end_time", ""))
-
-    # Optional fields
-    include_terraform = bool(body.get("include_terraform", False))
-    include_costs = bool(body.get("include_costs", False))
-    owner_id = sanitize_input(body.get("owner_id", ""))
-    incident_summary = sanitize_input(body.get("incident_summary", ""))
-
-    # Validate severity
-    if severity not in ["low", "medium", "high"]:
-        severity = "medium"
-
-    if not all([title, service, start_time]):
+    data, error = validate_postmortem_data(body)
+    if error:
         return {
             "statusCode": 400,
             "headers": {
                 "Content-Type": "application/json",
                 "Access-Control-Allow-Origin": "*",
             },
-            "body": json.dumps(
-                {"error": "title, service, and start_time are required"}
-            ),
+            "body": json.dumps({"error": error}),
         }
 
     try:
         postmortem_id = str(uuid.uuid4())
+        terraform_data = (
+            get_terraform_plans_in_range(user_id, data["start_time"], data["end_time"])
+            if data["include_terraform"]
+            else []
+        )
+        cost_data = (
+            get_cost_data_in_range(
+                data["start_time"], data["end_time"], data["service"]
+            )
+            if data["include_costs"]
+            else {}
+        )
 
-        # Gather data based on selections
-        terraform_data = []
-        cost_data = {}
-
-        if include_terraform:
-            terraform_data = get_terraform_plans_in_range(user_id, start_time, end_time)
-
-        if include_costs:
-            cost_data = get_cost_data_in_range(start_time, end_time, service)
-
-        # Generate AI analysis if data is available
         ai_analysis = generate_ai_analysis(
             {
-                "title": title,
-                "service": service,
-                "severity": severity,
-                "incident_summary": incident_summary,
+                "title": data["title"],
+                "service": data["service"],
+                "severity": data["severity"],
+                "incident_summary": data["incident_summary"],
                 "terraform_data": terraform_data,
                 "cost_data": cost_data,
-                "start_time": start_time,
-                "end_time": end_time,
+                "start_time": data["start_time"],
+                "end_time": data["end_time"],
             }
         )
 
@@ -171,16 +183,16 @@ def create_postmortem(event):
             "postmortem_id": postmortem_id,
             "created_at": datetime.utcnow().isoformat(),
             "updated_at": datetime.utcnow().isoformat(),
-            "title": title,
-            "service": service,
-            "severity": severity,
+            "title": data["title"],
+            "service": data["service"],
+            "severity": data["severity"],
             "status": "draft",
-            "start_time": start_time,
-            "end_time": end_time,
-            "owner_id": owner_id or user_id,
-            "incident_summary": incident_summary,
-            "include_terraform": include_terraform,
-            "include_costs": include_costs,
+            "start_time": data["start_time"],
+            "end_time": data["end_time"],
+            "owner_id": data["owner_id"] or user_id,
+            "incident_summary": data["incident_summary"],
+            "include_terraform": data["include_terraform"],
+            "include_costs": data["include_costs"],
             "terraform_data": terraform_data,
             "cost_data": cost_data,
             "executive_summary": ai_analysis.get("executive_summary", ""),
@@ -197,7 +209,6 @@ def create_postmortem(event):
         }
 
         postmortems_table.put_item(Item=postmortem_item)
-
         return {
             "statusCode": 201,
             "headers": {
@@ -492,18 +503,16 @@ def get_users(event):
                 "body": json.dumps({"error": "USER_POOL_ID not configured"}),
             }
 
-        response = cognito.list_users(UserPoolId=user_pool_id)
+        response = cognito.list_users(UserPoolId=user_pool_id, Limit=20)
 
         users = []
         for user in response["Users"]:
-            username = user["Username"]
             email = ""
             for attr in user.get("Attributes", []):
                 if attr["Name"] == "email":
                     email = attr["Value"]
                     break
-
-            users.append({"user_id": username, "email": email})
+            users.append({"user_id": user["Username"], "email": email})
 
         return {
             "statusCode": 200,
@@ -529,14 +538,12 @@ def get_users(event):
 def get_terraform_plans_in_range(user_id, start_time, end_time):
     """Get terraform plans within time range"""
     try:
+        from boto3.dynamodb.conditions import Attr, Key
+
         response = plans_table.query(
-            KeyConditionExpression="user_id = :user_id",
-            FilterExpression="created_at BETWEEN :start_time AND :end_time",
-            ExpressionAttributeValues={
-                ":user_id": user_id,
-                ":start_time": start_time,
-                ":end_time": end_time,
-            },
+            KeyConditionExpression=Key("user_id").eq(user_id),
+            FilterExpression=Attr("created_at").between(start_time, end_time),
+            Limit=5,  # Optimized limit for better performance
         )
         return response["Items"]
     except Exception as e:
@@ -790,15 +797,22 @@ def get_previous_postmortems(event):
         }
 
     try:
-        from boto3.dynamodb.conditions import Attr
+        from boto3.dynamodb.conditions import Key
 
-        response = postmortems_table.scan(
-            FilterExpression=Attr("user_id").eq(user_id)
-            & Attr("service").contains(service)
+        response = postmortems_table.query(
+            KeyConditionExpression=Key("user_id").eq(user_id),
+            Limit=10,  # Reduced limit for better performance
         )
 
+        # Filter locally for better performance than DynamoDB contains scan
+        filtered_items = [
+            item
+            for item in response.get("Items", [])
+            if service.lower() in item.get("service", "").lower()
+        ][:5]
+
         postmortems = []
-        for pm in response.get("Items", [])[:5]:
+        for pm in filtered_items:
             summary = pm.get("executive_summary", "")
             if len(summary) > 200:
                 summary = summary[:200] + "..."

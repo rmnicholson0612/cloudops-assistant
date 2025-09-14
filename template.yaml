@@ -1,595 +1,25 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: CloudOps Assistant – Day 9 Interactive Postmortem Generator
+Description: CloudOps Assistant - Day 10 with Service Documentation
 
 Globals:
   Function:
-    Tags:
-      Service: cloudops-assistant
-      Project: CloudOpsAssistant
-      Environment: prod
+    Timeout: 60
+    Runtime: python3.13
+    Environment:
+      Variables:
+        USER_POOL_ID: !Ref CloudOpsUserPool
+        USER_POOL_CLIENT_ID: !Ref CloudOpsUserPoolClient
   Api:
     Cors:
-      AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+      AllowMethods: "'GET,POST,DELETE,OPTIONS'"
       AllowHeaders: "'Content-Type,Authorization'"
       AllowOrigin: "'*'"
 
 Resources:
-  RepoScannerFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: repo_scanner.lambda_handler
-      Runtime: python3.12
-      CodeUri: backend/lambda/
-      MemorySize: 512
-      Timeout: 300
-      Layers:
-        - arn:aws:lambda:us-east-1:553035198032:layer:git-lambda2:8
-      Environment:
-        Variables:
-          USER_POOL_ID:
-            Ref: CloudOpsUserPool
-          USER_POOL_CLIENT_ID:
-            Ref: CloudOpsUserPoolClient
-      Tags:
-        Service: cloudops-assistant
-        Feature: repo-scanning
-      Policies:
-        - Statement:
-            - Effect: Allow
-              Action:
-                - cognito-idp:GetUser
-              Resource:
-                Fn::GetAtt: [CloudOpsUserPool, Arn]
-      Events:
-        Api:
-          Type: Api
-          Properties:
-            Path: /scan-repos
-            Method: POST
-        ApiOptions:
-          Type: Api
-          Properties:
-            Path: /scan-repos
-            Method: OPTIONS
+  # Existing Resources (keeping all current functionality)
 
-  PlanProcessorFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: plan_processor.lambda_handler
-      Runtime: python3.12
-      CodeUri: backend/lambda/
-      MemorySize: 512
-      Timeout: 60
-      Environment:
-        Variables:
-          USER_POOL_ID:
-            Ref: CloudOpsUserPool
-          USER_POOL_CLIENT_ID:
-            Ref: CloudOpsUserPoolClient
-      Tags:
-        Service: cloudops-assistant
-        Feature: plan-processing
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName:
-              Ref: TerraformPlansTable
-        - Statement:
-            - Effect: Allow
-              Action:
-                - cognito-idp:GetUser
-              Resource:
-                Fn::GetAtt: [CloudOpsUserPool, Arn]
-      Events:
-        Api:
-          Type: Api
-          Properties:
-            Path: /upload-plan
-            Method: POST
-        ApiOptions:
-          Type: Api
-          Properties:
-            Path: /upload-plan
-            Method: OPTIONS
-
-  PlanHistoryFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: plan_history.lambda_handler
-      Runtime: python3.12
-      CodeUri: backend/lambda/
-      MemorySize: 256
-      Timeout: 30
-      Environment:
-        Variables:
-          USER_POOL_ID:
-            Ref: CloudOpsUserPool
-          USER_POOL_CLIENT_ID:
-            Ref: CloudOpsUserPoolClient
-      Tags:
-        Service: cloudops-assistant
-        Feature: plan-history
-      Policies:
-        - DynamoDBReadPolicy:
-            TableName:
-              Ref: TerraformPlansTable
-        - Statement:
-            - Effect: Allow
-              Action:
-                - cognito-idp:GetUser
-              Resource:
-                Fn::GetAtt: [CloudOpsUserPool, Arn]
-      Events:
-        HistoryApi:
-          Type: Api
-          Properties:
-            Path: /plan-history/{repo}
-            Method: GET
-        CompareApi:
-          Type: Api
-          Properties:
-            Path: /compare-plans/{plan1}/{plan2}
-            Method: GET
-        PlanDetailsApi:
-          Type: Api
-          Properties:
-            Path: /plan-details/{plan_id}
-            Method: GET
-        HistoryOptions:
-          Type: Api
-          Properties:
-            Path: /plan-history/{repo}
-            Method: OPTIONS
-        CompareOptions:
-          Type: Api
-          Properties:
-            Path: /compare-plans/{plan1}/{plan2}
-            Method: OPTIONS
-        PlanDetailsOptions:
-          Type: Api
-          Properties:
-            Path: /plan-details/{plan_id}
-            Method: OPTIONS
-
-  CostAnalyzerFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: cost_analyzer.lambda_handler
-      Runtime: python3.12
-      CodeUri: backend/lambda/
-      MemorySize: 256
-      Timeout: 30
-      Environment:
-        Variables:
-          USER_POOL_ID:
-            Ref: CloudOpsUserPool
-          USER_POOL_CLIENT_ID:
-            Ref: CloudOpsUserPoolClient
-      Tags:
-        Service: cloudops-assistant
-        Feature: cost-analysis
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName:
-              Ref: CostCacheTable
-        - Statement:
-            - Effect: Allow
-              Action:
-                - ce:GetCostAndUsage
-                - ce:GetDimensionValues
-                - ce:GetUsageReport
-                - cognito-idp:GetUser
-              Resource: "*"
-      Events:
-        CurrentCostApi:
-          Type: Api
-          Properties:
-            Path: /costs/current
-            Method: GET
-        ServiceCostApi:
-          Type: Api
-          Properties:
-            Path: /costs/services
-            Method: GET
-        TrendsCostApi:
-          Type: Api
-          Properties:
-            Path: /costs/trends
-            Method: GET
-        TagCostApi:
-          Type: Api
-          Properties:
-            Path: /costs/by-tag
-            Method: GET
-        CurrentCostOptions:
-          Type: Api
-          Properties:
-            Path: /costs/current
-            Method: OPTIONS
-        ServiceCostOptions:
-          Type: Api
-          Properties:
-            Path: /costs/services
-            Method: OPTIONS
-        TrendsCostOptions:
-          Type: Api
-          Properties:
-            Path: /costs/trends
-            Method: OPTIONS
-        TagCostOptions:
-          Type: Api
-          Properties:
-            Path: /costs/by-tag
-            Method: OPTIONS
-
-  BudgetManagerFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: budget_manager.lambda_handler
-      Runtime: python3.12
-      CodeUri: backend/lambda/
-      MemorySize: 256
-      Timeout: 30
-      Environment:
-        Variables:
-          USER_POOL_ID:
-            Ref: CloudOpsUserPool
-          USER_POOL_CLIENT_ID:
-            Ref: CloudOpsUserPoolClient
-      Tags:
-        Service: cloudops-assistant
-        Feature: budget-management
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName:
-              Ref: BudgetConfigTable
-        - DynamoDBReadPolicy:
-            TableName:
-              Ref: CostCacheTable
-        - Statement:
-            - Effect: Allow
-              Action:
-                - ce:GetCostAndUsage
-                - sns:Publish
-                - cognito-idp:GetUser
-              Resource: "*"
-      Events:
-        ConfigureBudgetApi:
-          Type: Api
-          Properties:
-            Path: /budgets/configure
-            Method: POST
-        BudgetStatusApi:
-          Type: Api
-          Properties:
-            Path: /budgets/status
-            Method: GET
-        BudgetAlertsApi:
-          Type: Api
-          Properties:
-            Path: /budgets/alerts
-            Method: GET
-        ConfigureBudgetOptions:
-          Type: Api
-          Properties:
-            Path: /budgets/configure
-            Method: OPTIONS
-        BudgetStatusOptions:
-          Type: Api
-          Properties:
-            Path: /budgets/status
-            Method: OPTIONS
-        BudgetAlertsOptions:
-          Type: Api
-          Properties:
-            Path: /budgets/alerts
-            Method: OPTIONS
-        DeleteBudgetApi:
-          Type: Api
-          Properties:
-            Path: /budgets/delete/{budget_id}
-            Method: DELETE
-        DeleteBudgetOptions:
-          Type: Api
-          Properties:
-            Path: /budgets/delete/{budget_id}
-            Method: OPTIONS
-
-  DriftSchedulerFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: drift_scheduler.lambda_handler
-      Runtime: python3.12
-      CodeUri: backend/lambda/
-      MemorySize: 1024
-      Timeout: 900
-      Layers:
-        - arn:aws:lambda:us-east-1:553035198032:layer:git-lambda2:8
-      Environment:
-        Variables:
-          USER_POOL_ID:
-            Ref: CloudOpsUserPool
-          USER_POOL_CLIENT_ID:
-            Ref: CloudOpsUserPoolClient
-      Tags:
-        Service: cloudops-assistant
-        Feature: drift-monitoring
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName:
-              Ref: DriftConfigTable
-        - DynamoDBCrudPolicy:
-            TableName:
-              Ref: TerraformPlansTable
-        - Statement:
-            - Effect: Allow
-              Action:
-                - sns:CreateTopic
-                - sns:Subscribe
-                - sns:Publish
-              Resource: "*"
-      Events:
-        ScheduleHourly:
-          Type: Schedule
-          Properties:
-            Schedule: rate(1 hour)
-            Description: "Hourly drift monitoring check (respects per-repo schedules)"
-
-  DriftConfigFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: drift_config.lambda_handler
-      Runtime: python3.12
-      CodeUri: backend/lambda/
-      MemorySize: 1024
-      Timeout: 600
-      Layers:
-        - arn:aws:lambda:us-east-1:553035198032:layer:git-lambda2:8
-      Environment:
-        Variables:
-          USER_POOL_ID:
-            Ref: CloudOpsUserPool
-          USER_POOL_CLIENT_ID:
-            Ref: CloudOpsUserPoolClient
-      Tags:
-        Service: cloudops-assistant
-        Feature: drift-configuration
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName:
-              Ref: DriftConfigTable
-        - DynamoDBCrudPolicy:
-            TableName:
-              Ref: TerraformPlansTable
-        - Statement:
-            - Effect: Allow
-              Action:
-                - sns:CreateTopic
-                - sns:Subscribe
-                - sns:Publish
-                - cognito-idp:GetUser
-              Resource: "*"
-      Events:
-        ConfigureApi:
-          Type: Api
-          Properties:
-            Path: /drift/configure
-            Method: POST
-        StatusApi:
-          Type: Api
-          Properties:
-            Path: /drift/status
-            Method: GET
-        DeleteApi:
-          Type: Api
-          Properties:
-            Path: /drift/delete/{config_id}
-            Method: DELETE
-        ConfigureOptions:
-          Type: Api
-          Properties:
-            Path: /drift/configure
-            Method: OPTIONS
-        StatusOptions:
-          Type: Api
-          Properties:
-            Path: /drift/status
-            Method: OPTIONS
-        ManualScanApi:
-          Type: Api
-          Properties:
-            Path: /drift/scan/{config_id}
-            Method: POST
-        DeleteOptions:
-          Type: Api
-          Properties:
-            Path: /drift/delete/{config_id}
-            Method: OPTIONS
-        ManualScanOptions:
-          Type: Api
-          Properties:
-            Path: /drift/scan/{config_id}
-            Method: OPTIONS
-        UpdateApi:
-          Type: Api
-          Properties:
-            Path: /drift/update/{config_id}
-            Method: PUT
-        UpdateOptions:
-          Type: Api
-          Properties:
-            Path: /drift/update/{config_id}
-            Method: OPTIONS
-
-  AIExplainerFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: ai_explainer.lambda_handler
-      Runtime: python3.12
-      CodeUri: backend/lambda/
-      MemorySize: 512
-      Timeout: 60
-      Environment:
-        Variables:
-          USER_POOL_ID:
-            Ref: CloudOpsUserPool
-          USER_POOL_CLIENT_ID:
-            Ref: CloudOpsUserPoolClient
-      Tags:
-        Service: cloudops-assistant
-        Feature: ai-explainer
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName:
-              Ref: TerraformPlansTable
-        - Statement:
-            - Effect: Allow
-              Action:
-                - bedrock:InvokeModel
-                - cognito-idp:GetUser
-              Resource: "*"
-      Events:
-        ExplainApi:
-          Type: Api
-          Properties:
-            Path: /ai/explain
-            Method: POST
-        ExplanationsApi:
-          Type: Api
-          Properties:
-            Path: /ai/explanations
-            Method: GET
-        ExplainOptions:
-          Type: Api
-          Properties:
-            Path: /ai/explain
-            Method: OPTIONS
-        ExplanationsOptions:
-          Type: Api
-          Properties:
-            Path: /ai/explanations
-            Method: OPTIONS
-
-  PostmortemGeneratorFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: postmortem_generator.lambda_handler
-      Runtime: python3.12
-      CodeUri: backend/lambda/
-      MemorySize: 512
-      Timeout: 60
-      Environment:
-        Variables:
-          USER_POOL_ID:
-            Ref: CloudOpsUserPool
-          USER_POOL_CLIENT_ID:
-            Ref: CloudOpsUserPoolClient
-      Tags:
-        Service: cloudops-assistant
-        Feature: postmortem-generator
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName:
-              Ref: TerraformPlansTable
-        - DynamoDBCrudPolicy:
-            TableName:
-              Ref: PostmortemsTable
-        - Statement:
-            - Effect: Allow
-              Action:
-                - cognito-idp:GetUser
-                - cognito-idp:ListUsers
-                - ce:GetCostAndUsage
-                - bedrock:InvokeModel
-                - bedrock:InvokeModelWithResponseStream
-              Resource: "*"
-      Events:
-        CreateApi:
-          Type: Api
-          Properties:
-            Path: /postmortems
-            Method: POST
-        ListApi:
-          Type: Api
-          Properties:
-            Path: /postmortems
-            Method: GET
-        GetApi:
-          Type: Api
-          Properties:
-            Path: /postmortems/{postmortem_id}
-            Method: GET
-        UpdateApi:
-          Type: Api
-          Properties:
-            Path: /postmortems/{postmortem_id}
-            Method: PUT
-        UsersApi:
-          Type: Api
-          Properties:
-            Path: /users
-            Method: GET
-        PostmortemsOptions:
-          Type: Api
-          Properties:
-            Path: /postmortems
-            Method: OPTIONS
-        PostmortemIdOptions:
-          Type: Api
-          Properties:
-            Path: /postmortems/{postmortem_id}
-            Method: OPTIONS
-        UsersOptions:
-          Type: Api
-          Properties:
-            Path: /users
-            Method: OPTIONS
-        SuggestApi:
-          Type: Api
-          Properties:
-            Path: /postmortems/suggest
-            Method: POST
-        SuggestOptions:
-          Type: Api
-          Properties:
-            Path: /postmortems/suggest
-            Method: OPTIONS
-        PreviousApi:
-          Type: Api
-          Properties:
-            Path: /postmortems/previous
-            Method: POST
-        PreviousOptions:
-          Type: Api
-          Properties:
-            Path: /postmortems/previous
-            Method: OPTIONS
-        ConversationApi:
-          Type: Api
-          Properties:
-            Path: /postmortems/conversation
-            Method: POST
-        ConversationOptions:
-          Type: Api
-          Properties:
-            Path: /postmortems/conversation
-            Method: OPTIONS
-        GenerateApi:
-          Type: Api
-          Properties:
-            Path: /postmortems/generate
-            Method: POST
-        GenerateOptions:
-          Type: Api
-          Properties:
-            Path: /postmortems/generate
-            Method: OPTIONS
-        DeleteApi:
-          Type: Api
-          Properties:
-            Path: /postmortems/{postmortem_id}
-            Method: DELETE
-
+  # Cognito User Pool
   CloudOpsUserPool:
     Type: AWS::Cognito::UserPool
     Properties:
@@ -614,70 +44,10 @@ Resources:
         Service: cloudops-assistant
         Feature: authentication
 
-  AuthHandlerFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: auth_handler.lambda_handler
-      Runtime: python3.12
-      CodeUri: backend/lambda/
-      MemorySize: 256
-      Timeout: 30
-      Tags:
-        Service: cloudops-assistant
-        Feature: authentication
-      Environment:
-        Variables:
-          USER_POOL_ID:
-            Ref: CloudOpsUserPool
-          USER_POOL_CLIENT_ID:
-            Ref: CloudOpsUserPoolClient
-      Policies:
-        - Statement:
-            - Effect: Allow
-              Action:
-                - cognito-idp:AdminCreateUser
-                - cognito-idp:AdminSetUserPassword
-                - cognito-idp:AdminInitiateAuth
-                - cognito-idp:GetUser
-              Resource:
-                Fn::GetAtt: [CloudOpsUserPool, Arn]
-      Events:
-        RegisterApi:
-          Type: Api
-          Properties:
-            Path: /auth/register
-            Method: POST
-        LoginApi:
-          Type: Api
-          Properties:
-            Path: /auth/login
-            Method: POST
-        VerifyApi:
-          Type: Api
-          Properties:
-            Path: /auth/verify
-            Method: POST
-        RegisterOptions:
-          Type: Api
-          Properties:
-            Path: /auth/register
-            Method: OPTIONS
-        LoginOptions:
-          Type: Api
-          Properties:
-            Path: /auth/login
-            Method: OPTIONS
-        VerifyOptions:
-          Type: Api
-          Properties:
-            Path: /auth/verify
-            Method: OPTIONS
-
   CloudOpsUserPoolClient:
     Type: AWS::Cognito::UserPoolClient
     Properties:
-      UserPoolId:
-        Ref: CloudOpsUserPool
+      UserPoolId: !Ref CloudOpsUserPool
       ClientName: cloudops-assistant-client-v2
       GenerateSecret: false
       ExplicitAuthFlows:
@@ -692,17 +62,39 @@ Resources:
       IdTokenValidity: 24
       RefreshTokenValidity: 30
 
-  BudgetConfigTable:
+  # DynamoDB Tables
+  TerraformPlansTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: cloudops-assistant-budget-config
+      TableName: cloudops-assistant-terraform-plans
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
-        - AttributeName: budget_id
+        - AttributeName: plan_id
+          AttributeType: S
+        - AttributeName: repo_name
+          AttributeType: S
+        - AttributeName: timestamp
+          AttributeType: S
+        - AttributeName: user_id
           AttributeType: S
       KeySchema:
-        - AttributeName: budget_id
+        - AttributeName: plan_id
           KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: repo-timestamp-index
+          KeySchema:
+            - AttributeName: repo_name
+              KeyType: HASH
+            - AttributeName: timestamp
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: user-id-index
+          KeySchema:
+            - AttributeName: user_id
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
       TimeToLiveSpecification:
         AttributeName: ttl
         Enabled: true
@@ -714,7 +106,7 @@ Resources:
         - Key: Service
           Value: cloudops-assistant
         - Key: Feature
-          Value: budget-management
+          Value: plan-history
 
   CostCacheTable:
     Type: AWS::DynamoDB::Table
@@ -740,43 +132,6 @@ Resources:
         - Key: Feature
           Value: cost-analysis
 
-  TerraformPlansTable:
-    Type: AWS::DynamoDB::Table
-    Properties:
-      TableName: cloudops-assistant-terraform-plans
-      BillingMode: PAY_PER_REQUEST
-      AttributeDefinitions:
-        - AttributeName: plan_id
-          AttributeType: S
-        - AttributeName: repo_name
-          AttributeType: S
-        - AttributeName: timestamp
-          AttributeType: S
-      KeySchema:
-        - AttributeName: plan_id
-          KeyType: HASH
-      GlobalSecondaryIndexes:
-        - IndexName: repo-timestamp-index
-          KeySchema:
-            - AttributeName: repo_name
-              KeyType: HASH
-            - AttributeName: timestamp
-              KeyType: RANGE
-          Projection:
-            ProjectionType: ALL
-      TimeToLiveSpecification:
-        AttributeName: ttl
-        Enabled: true
-      PointInTimeRecoverySpecification:
-        PointInTimeRecoveryEnabled: true
-      SSESpecification:
-        SSEEnabled: true
-      Tags:
-        - Key: Service
-          Value: cloudops-assistant
-        - Key: Feature
-          Value: plan-history
-
   DriftConfigTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -797,6 +152,9 @@ Resources:
               KeyType: HASH
           Projection:
             ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
       SSESpecification:
@@ -806,6 +164,39 @@ Resources:
           Value: cloudops-assistant
         - Key: Feature
           Value: drift-monitoring
+
+  BudgetConfigTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: cloudops-assistant-budget-config
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: budget_id
+          AttributeType: S
+        - AttributeName: user_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: budget_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: user-id-index
+          KeySchema:
+            - AttributeName: user_id
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Service
+          Value: cloudops-assistant
+        - Key: Feature
+          Value: budget-management
 
   PostmortemsTable:
     Type: AWS::DynamoDB::Table
@@ -835,38 +226,528 @@ Resources:
         - Key: Feature
           Value: postmortem-generator
 
+  # NEW: Service Documentation Resources
+  ServiceDocsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: cloudops-assistant-service-docs-v2
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: service_name
+          AttributeType: S
+        - AttributeName: doc_name
+          AttributeType: S
+      KeySchema:
+        - AttributeName: service_name
+          KeyType: HASH
+        - AttributeName: doc_name
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Service
+          Value: cloudops-assistant
+        - Key: Feature
+          Value: service-documentation
+
+  ServiceDocsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: cloudops-assistant-service-docs
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldVersions
+            Status: Enabled
+            NoncurrentVersionExpirationInDays: 30
+          - Id: ArchiveOldDocuments
+            Status: Enabled
+            Transitions:
+              - TransitionInDays: 30
+                StorageClass: STANDARD_IA
+              - TransitionInDays: 90
+                StorageClass: GLACIER
+
+  # Lambda Functions
+  AuthHandlerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/lambda/
+      Handler: auth_handler.lambda_handler
+      MemorySize: 256
+      Timeout: 30
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:AdminCreateUser
+                - cognito-idp:AdminSetUserPassword
+                - cognito-idp:AdminInitiateAuth
+                - cognito-idp:GetUser
+              Resource: !GetAtt CloudOpsUserPool.Arn
+      Events:
+        AuthProxy:
+          Type: Api
+          Properties:
+            Path: /auth/{proxy+}
+            Method: ANY
+
+  PlanProcessorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/lambda/
+      Handler: plan_processor.lambda_handler
+      MemorySize: 512
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TerraformPlansTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:GetUser
+              Resource: !GetAtt CloudOpsUserPool.Arn
+      Events:
+        UploadPlan:
+          Type: Api
+          Properties:
+            Path: /upload-plan
+            Method: post
+
+  PlanHistoryFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/lambda/
+      Handler: plan_history.lambda_handler
+      MemorySize: 256
+      Timeout: 30
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref TerraformPlansTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:GetUser
+              Resource: !GetAtt CloudOpsUserPool.Arn
+      Events:
+        PlanHistory:
+          Type: Api
+          Properties:
+            Path: /plan-history/{repo}
+            Method: get
+        PlanDetails:
+          Type: Api
+          Properties:
+            Path: /plan-details/{plan_id}
+            Method: get
+        ComparePlans:
+          Type: Api
+          Properties:
+            Path: /compare-plans/{plan1}/{plan2}
+            Method: get
+
+  CostAnalyzerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/lambda/
+      Handler: cost_analyzer.lambda_handler
+      MemorySize: 256
+      Timeout: 30
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref CostCacheTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - ce:GetCostAndUsage
+                - ce:GetDimensionValues
+                - ce:GetUsageReport
+                - cognito-idp:GetUser
+              Resource: '*'
+      Events:
+        CurrentCost:
+          Type: Api
+          Properties:
+            Path: /costs/current
+            Method: get
+        ServiceCost:
+          Type: Api
+          Properties:
+            Path: /costs/services
+            Method: get
+        TrendsCost:
+          Type: Api
+          Properties:
+            Path: /costs/trends
+            Method: get
+        TagCost:
+          Type: Api
+          Properties:
+            Path: /costs/by-tag
+            Method: get
+
+  BudgetManagerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/lambda/
+      Handler: budget_manager.lambda_handler
+      MemorySize: 256
+      Timeout: 30
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref BudgetConfigTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref CostCacheTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - ce:GetCostAndUsage
+                - sns:Publish
+                - cognito-idp:GetUser
+              Resource: '*'
+      Events:
+        ConfigureBudget:
+          Type: Api
+          Properties:
+            Path: /budgets/configure
+            Method: post
+        BudgetStatus:
+          Type: Api
+          Properties:
+            Path: /budgets/status
+            Method: get
+        BudgetAlerts:
+          Type: Api
+          Properties:
+            Path: /budgets/alerts
+            Method: get
+        DeleteBudget:
+          Type: Api
+          Properties:
+            Path: /budgets/delete/{budget_id}
+            Method: delete
+
+  DriftConfigFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/lambda/
+      Handler: drift_config.lambda_handler
+      MemorySize: 1024
+      Timeout: 600
+      Layers:
+        - arn:aws:lambda:us-east-1:553035198032:layer:git-lambda2:8
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DriftConfigTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TerraformPlansTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - sns:CreateTopic
+                - sns:Subscribe
+                - sns:Publish
+                - cognito-idp:GetUser
+              Resource: '*'
+      Events:
+        Configure:
+          Type: Api
+          Properties:
+            Path: /drift/configure
+            Method: post
+        Status:
+          Type: Api
+          Properties:
+            Path: /drift/status
+            Method: get
+        Update:
+          Type: Api
+          Properties:
+            Path: /drift/update/{config_id}
+            Method: put
+        Delete:
+          Type: Api
+          Properties:
+            Path: /drift/delete/{config_id}
+            Method: delete
+        ManualScan:
+          Type: Api
+          Properties:
+            Path: /drift/scan/{config_id}
+            Method: post
+
+  DriftSchedulerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/lambda/
+      Handler: drift_scheduler.lambda_handler
+      MemorySize: 1024
+      Timeout: 900
+      Layers:
+        - arn:aws:lambda:us-east-1:553035198032:layer:git-lambda2:8
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DriftConfigTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TerraformPlansTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - sns:CreateTopic
+                - sns:Subscribe
+                - sns:Publish
+              Resource: '*'
+      Events:
+        ScheduleHourly:
+          Type: Schedule
+          Properties:
+            Schedule: rate(1 hour)
+            Description: Hourly drift monitoring check (respects per-repo schedules)
+
+  RepoScannerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/lambda/
+      Handler: repo_scanner.lambda_handler
+      MemorySize: 512
+      Timeout: 300
+      Layers:
+        - arn:aws:lambda:us-east-1:553035198032:layer:git-lambda2:8
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:GetUser
+              Resource: !GetAtt CloudOpsUserPool.Arn
+      Events:
+        ScanRepos:
+          Type: Api
+          Properties:
+            Path: /scan-repos
+            Method: post
+
+  AIExplainerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/lambda/
+      Handler: ai_explainer.lambda_handler
+      MemorySize: 512
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TerraformPlansTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+                - cognito-idp:GetUser
+              Resource: '*'
+      Events:
+        Explain:
+          Type: Api
+          Properties:
+            Path: /ai/explain
+            Method: post
+        Explanations:
+          Type: Api
+          Properties:
+            Path: /ai/explanations
+            Method: get
+
+  PostmortemGeneratorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/lambda/
+      Handler: postmortem_generator.lambda_handler
+      MemorySize: 512
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TerraformPlansTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PostmortemsTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:GetUser
+                - cognito-idp:ListUsers
+                - ce:GetCostAndUsage
+                - bedrock:InvokeModel
+                - bedrock:InvokeModelWithResponseStream
+              Resource: '*'
+      Events:
+        Create:
+          Type: Api
+          Properties:
+            Path: /postmortems
+            Method: post
+        List:
+          Type: Api
+          Properties:
+            Path: /postmortems
+            Method: get
+        Get:
+          Type: Api
+          Properties:
+            Path: /postmortems/{postmortem_id}
+            Method: get
+        Update:
+          Type: Api
+          Properties:
+            Path: /postmortems/{postmortem_id}
+            Method: put
+        Delete:
+          Type: Api
+          Properties:
+            Path: /postmortems/{postmortem_id}
+            Method: delete
+        Generate:
+          Type: Api
+          Properties:
+            Path: /postmortems/generate
+            Method: post
+        Suggest:
+          Type: Api
+          Properties:
+            Path: /postmortems/suggest
+            Method: post
+        Previous:
+          Type: Api
+          Properties:
+            Path: /postmortems/previous
+            Method: post
+        Conversation:
+          Type: Api
+          Properties:
+            Path: /postmortems/conversation
+            Method: post
+        Users:
+          Type: Api
+          Properties:
+            Path: /users
+            Method: get
+
+  # NEW: Service Documentation Function
+  ServiceDocsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/lambda/
+      Handler: service_docs.lambda_handler
+      MemorySize: 512
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref ServiceDocsBucket
+        - S3WritePolicy:
+            BucketName: !Ref ServiceDocsBucket
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ServiceDocsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref TerraformPlansTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+                - cognito-idp:GetUser
+              Resource: '*'
+      Events:
+        ListServices:
+          Type: Api
+          Properties:
+            Path: /docs/services
+            Method: get
+        RegisterService:
+          Type: Api
+          Properties:
+            Path: /docs/register
+            Method: post
+        UploadDoc:
+          Type: Api
+          Properties:
+            Path: /docs/upload
+            Method: post
+        SearchDocs:
+          Type: Api
+          Properties:
+            Path: /docs/search
+            Method: post
+        ListDocs:
+          Type: Api
+          Properties:
+            Path: /docs/list
+            Method: get
+        GetDoc:
+          Type: Api
+          Properties:
+            Path: /docs/get
+            Method: post
+        DeleteDoc:
+          Type: Api
+          Properties:
+            Path: /docs/delete
+            Method: delete
+
 Outputs:
   CloudOpsAssistantApi:
-    Description: "API Gateway endpoint URL for CloudOps Assistant"
-    Value:
-      Fn::Sub: "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+    Description: API Gateway endpoint URL for CloudOps Assistant
+    Value: !Sub 'https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/'
     Export:
       Name: CloudOpsAssistantApiUrl
 
   TerraformPlansTableName:
-    Description: "DynamoDB table for storing terraform plans"
-    Value:
-      Ref: TerraformPlansTable
+    Description: DynamoDB table for storing terraform plans
+    Value: !Ref TerraformPlansTable
     Export:
       Name: CloudOpsTerraformPlansTable
 
   CostCacheTableName:
-    Description: "DynamoDB table for caching cost data"
-    Value:
-      Ref: CostCacheTable
+    Description: DynamoDB table for caching cost data
+    Value: !Ref CostCacheTable
     Export:
       Name: CloudOpsCostCacheTable
 
   UserPoolId:
-    Description: "Cognito User Pool ID for authentication"
-    Value:
-      Ref: CloudOpsUserPool
+    Description: Cognito User Pool ID for authentication
+    Value: !Ref CloudOpsUserPool
     Export:
       Name: CloudOpsUserPoolId
 
   UserPoolClientId:
-    Description: "Cognito User Pool Client ID"
-    Value:
-      Ref: CloudOpsUserPoolClient
+    Description: Cognito User Pool Client ID
+    Value: !Ref CloudOpsUserPoolClient
     Export:
       Name: CloudOpsUserPoolClientId
+
+  ServiceDocsBucketName:
+    Description: S3 Bucket for Service Documentation
+    Value: !Ref ServiceDocsBucket
+    Export:
+      Name: CloudOpsServiceDocsBucket
+
+  ServiceDocsTableName:
+    Description: DynamoDB table for service documentation metadata
+    Value: !Ref ServiceDocsTable
+    Export:
+      Name: CloudOpsServiceDocsTable

@@ -87,7 +87,11 @@ def _authenticated_handler(event, context):
         drift_result = process_terraform_plan(plan_content, repo_name)
 
         # Store results in DynamoDB
-        user_id = event["user_info"]["user_id"]
+        try:
+            user_id = event["user_info"]["user_id"]
+        except KeyError:
+            return error_response("User authentication required")
+
         store_plan_result(github_target, repo_name, drift_result, plan_content, user_id)
 
         return {

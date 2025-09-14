@@ -473,10 +473,24 @@ def execute_terraform_scan(github_url, terraform_dir):
             repo_dir = os.path.join(temp_dir, "repo")
 
             # Validate terraform_dir to prevent path traversal
-            if os.path.isabs(terraform_dir) or ".." in terraform_dir:
+            if (
+                os.path.isabs(terraform_dir)
+                or ".." in terraform_dir
+                or terraform_dir.startswith("/")
+            ):
                 raise ValueError("Unsafe terraform directory path detected")
 
+            # Sanitize terraform_dir to only allow safe characters
+            import re
+
+            if not re.match(r"^[a-zA-Z0-9._/-]+$", terraform_dir):
+                raise ValueError("Invalid characters in terraform directory path")
+
             tf_dir = os.path.join(repo_dir, terraform_dir)
+
+            # Ensure the resolved path is still within repo_dir
+            if not os.path.abspath(tf_dir).startswith(os.path.abspath(repo_dir)):
+                raise ValueError("Path traversal attempt detected")
 
             # Install terraform
             logger.info("Installing terraform...")
@@ -641,10 +655,15 @@ def install_terraform(temp_dir):
                     break
 
         # Make executable with secure permissions (owner only)
-        import stat
 
         terraform_bin = os.path.join(temp_dir, "terraform")
-        os.chmod(terraform_bin, stat.S_IRWXU)  # Owner read/write/execute only
+        # Set restrictive permissions: owner read/execute only (0o500)
+        os.chmod(terraform_bin, 0o500)
+
+        # Verify permissions were set correctly
+        current_perms = oct(os.stat(terraform_bin).st_mode)[-3:]
+        if current_perms != "500":
+            raise ValueError(f"Failed to set secure permissions: {current_perms}")
 
         return True
 
@@ -745,7 +764,9 @@ def decimal_default(obj):
     """JSON serializer for DynamoDB Decimal objects"""
     if isinstance(obj, Decimal):
         return float(obj)
-    raise TypeError
+    raise TypeError(
+        f"Object of type {type(obj).__name__} is not JSON serializable: {obj}"
+    )
 
 
 def error_response(message, status_code=400):

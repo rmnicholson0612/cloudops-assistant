@@ -67,8 +67,6 @@ def explain_terraform_plan(event):
         sanitized_plan_id = str(plan_id).strip()[:100]
 
         # Validate plan_id format (alphanumeric, hyphens, underscores only)
-        import re
-
         if not re.match(r"^[a-zA-Z0-9._-]+$", sanitized_plan_id):
             return error_response("Invalid plan_id format")
 
@@ -126,12 +124,24 @@ def get_plan_explanations(event):
         if not re.match(r"^[a-zA-Z0-9._@-]+$", sanitized_user_id):
             return error_response("Invalid user ID format")
 
-        # Get plans with AI explanations
-        response = plans_table.scan(
-            FilterExpression="user_id = :user_id AND attribute_exists(ai_explanation)",
-            ExpressionAttributeValues={":user_id": sanitized_user_id},
-            Limit=50,
-        )
+        # Get plans with AI explanations using GSI if available, otherwise scan
+        try:
+            # Try to use GSI for better performance
+            response = plans_table.query(
+                IndexName="user_id-timestamp-index",
+                KeyConditionExpression="user_id = :user_id",
+                FilterExpression="attribute_exists(ai_explanation)",
+                ExpressionAttributeValues={":user_id": sanitized_user_id},
+                Limit=50,
+                ScanIndexForward=False,  # Most recent first
+            )
+        except Exception:
+            # Fallback to scan if GSI doesn't exist
+            response = plans_table.scan(
+                FilterExpression="user_id = :user_id AND attribute_exists(ai_explanation)",
+                ExpressionAttributeValues={":user_id": sanitized_user_id},
+                Limit=50,
+            )
 
         explanations = []
         for item in response.get("Items", []):
@@ -160,16 +170,47 @@ def get_plan_explanations(event):
 def generate_ai_explanation(plan_content):
     """Use AWS Bedrock to generate terraform plan explanation"""
     try:
-        # Don't truncate plan content for analysis
-        logger.info(f"Analyzing plan content, length: {len(plan_content)}")
+        if not bedrock:
+            raise Exception("Bedrock client not available")
 
-        # Skip Bedrock for now and use enhanced fallback analysis
-        logger.info("Using enhanced fallback analysis (Bedrock disabled)")
-        return analyze_plan_fallback(plan_content, "Bedrock temporarily disabled")
+        prompt = f"""Analyze this Terraform plan and provide a clear explanation:
+
+{plan_content[:4000]}
+
+Provide:
+1. Summary of changes
+2. Risk level (LOW/MEDIUM/HIGH)
+3. Impact assessment
+4. Recommendations
+
+Format as JSON with keys: summary, risk_level, impact, recommendations (array)"""
+
+        response = bedrock.invoke_model(
+            modelId="amazon.nova-lite-v1:0",
+            body=json.dumps(
+                {
+                    "messages": [{"role": "user", "content": [{"text": prompt}]}],
+                    "inferenceConfig": {"maxTokens": 1000, "temperature": 0.3},
+                }
+            ),
+        )
+
+        result = json.loads(response["body"].read().decode("utf-8"))
+        ai_text = result["output"]["message"]["content"][0]["text"]
+
+        try:
+            return json.loads(ai_text)
+        except Exception:
+            return {
+                "summary": ai_text,
+                "risk_level": "MEDIUM",
+                "impact": "Review required",
+                "recommendations": ["Review plan manually"],
+            }
 
     except Exception as e:
-        logger.error(f"General error in AI explanation: {str(e)}")
-        return analyze_plan_fallback(plan_content, str(e))
+        logger.error(f"AI explanation error: {str(e)}")
+        raise
 
 
 def analyze_plan_fallback(plan_content, error_msg):

@@ -1,0 +1,226 @@
+<svg width="1200" height="980" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="serviceGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="bedrockGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="lambdaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff9500;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#e67e22;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="storageGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#27ae60;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#229954;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="frontendGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3498db;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2980b9;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="2" dy="4" stdDeviation="3" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#4a5568"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="980" fill="#f8fafc"/>
+
+  <!-- Title -->
+  <text x="600" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#1a202c">CloudOps Assistant - Day 10 Architecture</text>
+  <text x="600" y="55" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#4a5568">Smart Service Documentation Search</text>
+
+  <!-- Service Documentation Layer -->
+  <rect x="50" y="80" width="1100" height="100" rx="10" fill="url(#serviceGrad)" filter="url(#shadow)" stroke="#FFD700" stroke-width="4"/>
+  <text x="70" y="105" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white">SMART SERVICE DOCUMENTATION SEARCH - AI-Powered Runbook Assistant</text>
+  <rect x="1050" y="85" width="40" height="20" rx="5" fill="#FFD700"/>
+  <text x="1070" y="98" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#000">NEW</text>
+  <text x="70" y="125" font-family="Arial, sans-serif" font-size="12" fill="white">Upload Service Docs - Natural Language Search - Incident Response Assistant</text>
+  <text x="70" y="145" font-family="Arial, sans-serif" font-size="12" fill="white">Runbooks, API Docs, Troubleshooting Guides - AI Context Understanding</text>
+  <text x="70" y="165" font-family="Arial, sans-serif" font-size="12" fill="white">API: /docs/upload - /docs/search - Real-time documentation assistance during incidents</text>
+
+  <!-- Document Upload Interface -->
+  <rect x="50" y="200" width="360" height="160" rx="10" fill="url(#frontendGrad)" filter="url(#shadow)" stroke="#FFD700" stroke-width="3"/>
+  <text x="70" y="225" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">Document Upload Interface</text>
+  <rect x="330" y="205" width="30" height="15" rx="3" fill="#FFD700"/>
+  <text x="345" y="215" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="#000">NEW</text>
+  <text x="70" y="245" font-family="Arial, sans-serif" font-size="11" fill="white">Drag &amp; drop .md files</text>
+  <text x="70" y="260" font-family="Arial, sans-serif" font-size="11" fill="white">Service organization</text>
+  <text x="70" y="275" font-family="Arial, sans-serif" font-size="11" fill="white">payment-api, user-service</text>
+  <text x="70" y="290" font-family="Arial, sans-serif" font-size="11" fill="white">Runbooks, troubleshooting</text>
+  <text x="70" y="305" font-family="Arial, sans-serif" font-size="11" fill="white">API documentation</text>
+  <text x="70" y="320" font-family="Arial, sans-serif" font-size="11" fill="white">File validation &amp; preview</text>
+  <text x="70" y="340" font-family="Arial, sans-serif" font-size="10" fill="white">AI Assistant Tab Extension</text>
+
+  <!-- AI Search Engine -->
+  <rect x="430" y="200" width="360" height="160" rx="10" fill="url(#bedrockGrad)" filter="url(#shadow)" stroke="#FFD700" stroke-width="3"/>
+
+  <!-- Bedrock Logo -->
+  <rect x="440" y="210" width="25" height="20" rx="3" fill="#FF9900"/>
+  <text x="452" y="223" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="white">BR</text>
+
+  <text x="475" y="225" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">AI Search Engine</text>
+  <rect x="710" y="205" width="30" height="15" rx="3" fill="#FFD700"/>
+  <text x="725" y="215" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="#000">NEW</text>
+  <text x="450" y="245" font-family="Arial, sans-serif" font-size="11" fill="white">1. Natural language query</text>
+  <text x="450" y="260" font-family="Arial, sans-serif" font-size="11" fill="white">2. Simple keyword matching</text>
+  <text x="450" y="275" font-family="Arial, sans-serif" font-size="11" fill="white">3. S3 document retrieval</text>
+  <text x="450" y="290" font-family="Arial, sans-serif" font-size="11" fill="white">4. Context building (2000 chars)</text>
+  <text x="450" y="305" font-family="Arial, sans-serif" font-size="11" fill="white">5. Nova Lite response</text>
+  <text x="450" y="320" font-family="Arial, sans-serif" font-size="11" fill="white">Amazon Nova Lite Processing</text>
+  <text x="450" y="340" font-family="Arial, sans-serif" font-size="10" fill="white">Lambda: ServiceDocsFunction</text>
+
+  <!-- AI Response Output -->
+  <rect x="810" y="200" width="340" height="160" rx="10" fill="url(#serviceGrad)" filter="url(#shadow)" stroke="#FFD700" stroke-width="3"/>
+  <text x="830" y="225" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">AI Documentation Response</text>
+  <rect x="1080" y="205" width="30" height="15" rx="3" fill="#FFD700"/>
+  <text x="1095" y="215" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="#000">NEW</text>
+  <text x="830" y="245" font-family="Arial, sans-serif" font-size="11" fill="white">Answer: Step-by-step instructions</text>
+  <text x="830" y="260" font-family="Arial, sans-serif" font-size="11" fill="white">Source: Referenced documentation</text>
+  <text x="830" y="275" font-family="Arial, sans-serif" font-size="11" fill="white">Commands: Copy-paste ready</text>
+  <text x="830" y="290" font-family="Arial, sans-serif" font-size="11" fill="white">Context: Service-specific info</text>
+  <text x="830" y="305" font-family="Arial, sans-serif" font-size="11" fill="white">Follow-up: Related questions</text>
+  <text x="830" y="320" font-family="Arial, sans-serif" font-size="11" fill="white">Chat history &amp; context</text>
+  <text x="830" y="340" font-family="Arial, sans-serif" font-size="10" fill="white">Incident response optimized</text>
+
+  <!-- Lambda Functions Layer -->
+  <rect x="50" y="380" width="1100" height="120" rx="10" fill="url(#lambdaGrad)" filter="url(#shadow)" stroke="#FFD700" stroke-width="4"/>
+
+  <!-- Lambda Logo -->
+  <rect x="60" y="390" width="25" height="20" rx="3" fill="#FF9900"/>
+  <text x="72" y="403" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="white">λ</text>
+
+  <text x="95" y="405" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white">LAMBDA FUNCTIONS - Service Documentation System</text>
+  <rect x="1050" y="385" width="40" height="20" rx="5" fill="#FFD700"/>
+  <text x="1070" y="398" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#000">NEW</text>
+  <text x="70" y="425" font-family="Arial, sans-serif" font-size="12" fill="white">ServiceDocsFunction - Document upload, search, and AI response generation</text>
+  <text x="70" y="445" font-family="Arial, sans-serif" font-size="12" fill="white">Endpoints: /docs/upload, /docs/search, /docs/list, /docs/get, /docs/delete</text>
+  <text x="70" y="465" font-family="Arial, sans-serif" font-size="12" fill="white">Runtime: Python 3.13 - Memory: 512MB - Timeout: 60s - Single function architecture</text>
+  <text x="70" y="485" font-family="Arial, sans-serif" font-size="12" fill="white">Features: Document CRUD - Keyword search - AI responses - Service registration</text>
+
+  <!-- Storage Layer -->
+  <rect x="50" y="520" width="540" height="140" rx="10" fill="url(#storageGrad)" filter="url(#shadow)" stroke="#FFD700" stroke-width="3"/>
+  <text x="70" y="545" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">Document Storage</text>
+  <rect x="520" y="525" width="30" height="15" rx="3" fill="#FFD700"/>
+  <text x="535" y="535" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="#000">NEW</text>
+
+  <!-- S3 Logo -->
+  <rect x="80" y="555" width="20" height="20" rx="3" fill="#FF9900"/>
+  <text x="90" y="568" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white">S3</text>
+  <text x="110" y="568" font-family="Arial, sans-serif" font-size="12" fill="white">service-docs/shared/payment-api/</text>
+
+  <text x="70" y="585" font-family="Arial, sans-serif" font-size="12" fill="white">Files: runbook.md, troubleshooting.md</text>
+
+  <!-- DynamoDB Logo -->
+  <rect x="80" y="595" width="20" height="20" rx="3" fill="#3F48CC"/>
+  <text x="90" y="608" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="white">DB</text>
+  <text x="110" y="608" font-family="Arial, sans-serif" font-size="12" fill="white">Document metadata</text>
+
+  <text x="70" y="625" font-family="Arial, sans-serif" font-size="12" fill="white">Shared documentation system</text>
+  <text x="70" y="645" font-family="Arial, sans-serif" font-size="10" fill="white">Cost: ~$0.75/month (S3 + DynamoDB + Nova Lite)</text>
+
+  <!-- Chat Interface -->
+  <rect x="610" y="520" width="540" height="140" rx="10" fill="url(#frontendGrad)" filter="url(#shadow)" stroke="#FFD700" stroke-width="3"/>
+  <text x="630" y="545" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">Chat Interface &amp; Examples</text>
+  <rect x="1080" y="525" width="30" height="15" rx="3" fill="#FFD700"/>
+  <text x="1095" y="535" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="#000">NEW</text>
+  <text x="630" y="565" font-family="Arial, sans-serif" font-size="12" fill="white">Query: "Payment API is returning 500 errors"</text>
+  <text x="630" y="585" font-family="Arial, sans-serif" font-size="12" fill="white">Query: "How do I restart user service?"</text>
+  <text x="630" y="605" font-family="Arial, sans-serif" font-size="12" fill="white">Query: "Database backup procedure?"</text>
+  <text x="630" y="625" font-family="Arial, sans-serif" font-size="12" fill="white">Response: Step-by-step instructions</text>
+  <text x="630" y="645" font-family="Arial, sans-serif" font-size="10" fill="white">Perfect for 3AM incident response</text>
+
+  <!-- Web Dashboard -->
+  <rect x="50" y="680" width="1100" height="100" rx="10" fill="#6c5ce7" filter="url(#shadow)" stroke="#FFD700" stroke-width="4"/>
+  <text x="70" y="705" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white">WEB DASHBOARD - AI Assistant Tab Extension</text>
+  <rect x="1050" y="685" width="40" height="20" rx="5" fill="#FFD700"/>
+  <text x="1070" y="698" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#000">NEW</text>
+  <text x="70" y="725" font-family="Arial, sans-serif" font-size="12" fill="white">Service Documentation Section - Upload Interface - Chat Box</text>
+  <text x="70" y="745" font-family="Arial, sans-serif" font-size="12" fill="white">Integrated with existing features - Terraform Explainer - Postmortem Generator - Cost Dashboard</text>
+  <text x="70" y="765" font-family="Arial, sans-serif" font-size="12" fill="white">Features: Document CRUD - Service registration - AI search - View/Edit/Delete docs</text>
+
+  <!-- Connection Lines -->
+  <line x1="600" y1="180" x2="600" y2="200" stroke="#4a5568" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="600" y1="360" x2="600" y2="380" stroke="#4a5568" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="600" y1="500" x2="600" y2="520" stroke="#4a5568" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="600" y1="660" x2="600" y2="680" stroke="#4a5568" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+  <!-- Document Flow -->
+  <line x1="410" y1="280" x2="430" y2="280" stroke="#8b5cf6" stroke-width="3" marker-end="url(#arrowhead)"/>
+  <line x1="790" y1="280" x2="810" y2="280" stroke="#8b5cf6" stroke-width="3" marker-end="url(#arrowhead)"/>
+
+  <!-- Lambda to Bedrock -->
+  <line x1="610" y1="380" x2="610" y2="360" stroke="#ff9500" stroke-width="3" marker-end="url(#arrowhead)" stroke-dasharray="5,5"/>
+  <text x="620" y="370" font-family="Arial, sans-serif" font-size="10" fill="#ff9500" font-weight="bold">Bedrock API</text>
+
+  <!-- Lambda to Storage -->
+  <line x1="320" y1="500" x2="320" y2="520" stroke="#ff9500" stroke-width="3" marker-end="url(#arrowhead)"/>
+  <line x1="880" y1="500" x2="880" y2="520" stroke="#ff9500" stroke-width="3" marker-end="url(#arrowhead)"/>
+
+  <!-- Day 10 Badge -->
+  <circle cx="1100" cy="130" r="30" fill="#8b5cf6" filter="url(#shadow)"/>
+  <text x="1100" y="125" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">DAY</text>
+  <text x="1100" y="140" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white">10/30</text>
+
+  <!-- Service Documentation Features -->
+  <rect x="50" y="790" width="1100" height="60" rx="8" fill="url(#serviceGrad)" filter="url(#shadow)" stroke="#7c3aed" stroke-width="2"/>
+  <text x="70" y="810" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">SMART SERVICE DOCUMENTATION FEATURES</text>
+  <rect x="1050" y="795" width="40" height="15" rx="3" fill="#FFD700"/>
+  <text x="1070" y="805" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="#000">NEW</text>
+  <text x="70" y="825" font-family="Arial, sans-serif" font-size="11" fill="white">Document upload &amp; organization - Natural language search - AI-powered responses</text>
+  <text x="70" y="840" font-family="Arial, sans-serif" font-size="11" fill="white">Incident response optimization - Service-specific context - Chat history &amp; follow-ups</text>
+
+  <!-- Feature Status -->
+  <text x="50" y="870" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#8b5cf6">📚 Document Upload</text>
+  <text x="200" y="870" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#8b5cf6">🔍 Smart Search</text>
+  <text x="350" y="870" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#8b5cf6">🤖 AI Responses</text>
+  <text x="500" y="870" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#8b5cf6">🚨 Incident Ready</text>
+  <text x="650" y="870" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#8b5cf6">💬 Chat Interface</text>
+  <text x="820" y="870" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#8b5cf6">⚡ Fast Access</text>
+
+  <text x="50" y="890" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#dc2626">🔮 AI Anomaly Detection (Day 11)</text>
+  <text x="300" y="890" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#dc2626">🔮 Slack Bot Integration (Day 12)</text>
+  <text x="520" y="890" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#dc2626">🔮 AI-Powered PR Reviews (Day 13)</text>
+
+  <!-- AWS Services Used -->
+  <rect x="50" y="900" width="1100" height="40" rx="5" fill="#f0f0f0" stroke="#ccc" stroke-width="1"/>
+  <text x="70" y="915" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">AWS Services Used:</text>
+
+  <!-- Service Icons -->
+  <rect x="200" y="905" width="20" height="15" rx="2" fill="#FF9900"/>
+  <text x="210" y="915" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="white">S3</text>
+  <text x="230" y="915" font-family="Arial, sans-serif" font-size="10" fill="#333">Storage</text>
+
+  <rect x="290" y="905" width="20" height="15" rx="2" fill="#3F48CC"/>
+  <text x="300" y="915" text-anchor="middle" font-family="Arial, sans-serif" font-size="7" font-weight="bold" fill="white">DDB</text>
+  <text x="320" y="915" font-family="Arial, sans-serif" font-size="10" fill="#333">Metadata</text>
+
+  <rect x="390" y="905" width="20" height="15" rx="2" fill="#FF9900"/>
+  <text x="400" y="915" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="white">λ</text>
+  <text x="420" y="915" font-family="Arial, sans-serif" font-size="10" fill="#333">Functions</text>
+
+  <rect x="490" y="905" width="20" height="15" rx="2" fill="#FF9900"/>
+  <text x="500" y="915" text-anchor="middle" font-family="Arial, sans-serif" font-size="7" font-weight="bold" fill="white">BR</text>
+  <text x="520" y="915" font-family="Arial, sans-serif" font-size="10" fill="#333">Bedrock</text>
+
+  <rect x="580" y="905" width="20" height="15" rx="2" fill="#FF9900"/>
+  <text x="590" y="915" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="white">CF</text>
+  <text x="610" y="915" font-family="Arial, sans-serif" font-size="10" fill="#333">CloudFront</text>
+
+  <rect x="690" y="905" width="20" height="15" rx="2" fill="#FF9900"/>
+  <text x="700" y="915" text-anchor="middle" font-family="Arial, sans-serif" font-size="7" font-weight="bold" fill="white">API</text>
+  <text x="720" y="915" font-family="Arial, sans-serif" font-size="10" fill="#333">Gateway</text>
+
+  <text x="800" y="915" font-family="Arial, sans-serif" font-size="10" fill="#333">Total Cost: ~$2-3/month (Nova Lite optimized)</text>
+
+  <!-- Architecture Notes -->
+  <text x="50" y="955" font-family="Arial, sans-serif" font-size="10" fill="#6b7280">Security: JWT auth + S3 encryption + shared docs - Simple keyword search - No vector DB - Cost optimized</text>
+
+  <!-- Social Handles -->
+  <text x="600" y="975" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" font-weight="bold" fill="#667eea">GitHub: @rmnicholson0612 | LinkedIn: @onevoicerandy | Instagram: @onevoicecoding</text>
+</svg>

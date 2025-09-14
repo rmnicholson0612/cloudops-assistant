@@ -156,7 +156,7 @@ def is_scan_due(repo_config):
             logger.warning(f"Invalid repo_name format: {repo_name}")
             return True
 
-        # Use boto3.dynamodb.conditions for safe query construction
+        # Use parameterized query with boto3.dynamodb.conditions for safe query construction
         response = plans_table.query(
             IndexName="repo-timestamp-index",
             KeyConditionExpression=Key("repo_name").eq(repo_name),

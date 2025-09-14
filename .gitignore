@@ -81,6 +81,7 @@ DAILY_TEMPLATE.md
 *.log
 plan.*
 terraform.plan
+test-services/
 
 # Allow requirements files
 !requirements*.txt

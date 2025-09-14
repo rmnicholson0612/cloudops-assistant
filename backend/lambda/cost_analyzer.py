@@ -1,7 +1,7 @@
 import json
 import logging
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import boto3
 
@@ -13,13 +13,9 @@ except ImportError:
         return func
 
 
-# Fixed cost aggregation issue - v1.1
-
 # Configure logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-# Force deployment v2
-# Force deployment v2
 
 # Initialize AWS clients with error handling
 try:
@@ -85,10 +81,14 @@ def get_current_costs(month=None):
                 raise ValueError("Invalid month format. Expected YYYY-MM")
             year, month_num = month.split("-")
             target_date = datetime(int(year), int(month_num), 1)
-            cache_key = f"current_costs_{month}_{datetime.now().strftime('%H')}"
+            cache_key = (
+                f"current_costs_{month}_{datetime.now(timezone.utc).strftime('%H')}"
+            )
         else:
             target_date = datetime.now()
-            cache_key = f"current_costs_{datetime.now().strftime('%Y-%m-%d-%H')}"
+            cache_key = (
+                f"current_costs_{datetime.now(timezone.utc).strftime('%Y-%m-%d-%H')}"
+            )
 
         # Check cache first
         cached = get_from_cache(cache_key)
@@ -122,7 +122,7 @@ def get_current_costs(month=None):
             "total_cost": round(total_cost, 2),
             "currency": "USD",
             "period": f"{start_date} to {end_date}",
-            "last_updated": datetime.now().isoformat(),
+            "last_updated": datetime.now(timezone.utc).isoformat(),
         }
 
         # Cache for 12 hours
@@ -145,10 +145,14 @@ def get_service_costs(month=None):
                 raise ValueError("Invalid month format. Expected YYYY-MM")
             year, month_num = month.split("-")
             target_date = datetime(int(year), int(month_num), 1)
-            cache_key = f"service_costs_{month}_{datetime.now().strftime('%H')}"
+            cache_key = (
+                f"service_costs_{month}_{datetime.now(timezone.utc).strftime('%H')}"
+            )
         else:
             target_date = datetime.now()
-            cache_key = f"service_costs_{datetime.now().strftime('%Y-%m-%d-%H')}"
+            cache_key = (
+                f"service_costs_{datetime.now(timezone.utc).strftime('%Y-%m-%d-%H')}"
+            )
 
         # Check cache first
         cached = get_from_cache(cache_key)
@@ -188,7 +192,7 @@ def get_service_costs(month=None):
         result = {
             "services": services[:10],  # Top 10 services
             "period": f"{start_date} to {end_date}",
-            "last_updated": datetime.now().isoformat(),
+            "last_updated": datetime.now(timezone.utc).isoformat(),
         }
 
         # Cache for 12 hours
@@ -204,7 +208,7 @@ def get_service_costs(month=None):
 def get_cost_trends():
     """Get daily cost trends for the last 30 days"""
     try:
-        cache_key = f"cost_trends_{datetime.now().strftime('%Y-%m-%d-%H')}"
+        cache_key = f"cost_trends_{datetime.now(timezone.utc).strftime('%Y-%m-%d-%H')}"
 
         # Check cache first
         cached = get_from_cache(cache_key)
@@ -212,7 +216,7 @@ def get_cost_trends():
             return success_response(cached)
 
         # Get last 30 days
-        end_date = datetime.now()
+        end_date = datetime.now(timezone.utc)
         start_date = end_date - timedelta(days=30)
 
         # Query Cost Explorer
@@ -235,7 +239,7 @@ def get_cost_trends():
         result = {
             "daily_costs": daily_costs,
             "period": "Last 30 days",
-            "last_updated": datetime.now().isoformat(),
+            "last_updated": datetime.now(timezone.utc).isoformat(),
         }
 
         # Cache for 12 hours
@@ -258,10 +262,12 @@ def get_costs_by_tag(month=None):
                 raise ValueError("Invalid month format. Expected YYYY-MM")
             year, month_num = month.split("-")
             target_date = datetime(int(year), int(month_num), 1)
-            cache_key = f"tag_costs_{month}_{datetime.now().strftime('%H')}"
+            cache_key = f"tag_costs_{month}_{datetime.now(timezone.utc).strftime('%H')}"
         else:
             target_date = datetime.now()
-            cache_key = f"tag_costs_{datetime.now().strftime('%Y-%m-%d-%H')}"
+            cache_key = (
+                f"tag_costs_{datetime.now(timezone.utc).strftime('%Y-%m-%d-%H')}"
+            )
 
         # Check cache first
         cached = get_from_cache(cache_key)
@@ -317,7 +323,7 @@ def get_costs_by_tag(month=None):
         result = {
             "services": services[:10],  # Top 10 services by tag
             "period": f"{start_date} to {end_date}",
-            "last_updated": datetime.now().isoformat(),
+            "last_updated": datetime.now(timezone.utc).isoformat(),
         }
 
         # Cache for 12 hours
@@ -351,7 +357,9 @@ def cache_result(cache_key, data, ttl_seconds):
         # Sanitize cache key to prevent NoSQL injection
         if not isinstance(cache_key, str):
             return
-        ttl = int((datetime.now() + timedelta(seconds=ttl_seconds)).timestamp())
+        ttl = int(
+            (datetime.now(timezone.utc) + timedelta(seconds=ttl_seconds)).timestamp()
+        )
         table.put_item(
             Item={
                 "cache_key": str(cache_key),
