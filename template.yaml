@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: CloudOps Assistant - Day 10 with Service Documentation
+Description: CloudOps Assistant - Day 11 with Smart Resource Discovery
 
 Globals:
   Function:
@@ -12,9 +12,23 @@ Globals:
         USER_POOL_CLIENT_ID: !Ref CloudOpsUserPoolClient
   Api:
     Cors:
-      AllowMethods: "'GET,POST,DELETE,OPTIONS'"
-      AllowHeaders: "'Content-Type,Authorization'"
+      AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+      AllowHeaders: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
       AllowOrigin: "'*'"
+      MaxAge: "'86400'"
+    GatewayResponses:
+      DEFAULT_4XX:
+        ResponseParameters:
+          Headers:
+            Access-Control-Allow-Origin: "'*'"
+            Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+            Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+      DEFAULT_5XX:
+        ResponseParameters:
+          Headers:
+            Access-Control-Allow-Origin: "'*'"
+            Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+            Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
 
 Resources:
   # Existing Resources (keeping all current functionality)
@@ -226,7 +240,41 @@ Resources:
         - Key: Feature
           Value: postmortem-generator
 
-  # NEW: Service Documentation Resources
+  # NEW: Resource Discovery Table
+  ResourceDiscoveryTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: cloudops-assistant-resource-discovery
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: scan_id
+          AttributeType: S
+        - AttributeName: user_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: scan_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: user-id-index
+          KeySchema:
+            - AttributeName: user_id
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Service
+          Value: cloudops-assistant
+        - Key: Feature
+          Value: resource-discovery
+
+  # Service Documentation Resources
   ServiceDocsTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -649,7 +697,72 @@ Resources:
             Path: /users
             Method: get
 
-  # NEW: Service Documentation Function
+  # NEW: Resource Discovery Function
+  ResourceDiscoveryFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/lambda/
+      Handler: resource_discovery.lambda_handler
+      MemorySize: 1024
+      Timeout: 900
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ResourceDiscoveryTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref CostCacheTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - ec2:DescribeInstances
+                - ec2:DescribeVpcs
+                - ec2:DescribeSecurityGroups
+                - lambda:ListFunctions
+                - lambda:ListTags
+                - rds:DescribeDBInstances
+                - rds:ListTagsForResource
+                - s3:ListAllMyBuckets
+                - s3:GetBucketTagging
+                - s3:GetBucketLocation
+                - elbv2:DescribeLoadBalancers
+                - elbv2:DescribeTags
+                - ce:GetCostAndUsage
+                - bedrock:InvokeModel
+                - cognito-idp:GetUser
+              Resource: '*'
+      Events:
+        DiscoveryProxy:
+          Type: Api
+          Properties:
+            Path: /discovery/{proxy+}
+            Method: ANY
+            RestApiId: !Ref ServerlessRestApi
+
+  # Resource Discovery Scheduler Function
+  ResourceDiscoverySchedulerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/lambda/
+      Handler: resource_discovery_scheduler.lambda_handler
+      MemorySize: 256
+      Timeout: 300
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref ResourceDiscoveryTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - lambda:InvokeFunction
+              Resource: !GetAtt ResourceDiscoveryFunction.Arn
+      Events:
+        DailySchedule:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 2 * * ? *)  # Daily at 2 AM UTC
+            Description: Daily resource discovery scans for enabled users
+
+  # Service Documentation Function
   ServiceDocsFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -751,3 +864,9 @@ Outputs:
     Value: !Ref ServiceDocsTable
     Export:
       Name: CloudOpsServiceDocsTable
+
+  ResourceDiscoveryTableName:
+    Description: DynamoDB table for resource discovery scans
+    Value: !Ref ResourceDiscoveryTable
+    Export:
+      Name: CloudOpsResourceDiscoveryTable

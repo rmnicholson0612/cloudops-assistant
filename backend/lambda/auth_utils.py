@@ -71,8 +71,8 @@ def auth_required(handler_func):
                 "headers": {
                     "Content-Type": "application/json",
                     "Access-Control-Allow-Origin": "*",
-                    "Access-Control-Allow-Headers": "content-type,authorization",
-                    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+                    "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
+                    "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
                 },
                 "body": json.dumps({"error": error}),
             }

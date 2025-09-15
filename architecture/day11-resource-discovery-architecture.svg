@@ -1,0 +1,254 @@
+<svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="awsGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF9900;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FF6600;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="aiGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8B5CF6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7C3AED;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="dataGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="800" fill="#F8FAFC"/>
+
+  <!-- Title -->
+  <text x="600" y="40" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#1F2937">
+    Day 11/30: Smart AWS Resource Discovery Architecture
+  </text>
+
+  <!-- AWS Account Cloud -->
+  <rect x="50" y="100" width="300" height="600" rx="20" fill="#FEF3C7" stroke="#F59E0B" stroke-width="2"/>
+  <text x="200" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#92400E">
+    AWS Account
+  </text>
+
+  <!-- AWS Services -->
+  <rect x="70" y="160" width="80" height="60" rx="8" fill="url(#awsGradient)"/>
+  <text x="110" y="185" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">EC2</text>
+  <text x="110" y="200" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Instances</text>
+
+  <rect x="160" y="160" width="80" height="60" rx="8" fill="url(#awsGradient)"/>
+  <text x="200" y="185" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Lambda</text>
+  <text x="200" y="200" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Functions</text>
+
+  <rect x="250" y="160" width="80" height="60" rx="8" fill="url(#awsGradient)"/>
+  <text x="290" y="185" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">RDS</text>
+  <text x="290" y="200" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Databases</text>
+
+  <rect x="70" y="240" width="80" height="60" rx="8" fill="url(#awsGradient)"/>
+  <text x="110" y="265" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">S3</text>
+  <text x="110" y="280" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Buckets</text>
+
+  <rect x="160" y="240" width="80" height="60" rx="8" fill="url(#awsGradient)"/>
+  <text x="200" y="265" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">ALB</text>
+  <text x="200" y="280" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Load Balancers</text>
+
+  <rect x="250" y="240" width="80" height="60" rx="8" fill="url(#awsGradient)"/>
+  <text x="290" y="265" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">VPC</text>
+  <text x="290" y="280" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Networks</text>
+
+  <!-- More services -->
+  <text x="200" y="330" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#6B7280">
+    + 15 more AWS services...
+  </text>
+
+  <!-- Resource Discovery Lambda -->
+  <rect x="450" y="200" width="200" height="120" rx="12" fill="url(#aiGradient)"/>
+  <text x="550" y="230" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">
+    Resource Discovery
+  </text>
+  <text x="550" y="250" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">
+    Lambda Function
+  </text>
+  <text x="550" y="280" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    • Scan all AWS services
+  </text>
+  <text x="550" y="295" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    • Extract metadata &amp; tags
+  </text>
+  <text x="550" y="310" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    • Analyze relationships
+  </text>
+
+  <!-- AI Analysis -->
+  <rect x="450" y="350" width="200" height="120" rx="12" fill="url(#aiGradient)"/>
+  <text x="550" y="380" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">
+    Amazon Nova Lite
+  </text>
+  <text x="550" y="400" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">
+    AI Analysis
+  </text>
+  <text x="550" y="430" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    • Pattern recognition
+  </text>
+  <text x="550" y="445" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    • Service grouping
+  </text>
+  <text x="550" y="460" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    • Smart suggestions
+  </text>
+
+  <!-- Service Registry -->
+  <rect x="750" y="200" width="180" height="120" rx="12" fill="url(#dataGradient)"/>
+  <text x="840" y="230" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">
+    Service Registry
+  </text>
+  <text x="840" y="250" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">
+    (DynamoDB)
+  </text>
+  <text x="840" y="280" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    • Discovered services
+  </text>
+  <text x="840" y="295" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    • Resource mappings
+  </text>
+  <text x="840" y="310" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    • Cost attribution
+  </text>
+
+  <!-- Cost Explorer -->
+  <rect x="750" y="350" width="180" height="120" rx="12" fill="url(#awsGradient)"/>
+  <text x="840" y="380" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">
+    AWS Cost Explorer
+  </text>
+  <text x="840" y="410" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    • Resource costs
+  </text>
+  <text x="840" y="425" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    • Service attribution
+  </text>
+  <text x="840" y="440" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    • Budget tracking
+  </text>
+
+  <!-- Frontend UI -->
+  <rect x="1000" y="250" width="150" height="150" rx="12" fill="#3B82F6"/>
+  <text x="1075" y="280" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">
+    Frontend UI
+  </text>
+  <text x="1075" y="310" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    • Service discovery
+  </text>
+  <text x="1075" y="325" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    • AI suggestions
+  </text>
+  <text x="1075" y="340" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    • Approval workflow
+  </text>
+  <text x="1075" y="355" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    • Service mapping
+  </text>
+  <text x="1075" y="370" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    • Cost visualization
+  </text>
+
+  <!-- Flow Arrows -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#374151"/>
+    </marker>
+  </defs>
+
+  <!-- AWS to Discovery -->
+  <line x1="350" y1="260" x2="450" y2="260" stroke="#374151" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <text x="400" y="250" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#374151">
+    API Calls
+  </text>
+
+  <!-- Discovery to AI -->
+  <line x1="550" y1="320" x2="550" y2="350" stroke="#374151" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <text x="580" y="340" font-family="Arial, sans-serif" font-size="10" fill="#374151">
+    Resource Data
+  </text>
+
+  <!-- AI to Registry -->
+  <line x1="650" y1="410" x2="750" y2="260" stroke="#374151" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <text x="700" y="330" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#374151">
+    Service Groups
+  </text>
+
+  <!-- Cost to Registry -->
+  <line x1="840" y1="350" x2="840" y2="320" stroke="#374151" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <text x="870" y="340" font-family="Arial, sans-serif" font-size="10" fill="#374151">
+    Cost Data
+  </text>
+
+  <!-- Registry to Frontend -->
+  <line x1="930" y1="325" x2="1000" y2="325" stroke="#374151" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <text x="965" y="315" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#374151">
+    API
+  </text>
+
+  <!-- Example Output Box -->
+  <rect x="50" y="520" width="1100" height="200" rx="12" fill="#F3F4F6" stroke="#D1D5DB" stroke-width="1"/>
+  <text x="600" y="550" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#1F2937">
+    AI Discovery Results Example
+  </text>
+
+  <!-- Service Groups -->
+  <rect x="80" y="570" width="200" height="120" rx="8" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1"/>
+  <text x="180" y="590" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#1E40AF">
+    User Service
+  </text>
+  <text x="90" y="610" font-family="Arial, sans-serif" font-size="10" fill="#374151">• user-api-lambda</text>
+  <text x="90" y="625" font-family="Arial, sans-serif" font-size="10" fill="#374151">• user-db-rds</text>
+  <text x="90" y="640" font-family="Arial, sans-serif" font-size="10" fill="#374151">• user-cache-redis</text>
+  <text x="90" y="655" font-family="Arial, sans-serif" font-size="10" fill="#374151">• user-alb</text>
+  <text x="90" y="670" font-family="Arial, sans-serif" font-size="10" fill="#10B981">Cost: $245/month</text>
+
+  <rect x="300" y="570" width="200" height="120" rx="8" fill="#F0FDF4" stroke="#10B981" stroke-width="1"/>
+  <text x="400" y="590" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#059669">
+    Payment Service
+  </text>
+  <text x="310" y="610" font-family="Arial, sans-serif" font-size="10" fill="#374151">• payment-lambda</text>
+  <text x="310" y="625" font-family="Arial, sans-serif" font-size="10" fill="#374151">• payment-queue-sqs</text>
+  <text x="310" y="640" font-family="Arial, sans-serif" font-size="10" fill="#374151">• payment-secrets</text>
+  <text x="310" y="655" font-family="Arial, sans-serif" font-size="10" fill="#374151">• payment-vpc</text>
+  <text x="310" y="670" font-family="Arial, sans-serif" font-size="10" fill="#10B981">Cost: $89/month</text>
+
+  <rect x="520" y="570" width="200" height="120" rx="8" fill="#FEF3C7" stroke="#F59E0B" stroke-width="1"/>
+  <text x="620" y="590" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#92400E">
+    Analytics Service
+  </text>
+  <text x="530" y="610" font-family="Arial, sans-serif" font-size="10" fill="#374151">• analytics-kinesis</text>
+  <text x="530" y="625" font-family="Arial, sans-serif" font-size="10" fill="#374151">• analytics-s3</text>
+  <text x="530" y="640" font-family="Arial, sans-serif" font-size="10" fill="#374151">• analytics-glue</text>
+  <text x="530" y="655" font-family="Arial, sans-serif" font-size="10" fill="#374151">• analytics-athena</text>
+  <text x="530" y="670" font-family="Arial, sans-serif" font-size="10" fill="#10B981">Cost: $156/month</text>
+
+  <!-- AI Confidence -->
+  <rect x="750" y="570" width="200" height="120" rx="8" fill="#F3E8FF" stroke="#8B5CF6" stroke-width="1"/>
+  <text x="850" y="590" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#7C3AED">
+    AI Confidence
+  </text>
+  <text x="760" y="610" font-family="Arial, sans-serif" font-size="10" fill="#374151">User Service: 95%</text>
+  <text x="760" y="625" font-family="Arial, sans-serif" font-size="10" fill="#374151">Payment Service: 88%</text>
+  <text x="760" y="640" font-family="Arial, sans-serif" font-size="10" fill="#374151">Analytics Service: 92%</text>
+  <text x="760" y="660" font-family="Arial, sans-serif" font-size="10" fill="#7C3AED">Suggestions:</text>
+  <text x="760" y="675" font-family="Arial, sans-serif" font-size="9" fill="#374151">• Review 12 ungrouped resources</text>
+
+  <!-- Cost Summary -->
+  <rect x="970" y="570" width="150" height="120" rx="8" fill="#ECFDF5" stroke="#10B981" stroke-width="1"/>
+  <text x="1045" y="590" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#059669">
+    Total Discovery
+  </text>
+  <text x="980" y="610" font-family="Arial, sans-serif" font-size="10" fill="#374151">247 resources found</text>
+  <text x="980" y="625" font-family="Arial, sans-serif" font-size="10" fill="#374151">12 services created</text>
+  <text x="980" y="640" font-family="Arial, sans-serif" font-size="10" fill="#374151">$490/month total</text>
+  <text x="980" y="655" font-family="Arial, sans-serif" font-size="10" fill="#374151">Scan time: 2.3 min</text>
+  <text x="980" y="670" font-family="Arial, sans-serif" font-size="10" fill="#10B981">Cost: $0.02</text>
+
+  <!-- Footer -->
+  <text x="600" y="760" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#6B7280">
+    Smart Resource Discovery: AI-powered service mapping with cost attribution (~$0.25/month)
+  </text>
+
+  <!-- Social Handles -->
+  <text x="600" y="785" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" font-weight="bold" fill="#667eea">GitHub: @rmnicholson0612 | LinkedIn: @onevoicerandy | Instagram: @onevoicecoding</text>
+</svg>

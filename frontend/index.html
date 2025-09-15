@@ -230,6 +230,51 @@
                 <div class="card">
                     <div class="card-header">
                         <div class="header-with-info">
+                            <h3><i class="fas fa-search-plus"></i> Smart Resource Discovery</h3>
+                            <button class="btn btn-info" onclick="showResourceDiscoveryInfo()" title="About Resource Discovery">
+                                <i class="fas fa-info-circle"></i>
+                            </button>
+                            <div class="feature-badge">✅ Day 11 Complete</div>
+                        </div>
+                        <button class="btn btn-primary" onclick="openResourceDiscovery()">
+                            <i class="fas fa-external-link-alt"></i> Open Resource Discovery
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="resource-discovery-display" class="resource-discovery">
+                            <div class="capabilities">
+                                <div class="capability">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Automatically discover all AWS resources across your account</span>
+                                </div>
+                                <div class="capability">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>AI-powered service grouping based on tags and naming patterns</span>
+                                </div>
+                                <div class="capability">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Cost attribution: see exactly what each service costs monthly</span>
+                                </div>
+                                <div class="capability">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Manual and scheduled scanning with drift detection</span>
+                                </div>
+                                <div class="capability">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Interactive approval workflow for AI service suggestions</span>
+                                </div>
+                                <div class="capability">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Extremely cost-effective: ~$0.25/month for full account scanning</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="header-with-info">
                             <h3><i class="fas fa-file-code"></i> AI Terraform Explainer</h3>
                             <button class="btn btn-info" onclick="showAIInfo()" title="About AI Terraform Explainer">
                                 <i class="fas fa-info-circle"></i>
@@ -3589,7 +3634,24 @@ terraform plan > plan.txt</code>
             document.body.appendChild(modal);
         }
 
-        function showServiceDocsInfo() {
+        function openResourceDiscovery() {
+            // Check if user is logged in
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                alert('Please login first to access resource discovery');
+                return;
+            }
+
+            // Open in new tab
+            const url = 'resource-discovery.html';
+            const newWindow = window.open(url, '_blank', 'width=1400,height=900,scrollbars=yes,resizable=yes');
+            if (!newWindow) {
+                // Fallback if popup blocked
+                window.location.href = url;
+            }
+        }
+
+        function showResourceDiscoveryInfo() {
             const modal = document.createElement('div');
             modal.className = 'modal';
             modal.style.display = 'block';
@@ -3597,34 +3659,34 @@ terraform plan > plan.txt</code>
             modal.innerHTML = `
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h2><i class="fas fa-search"></i> About Service Documentation Search</h2>
+                        <h2><i class="fas fa-search-plus"></i> About Smart Resource Discovery</h2>
                         <span class="close" onclick="this.closest('.modal').remove()">&times;</span>
                     </div>
                     <div class="modal-body">
                         <div class="info-section">
                             <h3><i class="fas fa-magic"></i> How It Works</h3>
-                            <p>Upload your service documentation and ask questions in natural language. AI provides step-by-step answers perfect for incident response.</p>
+                            <p>Automatically discover all AWS resources in your account and use AI to group them into logical services with cost attribution.</p>
 
                             <div class="process-steps">
                                 <div class="step">
                                     <div class="step-number">1</div>
                                     <div class="step-content">
-                                        <strong>Upload Documentation</strong>
-                                        <p>Drag & drop runbooks, troubleshooting guides, API docs</p>
+                                        <strong>Scan AWS Account</strong>
+                                        <p>Discover all resources across EC2, Lambda, RDS, S3, and more</p>
                                     </div>
                                 </div>
                                 <div class="step">
                                     <div class="step-number">2</div>
                                     <div class="step-content">
-                                        <strong>Ask Questions</strong>
-                                        <p>"Payment API is down, what should I check?"</p>
+                                        <strong>AI Analysis</strong>
+                                        <p>Amazon Nova Lite analyzes tags, names, and relationships</p>
                                     </div>
                                 </div>
                                 <div class="step">
                                     <div class="step-number">3</div>
                                     <div class="step-content">
-                                        <strong>Get AI Answers</strong>
-                                        <p>Step-by-step instructions from your documentation</p>
+                                        <strong>Service Grouping</strong>
+                                        <p>Get intelligent service suggestions with confidence scores</p>
                                     </div>
                                 </div>
                             </div>
@@ -3635,31 +3697,67 @@ terraform plan > plan.txt</code>
                             <div class="capabilities">
                                 <div class="capability">
                                     <i class="fas fa-check-circle"></i>
-                                    <span>Natural language queries</span>
+                                    <span>Automatic discovery of all AWS resource types</span>
                                 </div>
                                 <div class="capability">
                                     <i class="fas fa-check-circle"></i>
-                                    <span>AI-powered responses with source citations</span>
+                                    <span>AI-powered service grouping with confidence scores</span>
                                 </div>
                                 <div class="capability">
                                     <i class="fas fa-check-circle"></i>
-                                    <span>Service-organized documentation</span>
+                                    <span>Real-time cost attribution per service</span>
                                 </div>
                                 <div class="capability">
                                     <i class="fas fa-check-circle"></i>
-                                    <span>Perfect for 3AM incident response</span>
+                                    <span>Manual and scheduled daily scanning</span>
+                                </div>
+                                <div class="capability">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Interactive approval workflow</span>
+                                </div>
+                                <div class="capability">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Multi-region support</span>
                                 </div>
                             </div>
                         </div>
 
                         <div class="info-section">
-                            <h3><i class="fas fa-dollar-sign"></i> Cost</h3>
-                            <p>Extremely cost-effective: ~$2-3/month total</p>
+                            <h3><i class="fas fa-dollar-sign"></i> Cost Analysis</h3>
+                            <p>Extremely cost-effective: ~$0.25/month total</p>
                             <ul>
-                                <li>S3 storage: ~$0.50/month</li>
-                                <li>DynamoDB: ~$0.25/month</li>
-                                <li>AI processing: ~$1-2/month (pay per query)</li>
+                                <li>AWS API calls: FREE (Describe/List APIs)</li>
+                                <li>Lambda execution: ~$0.20/month</li>
+                                <li>AI processing: ~$0.001/month (Nova Lite)</li>
+                                <li>DynamoDB storage: ~$0.0001/month</li>
                             </ul>
+                        </div>
+
+                        <div class="info-section">
+                            <h3><i class="fas fa-lightbulb"></i> Example Results</h3>
+                            <div class="benefits">
+                                <div class="benefit">
+                                    <i class="fas fa-users"></i>
+                                    <div>
+                                        <strong>User Service (95% confidence)</strong>
+                                        <p>user-api-lambda, user-db-rds, user-cache-redis - $245/month</p>
+                                    </div>
+                                </div>
+                                <div class="benefit">
+                                    <i class="fas fa-credit-card"></i>
+                                    <div>
+                                        <strong>Payment Service (88% confidence)</strong>
+                                        <p>payment-lambda, payment-queue-sqs, payment-secrets - $89/month</p>
+                                    </div>
+                                </div>
+                                <div class="benefit">
+                                    <i class="fas fa-chart-bar"></i>
+                                    <div>
+                                        <strong>Analytics Service (92% confidence)</strong>
+                                        <p>analytics-kinesis, analytics-s3, analytics-glue - $156/month</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>`;
