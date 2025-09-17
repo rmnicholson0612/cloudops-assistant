@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: CloudOps Assistant - Day 11 with Smart Resource Discovery
+Description: CloudOps Assistant - Day 13 with AI-Powered PR Reviews
 
 Parameters:
   Environment:
@@ -29,6 +29,11 @@ Parameters:
     Type: String
     Default: ""
     Description: Slack bot token
+    NoEcho: true
+  GitHubWebhookSecret:
+    Type: String
+    Default: ""
+    Description: GitHub webhook secret for PR reviews
     NoEcho: true
 
 Globals:
@@ -338,6 +343,40 @@ Resources:
           Value: cloudops-assistant
         - Key: Feature
           Value: slack-integration
+
+  # PR Reviews Table
+  PRReviewsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: cloudops-assistant-pr-reviews
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: review_id
+          AttributeType: S
+        - AttributeName: repo_name
+          AttributeType: S
+      KeySchema:
+        - AttributeName: review_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: repo-name-index
+          KeySchema:
+            - AttributeName: repo_name
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Service
+          Value: cloudops-assistant
+        - Key: Feature
+          Value: pr-reviews
 
   # Service Documentation Resources
   ServiceDocsTable:
@@ -988,6 +1027,86 @@ Resources:
             Path: /slack/confirm
             Method: post
 
+  # PR Webhook Handler Function
+  PRWebhookHandlerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/lambda/
+      Handler: pr_webhook_handler.lambda_handler
+      MemorySize: 256
+      Environment:
+        Variables:
+          PR_REVIEWS_TABLE: !Ref PRReviewsTable
+          PR_ANALYZER_FUNCTION: !Ref PRReviewAnalyzerFunction
+          GITHUB_WEBHOOK_SECRET: !Ref GitHubWebhookSecret
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PRReviewsTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - lambda:InvokeFunction
+              Resource: !GetAtt PRReviewAnalyzerFunction.Arn
+      Events:
+        PRWebhook:
+          Type: Api
+          Properties:
+            Path: /pr-webhook
+            Method: post
+
+  # PR Review Analyzer Function
+  PRReviewAnalyzerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/lambda/
+      Handler: pr_review_analyzer.lambda_handler
+      MemorySize: 512
+      Timeout: 300
+      Environment:
+        Variables:
+          PR_REVIEWS_TABLE: !Ref PRReviewsTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PRReviewsTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource: '*'
+
+  # PR Reviews API Function
+  PRReviewsAPIFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/lambda/
+      Handler: pr_reviews_api.lambda_handler
+      MemorySize: 256
+      Environment:
+        Variables:
+          PR_REVIEWS_TABLE: !Ref PRReviewsTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PRReviewsTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:GetUser
+              Resource: !GetAtt CloudOpsUserPool.Arn
+      Events:
+        PRReviews:
+          Type: Api
+          Properties:
+            Path: /pr-reviews
+            Method: get
+        ConfigurePRReviews:
+          Type: Api
+          Properties:
+            Path: /pr-reviews/configure
+            Method: post
+
 Outputs:
   CloudOpsAssistantApi:
     Description: API Gateway endpoint URL for CloudOps Assistant
@@ -1036,3 +1155,15 @@ Outputs:
     Value: !Ref ResourceDiscoveryTable
     Export:
       Name: CloudOpsResourceDiscoveryTable
+
+  PRReviewsTableName:
+    Description: DynamoDB table for PR reviews
+    Value: !Ref PRReviewsTable
+    Export:
+      Name: CloudOpsPRReviewsTable
+
+  PRWebhookURL:
+    Description: GitHub webhook URL for PR reviews
+    Value: !Sub 'https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/pr-webhook'
+    Export:
+      Name: CloudOpsPRWebhookURL

@@ -51,6 +51,10 @@
                 <i class="fas fa-robot"></i>
                 AI Assistant
             </button>
+            <button class="tab-btn" data-tab="code-reviews">
+                <i class="fas fa-code-branch"></i>
+                Code Reviews
+            </button>
             <button class="tab-btn" data-tab="monitoring">
                 <i class="fas fa-chart-line"></i>
                 Monitoring
@@ -372,6 +376,58 @@
                         <div id="slack-status-display" class="slack-status">
                             <div class="slack-loading">
                                 <i class="fas fa-spinner fa-spin"></i> Loading Slack bot status...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Code Reviews Tab -->
+            <div class="tab-content" id="code-reviews">
+                <div class="feature-header">
+                    <h2><i class="fas fa-code-branch"></i> AI-Powered PR Reviews</h2>
+                    <p>Automated code review for infrastructure changes with AI analysis</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="header-with-info">
+                            <h3><i class="fas fa-list"></i> Recent PR Reviews</h3>
+                            <div class="feature-badge">✅ Day 13 Complete</div>
+                        </div>
+                        <button class="btn btn-primary" onclick="loadPRReviews()">
+                            <i class="fas fa-refresh"></i> Refresh
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="pr-reviews-display" class="pr-reviews">
+                            <div class="pr-loading">
+                                <i class="fas fa-spinner fa-spin"></i> Loading PR reviews...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-cog"></i> Repository Configuration</h3>
+                        <button class="btn btn-primary" onclick="showPRConfigModal()">
+                            <i class="fas fa-plus"></i> Add Repository
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="pr-config-info">
+                            <h4>GitHub Webhook Setup</h4>
+                            <p>Configure your GitHub repositories to send webhook events for automated PR reviews.</p>
+                            <div class="webhook-url">
+                                <label>Webhook URL:</label>
+                                <input type="text" id="webhook-url" readonly>
+                                <button class="btn btn-sm btn-secondary" onclick="copyWebhookURL()">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                            <div class="webhook-events">
+                                <strong>Events to subscribe:</strong> Pull requests
                             </div>
                         </div>
                     </div>
@@ -1481,6 +1537,42 @@ terraform plan > plan.txt</code>
         </div>
     </div>
 
+    <!-- PR Configuration Modal -->
+    <div id="pr-config-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-code-branch"></i> Configure PR Reviews</h2>
+                <span class="close" onclick="closePRConfigModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="pr-config-form">
+                    <div class="form-group">
+                        <label for="pr-repo-name">Repository Name</label>
+                        <input type="text" id="pr-repo-name" placeholder="my-terraform-repo">
+                    </div>
+                    <div class="form-group">
+                        <label for="pr-github-url">GitHub Repository URL</label>
+                        <input type="url" id="pr-github-url" placeholder="https://github.com/user/repo">
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="pr-enabled" checked>
+                            Enable AI reviews for this repository
+                        </label>
+                    </div>
+                </div>
+                <div class="pr-config-actions">
+                    <button class="btn btn-primary" onclick="savePRConfig()">
+                        <i class="fas fa-save"></i> Save Configuration
+                    </button>
+                    <button class="btn btn-secondary" onclick="closePRConfigModal()">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Budget Configuration Modal -->
     <div id="budget-modal" class="modal">
         <div class="modal-content">
@@ -1567,6 +1659,12 @@ terraform plan > plan.txt</code>
                     loadAIExplanations();
                     loadPostmortems();
                     loadSlackStatus();
+                }
+
+                // Load PR reviews when code reviews tab is activated
+                if (tabId === 'code-reviews') {
+                    loadPRReviews();
+                    setupWebhookURL();
                 }
             });
         });
@@ -4090,6 +4188,126 @@ terraform plan > plan.txt</code>
                 </div>`;
 
             document.body.appendChild(modal);
+        }
+
+        // PR Reviews Functions
+        async function loadPRReviews() {
+            const displayElement = document.getElementById('pr-reviews-display');
+            const token = localStorage.getItem('access_token');
+
+            if (!token) {
+                displayElement.innerHTML = '<div class="pr-error"><i class="fas fa-lock"></i> Please login to view PR reviews</div>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/pr-reviews`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    if (data.reviews.length === 0) {
+                        displayElement.innerHTML = '<div class="no-pr-reviews">No PR reviews yet. Configure repositories to start automated reviews.</div>';
+                        return;
+                    }
+
+                    let html = '<div class="pr-reviews-list">';
+                    data.reviews.forEach(review => {
+                        const riskColor = {'LOW': '#28a745', 'MEDIUM': '#ffc107', 'HIGH': '#dc3545'}[review.risk_level] || '#6c757d';
+                        const statusIcon = review.status === 'completed' ? '✅' : review.status === 'failed' ? '❌' : '⏳';
+
+                        html += `
+                            <div class="pr-review-item">
+                                <div class="pr-header">
+                                    <div class="pr-title">
+                                        <a href="${review.pr_url}" target="_blank">${review.pr_title}</a>
+                                    </div>
+                                    <div class="pr-meta">
+                                        <span class="pr-repo">${review.repo_name}</span>
+                                        <span class="pr-number">#${review.pr_number}</span>
+                                        <span class="pr-author">by ${review.author}</span>
+                                    </div>
+                                </div>
+                                <div class="pr-status">
+                                    <span class="status">${statusIcon} ${review.status}</span>
+                                    <span class="risk" style="color: ${riskColor}">Risk: ${review.risk_level}</span>
+                                    <span class="date">${new Date(review.created_at).toLocaleDateString()}</span>
+                                </div>
+                            </div>`;
+                    });
+                    html += '</div>';
+                    displayElement.innerHTML = html;
+                } else {
+                    displayElement.innerHTML = `<div class="pr-error">Error: ${data.error}</div>`;
+                }
+            } catch (error) {
+                displayElement.innerHTML = '<div class="pr-error">Failed to load PR reviews</div>';
+            }
+        }
+
+        function setupWebhookURL() {
+            const webhookInput = document.getElementById('webhook-url');
+            if (webhookInput) {
+                webhookInput.value = `${CONFIG.API_BASE_URL}/pr-webhook`;
+            }
+        }
+
+        function copyWebhookURL() {
+            const webhookInput = document.getElementById('webhook-url');
+            webhookInput.select();
+            document.execCommand('copy');
+            alert('Webhook URL copied to clipboard!');
+        }
+
+        function showPRConfigModal() {
+            document.getElementById('pr-config-modal').style.display = 'block';
+        }
+
+        function closePRConfigModal() {
+            document.getElementById('pr-config-modal').style.display = 'none';
+        }
+
+        async function savePRConfig() {
+            const repoName = document.getElementById('pr-repo-name').value.trim();
+            const githubUrl = document.getElementById('pr-github-url').value.trim();
+            const enabled = document.getElementById('pr-enabled').checked;
+
+            if (!repoName || !githubUrl) {
+                alert('Repository name and GitHub URL are required');
+                return;
+            }
+
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                alert('Please login to configure PR reviews');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/pr-reviews/configure`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        repo_name: repoName,
+                        github_url: githubUrl,
+                        enabled: enabled
+                    })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    alert('PR review configuration saved! Add the webhook URL to your GitHub repository.');
+                    closePRConfigModal();
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+            } catch (error) {
+                alert('Failed to save configuration');
+            }
         }
 
         function showPostmortemModal(postmortemData) {

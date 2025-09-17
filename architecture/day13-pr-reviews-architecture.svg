@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .title { font: bold 18px sans-serif; fill: #2c3e50; }
+      .subtitle { font: 14px sans-serif; fill: #7f8c8d; }
+      .box { fill: #ecf0f1; stroke: #34495e; stroke-width: 2; rx: 8; }
+      .github { fill: #f39c12; stroke: #e67e22; stroke-width: 2; rx: 8; }
+      .lambda { fill: #3498db; stroke: #2980b9; stroke-width: 2; rx: 8; }
+      .ai { fill: #9b59b6; stroke: #8e44ad; stroke-width: 2; rx: 8; }
+      .db { fill: #27ae60; stroke: #229954; stroke-width: 2; rx: 8; }
+      .frontend { fill: #e74c3c; stroke: #c0392b; stroke-width: 2; rx: 8; }
+      .text { font: 12px sans-serif; fill: #2c3e50; text-anchor: middle; }
+      .arrow { stroke: #34495e; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#34495e" />
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="400" y="30" class="title">Day 13: AI-Powered PR Reviews Architecture</text>
+  <text x="400" y="50" class="subtitle">Automated code review for infrastructure changes</text>
+
+  <!-- GitHub -->
+  <rect x="50" y="100" width="120" height="80" class="github"/>
+  <text x="110" y="130" class="text">GitHub</text>
+  <text x="110" y="145" class="text">Repository</text>
+  <text x="110" y="160" class="text">PR Events</text>
+
+  <!-- Webhook Handler -->
+  <rect x="220" y="100" width="120" height="80" class="lambda"/>
+  <text x="280" y="125" class="text">PR Webhook</text>
+  <text x="280" y="140" class="text">Handler</text>
+  <text x="280" y="155" class="text">(Lambda)</text>
+
+  <!-- PR Analyzer -->
+  <rect x="390" y="100" width="120" height="80" class="lambda"/>
+  <text x="450" y="125" class="text">PR Review</text>
+  <text x="450" y="140" class="text">Analyzer</text>
+  <text x="450" y="155" class="text">(Lambda)</text>
+
+  <!-- AI Service -->
+  <rect x="560" y="100" width="120" height="80" class="ai"/>
+  <text x="620" y="125" class="text">AWS Bedrock</text>
+  <text x="620" y="140" class="text">AI Analysis</text>
+  <text x="620" y="155" class="text">(Nova Lite)</text>
+
+  <!-- DynamoDB -->
+  <rect x="220" y="250" width="120" height="80" class="db"/>
+  <text x="280" y="280" class="text">PR Reviews</text>
+  <text x="280" y="295" class="text">DynamoDB</text>
+  <text x="280" y="310" class="text">Table</text>
+
+  <!-- Dashboard API -->
+  <rect x="390" y="250" width="120" height="80" class="lambda"/>
+  <text x="450" y="280" class="text">Dashboard</text>
+  <text x="450" y="295" class="text">API</text>
+  <text x="450" y="310" class="text">(Lambda)</text>
+
+  <!-- Frontend -->
+  <rect x="220" y="400" width="290" height="80" class="frontend"/>
+  <text x="365" y="430" class="text">Code Reviews Dashboard</text>
+  <text x="365" y="445" class="text">React Frontend</text>
+  <text x="365" y="460" class="text">PR List + Repository Config</text>
+
+  <!-- Arrows -->
+  <line x1="170" y1="140" x2="220" y2="140" class="arrow"/>
+  <line x1="340" y1="140" x2="390" y2="140" class="arrow"/>
+  <line x1="510" y1="140" x2="560" y2="140" class="arrow"/>
+  <line x1="280" y1="180" x2="280" y2="250" class="arrow"/>
+  <line x1="450" y1="180" x2="450" y2="250" class="arrow"/>
+  <line x1="450" y1="330" x2="450" y2="400" class="arrow"/>
+  <line x1="340" y1="290" x2="390" y2="290" class="arrow"/>
+
+  <!-- GitHub Comment Back -->
+  <path d="M 450 100 Q 450 50 110 50 Q 110 50 110 100" class="arrow"/>
+  <text x="280" y="45" class="text" style="font-size: 10px;">AI Review Comment</text>
+
+  <!-- Labels -->
+  <text x="195" y="135" class="text" style="font-size: 10px;">Webhook</text>
+  <text x="365" y="135" class="text" style="font-size: 10px;">Async</text>
+  <text x="535" y="135" class="text" style="font-size: 10px;">AI Call</text>
+  <text x="255" y="215" class="text" style="font-size: 10px;">Store</text>
+  <text x="425" y="215" class="text" style="font-size: 10px;">Update</text>
+  <text x="365" y="285" class="text" style="font-size: 10px;">Query</text>
+  <text x="425" y="365" class="text" style="font-size: 10px;">Display</text>
+
+  <!-- Cost Info -->
+  <rect x="550" y="400" width="200" height="120" class="box"/>
+  <text x="650" y="420" class="text" style="font-weight: bold;">Cost: ~$2/month</text>
+  <text x="650" y="440" class="text" style="font-size: 10px;">• Lambda: $0.50/month</text>
+  <text x="650" y="455" class="text" style="font-size: 10px;">• DynamoDB: $0.25/month</text>
+  <text x="650" y="470" class="text" style="font-size: 10px;">• AI (Bedrock): $1/month</text>
+  <text x="650" y="485" class="text" style="font-size: 10px;">• API Gateway: $0.25/month</text>
+  <text x="650" y="505" class="text" style="font-size: 10px;">Pay-per-PR model</text>
+</svg>

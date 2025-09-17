@@ -4,7 +4,7 @@
 > That's what I'm building in 30 days: an open-source CloudOps Assistant.
 > Day by day, feature by feature. Follow along for a front-row seat as we go from zero → full platform.
 
-[![Day](https://img.shields.io/badge/Day-12%2F30-blue)](https://github.com/rmnicholson0612/cloudops-assistant)
+[![Day](https://img.shields.io/badge/Day-13%2F30-blue)](https://github.com/rmnicholson0612/cloudops-assistant)
 [![Status](https://img.shields.io/badge/Status-Building-green)](https://github.com/rmnicholson0612/cloudops-assistant)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
@@ -53,7 +53,7 @@ In a world where "vibe coding" is taking over, code quality suffers and security
 - [x] **Day 10**: RAG for Infrastructure Documentation ✅ COMPLETE
 - [x] **Day 11**: Smart Resource Discovery ✅ COMPLETE
 - [x] **Day 12**: Slack Bot Integration with OAuth ✅ COMPLETE
-- [ ] **Day 13**: AI-Powered PR Reviews
+- [x] **Day 13**: AI-Powered PR Reviews ✅ COMPLETE
 - [ ] **Day 14**: Intelligent Search & Discovery
 
 ### Week 3: Observability 📊
@@ -199,6 +199,12 @@ flake8 backend/lambda/
 ✅ **OAuth User Linking**: Secure Cognito-Slack user mapping with one-time registration
 ✅ **Slack Commands**: `/cloudops status`, `/cloudops costs`, `/cloudops drift` commands
 ✅ **Real-time Slack Responses**: Live infrastructure data delivered to Slack channels
+✅ **AI-Powered PR Reviews**: Automated code review for infrastructure changes
+✅ **GitHub Webhook Integration**: Automatic PR analysis on opened/updated pull requests
+✅ **Risk Assessment**: AI-driven security and best practices analysis with risk levels
+✅ **Automated Comments**: AI-generated review comments posted directly to GitHub PRs
+✅ **Centralized Dashboard**: Multi-repository PR review tracking and analytics
+✅ **Repository Management**: Configure which repositories receive automated reviews
 
 ## 🎪 What Makes This Different?
 
@@ -227,7 +233,7 @@ AI Layer:      █████████████████████�
 Observability: ░░░░░░░░░░  0% (0/7 days)
 Advanced:      ░░░░░░░░░░  0% (0/9 days)
 
-Overall:       ████████████████████ 40% (12/30 days)
+Overall:       ██████████████████████ 43% (13/30 days)
 ```
 
 ## 🎯 The End Goal
