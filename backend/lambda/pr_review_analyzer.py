@@ -70,30 +70,54 @@ def lambda_handler(event, context):
 
 
 def get_pr_diff(pr_data, repo_token=None):
-    """Get PR diff from GitHub API"""
+    """Get PR files and changes from GitHub API"""
     try:
-        headers = {"Accept": "application/vnd.github.v3.diff"}
+        headers = {"Accept": "application/vnd.github.v3+json"}
         if repo_token:
             headers["Authorization"] = f"token {repo_token}"
 
-        url = f"https://api.github.com/repos/{pr_data['repo_full_name']}/pulls/{pr_data['pr_number']}"
-        response = requests.get(url, headers=headers, timeout=30)
+        # Get PR files to see what changed
+        files_url = f"https://api.github.com/repos/{pr_data['repo_full_name']}/pulls/{pr_data['pr_number']}/files"
+        files_response = requests.get(files_url, headers=headers, timeout=30)
 
-        if response.status_code == 200:
-            return response.text[:8000]  # Limit diff size
+        if files_response.status_code == 200:
+            files = files_response.json()
+
+            # Build summary of changes
+            changes_summary = (
+                f"PR #{pr_data['pr_number']}: {pr_data['pr_title']}\n\nChanged files:\n"
+            )
+
+            for file in files[:10]:  # Limit to first 10 files
+                filename = file.get("filename", "")
+                status = file.get("status", "")
+                additions = file.get("additions", 0)
+                deletions = file.get("deletions", 0)
+
+                changes_summary += (
+                    f"- {filename} ({status}): +{additions}/-{deletions}\n"
+                )
+
+                # Include patch for small files
+                if file.get("patch") and len(file["patch"]) < 2000:
+                    changes_summary += (
+                        f"\nChanges in {filename}:\n{file['patch'][:1000]}\n\n"
+                    )
+
+            return changes_summary[:8000]  # Limit total size
         else:
-            logger.warning(f"Failed to get PR diff: {response.status_code}")
-            return f"PR #{pr_data['pr_number']}: {pr_data['pr_title']}"
+            logger.warning(f"Failed to get PR files: {files_response.status_code}")
+            return f"PR #{pr_data['pr_number']}: {pr_data['pr_title']}\nUnable to fetch file changes."
 
     except Exception as e:
-        logger.error(f"Error getting PR diff: {str(e)}")
-        return f"PR #{pr_data['pr_number']}: {pr_data['pr_title']}"
+        logger.error(f"Error getting PR files: {str(e)}")
+        return f"PR #{pr_data['pr_number']}: {pr_data['pr_title']}\nError fetching changes: {str(e)}"
 
 
 def generate_ai_review(diff_content, pr_data):
     """Generate AI review using Bedrock"""
     try:
-        prompt = f"""Review this infrastructure PR for security and best practices:
+        prompt = f"""Review this code PR for security, best practices, and potential issues:
 
 PR: {pr_data['pr_title']}
 Repository: {pr_data['repo_name']}
@@ -101,11 +125,11 @@ Repository: {pr_data['repo_name']}
 Changes:
 {diff_content}
 
-Provide:
-1. Risk level (LOW/MEDIUM/HIGH)
-2. Security issues found
-3. Best practice violations
-4. Recommendations
+Analyze the code changes and provide:
+1. Risk level (LOW/MEDIUM/HIGH) based on potential impact
+2. Security issues or vulnerabilities found
+3. Code quality and best practice violations
+4. Specific recommendations for improvement
 
 Format as JSON with keys: risk_level, security_issues, violations, recommendations"""
 

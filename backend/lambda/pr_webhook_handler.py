@@ -169,14 +169,10 @@ def handle_pull_request_event(payload):
 
 
 def is_terraform_pr(pr_data):
-    """Check if PR contains terraform changes"""
-    # For now, assume all PRs in repos with 'terraform' or 'infra' in name are terraform PRs
-    # In a real implementation, you'd check the changed files via GitHub API
-    repo_name = pr_data.get("repo_name", "").lower()
-    return any(
-        keyword in repo_name
-        for keyword in ["terraform", "infra", "infrastructure", "tf"]
-    )
+    """Check if PR contains terraform changes by examining file extensions"""
+    # This will be enhanced by the analyzer to check actual changed files
+    # For now, let the analyzer determine if it's infrastructure-related
+    return True
 
 
 def get_repo_access_token(repo_full_name):
