@@ -137,7 +137,10 @@ def configure_drift_monitoring(event):
                 )
 
         # Store configuration
-        table = dynamodb.Table("cloudops-assistant-drift-config")
+        drift_table_name = os.environ.get(
+            "DRIFT_CONFIG_TABLE", "cloudops-assistant-drift-config"
+        )
+        table = dynamodb.Table(drift_table_name)
 
         config_id = f"{user_id}#{repo_name}"
 
@@ -179,7 +182,13 @@ def get_drift_status(event):
     try:
         user_id = event["user_info"]["user_id"]
 
-        config_table = dynamodb.Table("cloudops-assistant-drift-config")
+        drift_table_name = os.environ.get(
+            "DRIFT_CONFIG_TABLE", "cloudops-assistant-drift-config"
+        )
+        plans_table_name = os.environ.get(
+            "TERRAFORM_PLANS_TABLE", "cloudops-assistant-terraform-plans"
+        )
+        config_table = dynamodb.Table(drift_table_name)
 
         # Get user's drift configurations using GSI query for better performance
         response = config_table.query(
@@ -191,7 +200,7 @@ def get_drift_status(event):
         configs = response.get("Items", [])
 
         # Get recent drift results
-        plans_table = dynamodb.Table("cloudops-assistant-terraform-plans")
+        plans_table = dynamodb.Table(plans_table_name)
 
         for config in configs:
             # Get latest scan result with parameterized query
@@ -262,7 +271,10 @@ def run_manual_scan(event):
         )
 
         # Get configuration
-        config_table = dynamodb.Table("cloudops-assistant-drift-config")
+        drift_table_name = os.environ.get(
+            "DRIFT_CONFIG_TABLE", "cloudops-assistant-drift-config"
+        )
+        config_table = dynamodb.Table(drift_table_name)
         response = config_table.get_item(Key={"config_id": config_id})
 
         if "Item" not in response:
@@ -295,7 +307,10 @@ def run_manual_scan(event):
         )
 
         # Store scan result
-        plans_table = dynamodb.Table("cloudops-assistant-terraform-plans")
+        plans_table_name = os.environ.get(
+            "TERRAFORM_PLANS_TABLE", "cloudops-assistant-terraform-plans"
+        )
+        plans_table = dynamodb.Table(plans_table_name)
         plan_id = (
             f"{config['repo_name']}-"
             f"{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
@@ -361,7 +376,10 @@ def update_drift_config(event):
         ):
             return error_response("Invalid schedule or email format")
 
-        table = dynamodb.Table("cloudops-assistant-drift-config")
+        drift_table_name = os.environ.get(
+            "DRIFT_CONFIG_TABLE", "cloudops-assistant-drift-config"
+        )
+        table = dynamodb.Table(drift_table_name)
         response = table.get_item(Key={"config_id": config_id})
 
         if "Item" not in response or response["Item"].get("user_id") != user_id:
@@ -407,7 +425,10 @@ def delete_drift_config(event):
         config_id = urllib.parse.unquote(config_id)
         sanitized_config_id = str(config_id).strip()[:100]
 
-        table = dynamodb.Table("cloudops-assistant-drift-config")
+        drift_table_name = os.environ.get(
+            "DRIFT_CONFIG_TABLE", "cloudops-assistant-drift-config"
+        )
+        table = dynamodb.Table(drift_table_name)
 
         # Get item first to verify ownership
         response = table.get_item(Key={"config_id": sanitized_config_id})

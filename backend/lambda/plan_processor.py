@@ -26,7 +26,10 @@ def get_table():
     """Get DynamoDB table with proper connection management"""
     try:
         dynamodb = boto3.resource("dynamodb")
-        return dynamodb.Table("cloudops-assistant-terraform-plans")
+        table_name = os.environ.get(
+            "TERRAFORM_PLANS_TABLE", "cloudops-assistant-terraform-plans"
+        )
+        return dynamodb.Table(table_name)
     except Exception as e:
         logger.error("Failed to connect to DynamoDB: %s", str(e))
         raise

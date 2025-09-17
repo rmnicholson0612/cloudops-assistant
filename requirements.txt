@@ -1,0 +1,5 @@
+# CloudOps Assistant - Core Dependencies
+# These are needed for deployment and management scripts
+
+boto3>=1.34.0
+aws-sam-cli>=1.100.0

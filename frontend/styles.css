@@ -1780,6 +1780,87 @@ body {
     margin-bottom: 0.25rem;
 }
 
+/* Slack Bot Styles */
+.slack-capabilities {
+    padding: 20px;
+}
+
+.capability-section {
+    margin-bottom: 25px;
+}
+
+.capability-section h4 {
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 16px;
+}
+
+.slack-cost-info {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 4px solid #28a745;
+}
+
+.slack-cost-info h4 {
+    color: #28a745;
+    margin-bottom: 10px;
+}
+
+.setup-step {
+    margin-bottom: 30px;
+    padding: 20px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+}
+
+.setup-step h4 {
+    color: #007bff;
+    margin-bottom: 15px;
+}
+
+.endpoint-box {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    gap: 10px;
+}
+
+.endpoint-box label {
+    min-width: 120px;
+    font-weight: 600;
+}
+
+.endpoint-box input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 14px;
+}
+
+.commands-list {
+    display: grid;
+    gap: 10px;
+}
+
+.command-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.command-item code {
+    background: #e9ecef;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
 /* Responsive adjustments for cost dashboard */
 @media (max-width: 768px) {
     .cost-grid {
@@ -1808,5 +1889,16 @@ body {
         flex-direction: column;
         align-items: stretch;
         text-align: center;
+    }
+
+    .endpoint-box {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .command-item {
+        flex-direction: column;
+        text-align: center;
+        gap: 5px;
     }
 }

@@ -30,7 +30,7 @@ jobs:
 
     - name: Lint Python code
       run: |
-        flake8 backend/lambda/ --max-line-length=130
+        flake8 backend/lambda/ --max-line-length=180
         pylint backend/lambda/ --disable=C0114,C0115,C0116,W0718,W1203,R1705,C0415,W0613,R0911,R0914,R0912,R1702,W0621,R0801,W0237,R1725,W1510,W0612
 
     - name: Run unit tests

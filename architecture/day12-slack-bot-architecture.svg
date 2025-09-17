@@ -1,0 +1,274 @@
+<svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="slackGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4A154B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#350d36;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="awsGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF9900;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FF6600;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="lambdaGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8B5CF6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7C3AED;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="2" dy="4" stdDeviation="3" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="800" fill="#F8FAFC"/>
+
+  <!-- Title -->
+  <text x="600" y="40" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#1F2937">
+    Day 12/30: Slack Bot Integration Architecture
+  </text>
+
+  <!-- Day Badge -->
+  <circle cx="1100" cy="70" r="30" fill="#8b5cf6" filter="url(#shadow)"/>
+  <text x="1100" y="65" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">DAY</text>
+  <text x="1100" y="80" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white">12/30</text>
+
+  <!-- Slack Workspace -->
+  <rect x="50" y="100" width="250" height="500" rx="20" fill="#F3E8FF" stroke="#8B5CF6" stroke-width="2"/>
+  <text x="175" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#7C3AED">
+    Slack Workspace
+  </text>
+
+  <!-- Slack Users -->
+  <circle cx="100" cy="180" r="25" fill="url(#slackGradient)"/>
+  <text x="100" y="185" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">👤</text>
+  <text x="100" y="220" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#374151">DevOps Team</text>
+
+  <circle cx="175" cy="180" r="25" fill="url(#slackGradient)"/>
+  <text x="175" y="185" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">👤</text>
+  <text x="175" y="220" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#374151">SRE Team</text>
+
+  <circle cx="250" cy="180" r="25" fill="url(#slackGradient)"/>
+  <text x="250" y="185" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">👤</text>
+  <text x="250" y="220" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#374151">Developers</text>
+
+  <!-- Slash Commands -->
+  <rect x="70" y="260" width="210" height="300" rx="8" fill="white" stroke="#E5E7EB" stroke-width="1"/>
+  <text x="175" y="285" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#1F2937">
+    Slash Commands
+  </text>
+
+  <text x="80" y="310" font-family="Courier New, monospace" font-size="11" fill="#8B5CF6">/cloudops help</text>
+  <text x="80" y="330" font-family="Courier New, monospace" font-size="11" fill="#8B5CF6">/cloudops register</text>
+  <text x="80" y="350" font-family="Courier New, monospace" font-size="11" fill="#8B5CF6">/cloudops status</text>
+  <text x="80" y="370" font-family="Courier New, monospace" font-size="11" fill="#8B5CF6">/cloudops drift [repo]</text>
+  <text x="80" y="390" font-family="Courier New, monospace" font-size="11" fill="#8B5CF6">/cloudops costs [service]</text>
+  <text x="80" y="410" font-family="Courier New, monospace" font-size="11" fill="#8B5CF6">/cloudops incident [title]</text>
+  <text x="80" y="430" font-family="Courier New, monospace" font-size="11" fill="#8B5CF6">/cloudops explain [plan-id]</text>
+
+  <!-- Interactive Elements -->
+  <text x="175" y="440" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#1F2937">
+    Interactive Elements
+  </text>
+  <text x="80" y="460" font-family="Arial, sans-serif" font-size="10" fill="#374151">• Buttons &amp; Actions</text>
+  <text x="80" y="475" font-family="Arial, sans-serif" font-size="10" fill="#374151">• Rich Attachments</text>
+  <text x="80" y="490" font-family="Arial, sans-serif" font-size="10" fill="#374151">• Real-time Updates</text>
+  <text x="80" y="505" font-family="Arial, sans-serif" font-size="10" fill="#374151">• Channel Notifications</text>
+
+  <!-- Cost Info -->
+  <rect x="70" y="520" width="210" height="60" rx="8" fill="#ECFDF5" stroke="#10B981" stroke-width="1"/>
+  <text x="175" y="540" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#059669">
+    Slack Free Tier
+  </text>
+  <text x="80" y="555" font-family="Arial, sans-serif" font-size="10" fill="#374151">• 10,000 messages visible</text>
+  <text x="80" y="570" font-family="Arial, sans-serif" font-size="10" fill="#374151">• Unlimited bot messages</text>
+
+  <!-- API Gateway -->
+  <rect x="400" y="200" width="150" height="100" rx="12" fill="url(#awsGradient)"/>
+  <text x="475" y="230" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">
+    API Gateway
+  </text>
+  <text x="475" y="250" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="white">
+    /slack/events
+  </text>
+  <text x="475" y="270" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    • Webhook endpoint
+  </text>
+  <text x="475" y="285" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    • Request validation
+  </text>
+
+  <!-- Slack Bot Lambda -->
+  <rect x="650" y="120" width="200" height="160" rx="12" fill="url(#lambdaGradient)"/>
+  <text x="750" y="150" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white">
+    Slack Bot Lambda
+  </text>
+  <text x="750" y="175" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    • Parse slash commands
+  </text>
+  <text x="750" y="190" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    • Route to handlers
+  </text>
+  <text x="750" y="205" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    • User authentication
+  </text>
+  <text x="750" y="220" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    • Format responses
+  </text>
+  <text x="750" y="235" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    • Handle interactions
+  </text>
+  <text x="750" y="250" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    • Error handling
+  </text>
+  <text x="750" y="265" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    • OAuth linking
+  </text>
+
+  <!-- Slack Linking Lambda -->
+  <rect x="650" y="300" width="200" height="120" rx="12" fill="#10B981"/>
+  <text x="750" y="330" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white">
+    Slack Linking Lambda
+  </text>
+  <text x="750" y="355" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    • OAuth token validation
+  </text>
+  <text x="750" y="370" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    • Cognito authentication
+  </text>
+  <text x="750" y="385" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    • User mapping storage
+  </text>
+  <text x="750" y="400" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    • Link confirmation
+  </text>
+
+  <!-- Existing CloudOps Services -->
+  <rect x="950" y="100" width="200" height="500" rx="12" fill="#F0F9FF" stroke="#3B82F6" stroke-width="2"/>
+  <text x="1050" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#1E40AF">
+    CloudOps Services
+  </text>
+
+  <!-- Service boxes -->
+  <rect x="970" y="150" width="160" height="40" rx="6" fill="#3B82F6"/>
+  <text x="1050" y="175" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="white">Drift Detection</text>
+
+  <rect x="970" y="200" width="160" height="40" rx="6" fill="#10B981"/>
+  <text x="1050" y="225" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="white">Cost Analysis</text>
+
+  <rect x="970" y="250" width="160" height="40" rx="6" fill="#8B5CF6"/>
+  <text x="1050" y="275" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="white">Resource Discovery</text>
+
+  <rect x="970" y="300" width="160" height="40" rx="6" fill="#F59E0B"/>
+  <text x="1050" y="325" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="white">Documentation</text>
+
+  <rect x="970" y="350" width="160" height="40" rx="6" fill="#EF4444"/>
+  <text x="1050" y="375" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="white">Postmortem AI</text>
+
+  <rect x="970" y="400" width="160" height="40" rx="6" fill="#6366F1"/>
+  <text x="1050" y="425" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="white">AI Explainer</text>
+
+  <!-- DynamoDB User Mapping -->
+  <rect x="400" y="450" width="150" height="100" rx="8" fill="#3B82F6" stroke="#1E40AF" stroke-width="1"/>
+  <text x="475" y="480" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">
+    User Mapping
+  </text>
+  <text x="475" y="500" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">
+    DynamoDB
+  </text>
+  <text x="475" y="520" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    • Slack ↔ Cognito mapping
+  </text>
+  <text x="475" y="535" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    • OAuth tokens (TTL)
+  </text>
+
+  <!-- Cognito User Pool -->
+  <rect x="400" y="320" width="150" height="80" rx="8" fill="#F59E0B" stroke="#92400E" stroke-width="1"/>
+  <text x="475" y="345" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">
+    Cognito User Pool
+  </text>
+  <text x="475" y="365" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    • User authentication
+  </text>
+  <text x="475" y="380" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    • JWT tokens
+  </text>
+
+  <!-- Flow Arrows -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#374151"/>
+    </marker>
+  </defs>
+
+  <!-- Slack to API Gateway -->
+  <line x1="300" y1="250" x2="400" y2="250" stroke="#374151" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <text x="350" y="240" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#374151">
+    HTTPS POST
+  </text>
+
+  <!-- API Gateway to Slack Bot Lambda -->
+  <line x1="550" y1="250" x2="650" y2="200" stroke="#374151" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <text x="600" y="220" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#374151">
+    Slash Commands
+  </text>
+
+  <!-- API Gateway to Slack Linking Lambda -->
+  <line x1="550" y1="250" x2="650" y2="360" stroke="#374151" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <text x="580" y="310" font-family="Arial, sans-serif" font-size="10" fill="#374151">
+    OAuth Flow
+  </text>
+
+  <!-- Slack Bot Lambda to Services -->
+  <line x1="850" y1="200" x2="950" y2="250" stroke="#374151" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <text x="900" y="220" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#374151">
+    API Calls
+  </text>
+
+  <!-- Slack Bot Lambda to User Mapping -->
+  <line x1="650" y1="250" x2="550" y2="500" stroke="#374151" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <text x="580" y="380" font-family="Arial, sans-serif" font-size="10" fill="#374151">
+    User Lookup
+  </text>
+
+  <!-- Slack Linking Lambda to Cognito -->
+  <line x1="650" y1="360" x2="550" y2="360" stroke="#374151" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <text x="600" y="350" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#374151">
+    Auth
+  </text>
+
+  <!-- Slack Linking Lambda to User Mapping -->
+  <line x1="650" y1="400" x2="550" y2="480" stroke="#374151" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <text x="580" y="450" font-family="Arial, sans-serif" font-size="10" fill="#374151">
+    Store Mapping
+  </text>
+
+  <!-- Example Commands Section -->
+  <rect x="50" y="620" width="1100" height="120" rx="12" fill="#F3F4F6" stroke="#D1D5DB" stroke-width="1"/>
+  <text x="600" y="650" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#1F2937">
+    Example Slack Bot Interactions
+  </text>
+
+  <!-- Command Examples -->
+  <rect x="80" y="670" width="250" height="50" rx="6" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1"/>
+  <text x="90" y="690" font-family="Courier New, monospace" font-size="10" fill="#1E40AF">/cloudops drift-check my-repo</text>
+  <text x="90" y="705" font-family="Arial, sans-serif" font-size="9" fill="#374151">✅ No drift detected (12 resources)</text>
+
+  <rect x="350" y="670" width="250" height="50" rx="6" fill="#F0FDF4" stroke="#10B981" stroke-width="1"/>
+  <text x="360" y="690" font-family="Courier New, monospace" font-size="10" fill="#059669">/cloudops cost-summary</text>
+  <text x="360" y="705" font-family="Arial, sans-serif" font-size="9" fill="#374151">💰 $247.83 total (67% of budget)</text>
+
+  <rect x="620" y="670" width="250" height="50" rx="6" fill="#F3E8FF" stroke="#8B5CF6" stroke-width="1"/>
+  <text x="630" y="690" font-family="Courier New, monospace" font-size="10" fill="#7C3AED">/cloudops scan-resources</text>
+  <text x="630" y="705" font-family="Arial, sans-serif" font-size="9" fill="#374151">🔍 247 resources → 12 services</text>
+
+  <rect x="890" y="670" width="250" height="50" rx="6" fill="#FEF3C7" stroke="#F59E0B" stroke-width="1"/>
+  <text x="900" y="690" font-family="Courier New, monospace" font-size="10" fill="#92400E">/cloudops register</text>
+  <text x="900" y="705" font-family="Arial, sans-serif" font-size="9" fill="#374151">🔗 Click to link your account</text>
+
+  <!-- Footer -->
+  <text x="600" y="760" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#6B7280">
+    Slack Bot Integration: OAuth linking + JWT auth + Real-time infrastructure data in Slack
+  </text>
+
+  <!-- Social Handles -->
+  <text x="600" y="780" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" font-weight="bold" fill="#667eea">GitHub: @rmnicholson0612 | LinkedIn: @onevoicerandy | Instagram: @onevoicecoding</text>
+</svg>

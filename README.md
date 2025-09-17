@@ -4,7 +4,7 @@
 > That's what I'm building in 30 days: an open-source CloudOps Assistant.
 > Day by day, feature by feature. Follow along for a front-row seat as we go from zero → full platform.
 
-[![Day](https://img.shields.io/badge/Day-10%2F30-blue)](https://github.com/rmnicholson0612/cloudops-assistant)
+[![Day](https://img.shields.io/badge/Day-12%2F30-blue)](https://github.com/rmnicholson0612/cloudops-assistant)
 [![Status](https://img.shields.io/badge/Status-Building-green)](https://github.com/rmnicholson0612/cloudops-assistant)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
@@ -51,8 +51,8 @@ In a world where "vibe coding" is taking over, code quality suffers and security
 - [x] **Day 8**: AI Terraform Explainer (Bedrock) ✅ COMPLETE
 - [x] **Day 9**: Interactive Postmortem Generator ✅ COMPLETE
 - [x] **Day 10**: RAG for Infrastructure Documentation ✅ COMPLETE
-- [ ] **Day 11**: AI Anomaly Detection
-- [ ] **Day 12**: Slack Bot Integration
+- [x] **Day 11**: Smart Resource Discovery ✅ COMPLETE
+- [x] **Day 12**: Slack Bot Integration with OAuth ✅ COMPLETE
 - [ ] **Day 13**: AI-Powered PR Reviews
 - [ ] **Day 14**: Intelligent Search & Discovery
 
@@ -97,7 +97,7 @@ Built for **maximum functionality at minimum cost**:
 
 **Estimated monthly cost for moderate usage: $5-15**
 
-## 🚀 Quick Start (Day 10)
+## 🚀 Quick Start (Day 12)
 
 ### For Users
 ```bash
@@ -105,9 +105,12 @@ Built for **maximum functionality at minimum cost**:
 git clone https://github.com/rmnicholson0612/cloudops-assistant
 cd cloudops-assistant
 
-# Setup configuration
+# Setup environment configuration
+cp .env.example .env
+# Edit .env with your deployment preferences
+
+# Setup frontend configuration
 cp frontend/config.js.example frontend/config.js
-# Edit frontend/config.js with your API URL after deployment
 
 # Deploy to AWS
 make deploy-guided
@@ -137,7 +140,7 @@ flake8 backend/lambda/
 # See CONTRIBUTING.md for full development guide
 ```
 
-## 📈 Current Features (Day 10)
+## 📈 Current Features (Day 12)
 
 ✅ **GitHub Repository Scanning**: Discovers terraform repos automatically
 ✅ **Real Terraform Plan Processing**: Upload and analyze actual terraform plans
@@ -189,6 +192,13 @@ flake8 backend/lambda/
 ✅ **AI-Powered Documentation Search**: Natural language queries with context-aware responses
 ✅ **Service Registration**: Register services with owners and GitHub repository links
 ✅ **Document Versioning**: S3-based document storage with lifecycle management
+✅ **Smart Resource Discovery**: AI-powered AWS resource discovery and cost estimation
+✅ **Resource Optimization**: Automated suggestions for cost optimization and security
+✅ **Multi-Service Scanning**: EC2, Lambda, RDS, S3, Load Balancers discovery
+✅ **Slack Bot Integration**: Complete Slack workspace integration with slash commands
+✅ **OAuth User Linking**: Secure Cognito-Slack user mapping with one-time registration
+✅ **Slack Commands**: `/cloudops status`, `/cloudops costs`, `/cloudops drift` commands
+✅ **Real-time Slack Responses**: Live infrastructure data delivered to Slack channels
 
 ## 🎪 What Makes This Different?
 
@@ -213,11 +223,11 @@ Unlike other DevOps tools that cost $$$$ per month:
 
 ```
 Foundation:    ██████████████████████████████████████████████████ 100% (7/7 days)
-AI Layer:      ████████████░░ 42.9% (3/7 days)
+AI Layer:      ██████████████████████████████████████████████████ 100% (7/7 days)
 Observability: ░░░░░░░░░░  0% (0/7 days)
 Advanced:      ░░░░░░░░░░  0% (0/9 days)
 
-Overall:       ████████████ 33.3% (10/30 days)
+Overall:       ████████████████████ 40% (12/30 days)
 ```
 
 ## 🎯 The End Goal

@@ -23,8 +23,14 @@ logger.setLevel(logging.INFO)
 ce_client = boto3.client("ce")
 dynamodb = boto3.resource("dynamodb")
 sns_client = boto3.client("sns")
-budget_table = dynamodb.Table("cloudops-assistant-budget-config")
-cost_cache_table = dynamodb.Table("cloudops-assistant-cost-cache")
+budget_table_name = os.environ.get(
+    "BUDGET_CONFIG_TABLE", "cloudops-assistant-budget-config"
+)
+cost_cache_table_name = os.environ.get(
+    "COST_CACHE_TABLE", "cloudops-assistant-cost-cache"
+)
+budget_table = dynamodb.Table(budget_table_name)
+cost_cache_table = dynamodb.Table(cost_cache_table_name)
 
 
 def lambda_handler(event, context):

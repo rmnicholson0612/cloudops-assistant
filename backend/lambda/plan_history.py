@@ -1,6 +1,7 @@
 import difflib
 import json
 import logging
+import os
 from decimal import Decimal
 
 import boto3
@@ -26,7 +27,11 @@ class DecimalEncoder(json.JSONEncoder):
 
 
 dynamodb = boto3.resource("dynamodb")
-table = dynamodb.Table("cloudops-assistant-terraform-plans")
+
+table_name = os.environ.get(
+    "TERRAFORM_PLANS_TABLE", "cloudops-assistant-terraform-plans"
+)
+table = dynamodb.Table(table_name)
 
 
 def get_cors_headers():

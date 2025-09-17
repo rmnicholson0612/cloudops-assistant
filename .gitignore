@@ -77,6 +77,10 @@ Makefile
 DAILY_TEMPLATE.md
 .amazonq/
 
+# Environment Files
+backend/.env
+frontend/.env
+
 # Test/Demo Files
 *.log
 plan.*

@@ -210,14 +210,6 @@
                         </div>
                     </div>
                 </div>
-
-                <div class="feature-grid">
-                    <div class="feature-card coming-soon">
-                        <i class="fas fa-lightbulb"></i>
-                        <h4>Optimization Tips</h4>
-                        <p>✅ Day 8 - AI cost analysis</p>
-                    </div>
-                </div>
             </div>
 
             <!-- AI Assistant Tab -->
@@ -326,7 +318,6 @@
                             <button class="btn btn-info" onclick="showServiceDocsInfoModal()" title="About Service Documentation">
                                 <i class="fas fa-info-circle"></i>
                             </button>
-                            <div class="feature-badge">✅ Day 10 Complete</div>
                         </div>
                         <button class="btn btn-primary" onclick="openServiceDocs()">
                             <i class="fas fa-external-link-alt"></i> Open Documentation Search
@@ -364,11 +355,25 @@
                     </div>
                 </div>
 
-                <div class="feature-grid">
-                    <div class="feature-card coming-soon">
-                        <i class="fas fa-slack"></i>
-                        <h4>Slack Bot</h4>
-                        <p>Day 12 - AI assistant in Slack</p>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="header-with-info">
+                            <h3><i class="fab fa-slack"></i> Slack Bot Integration</h3>
+                            <button class="btn btn-info" onclick="showSlackInfo()" title="About Slack Bot">
+                                <i class="fas fa-info-circle"></i>
+                            </button>
+                            <div class="feature-badge">✅ Day 12 Complete</div>
+                        </div>
+                        <button class="btn btn-primary" onclick="showSlackSetupModal()">
+                            <i class="fas fa-cog"></i> Configure Slack Bot
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="slack-status-display" class="slack-status">
+                            <div class="slack-loading">
+                                <i class="fas fa-spinner fa-spin"></i> Loading Slack bot status...
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1403,6 +1408,79 @@ terraform plan > plan.txt</code>
 
 
 
+    <!-- Slack Setup Modal -->
+    <div id="slack-setup-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fab fa-slack"></i> Slack Bot Setup</h2>
+                <span class="close" onclick="closeSlackSetupModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="slack-setup-steps">
+                    <div class="setup-step">
+                        <h4><i class="fas fa-1"></i> API Endpoints</h4>
+                        <p>Use these URLs in your Slack app configuration:</p>
+                        <div class="endpoint-box">
+                            <label>Events URL:</label>
+                            <input type="text" id="slack-events-url" readonly>
+                            <button class="btn btn-sm btn-secondary" onclick="copyToClipboard('slack-events-url')">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <div class="endpoint-box">
+                            <label>Commands URL:</label>
+                            <input type="text" id="slack-commands-url" readonly>
+                            <button class="btn btn-sm btn-secondary" onclick="copyToClipboard('slack-commands-url')">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="setup-step">
+                        <h4><i class="fas fa-2"></i> Available Commands</h4>
+                        <div class="commands-list">
+                            <div class="command-item">
+                                <code>/cloudops status</code>
+                                <span>Infrastructure overview</span>
+                            </div>
+                            <div class="command-item">
+                                <code>/cloudops drift [repo]</code>
+                                <span>Check drift status</span>
+                            </div>
+                            <div class="command-item">
+                                <code>/cloudops costs [service]</code>
+                                <span>Cost analysis</span>
+                            </div>
+                            <div class="command-item">
+                                <code>/cloudops incident [title]</code>
+                                <span>Start incident</span>
+                            </div>
+                            <div class="command-item">
+                                <code>@CloudOps [question]</code>
+                                <span>AI-powered Q&A</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="setup-step">
+                        <h4><i class="fas fa-3"></i> Setup Instructions</h4>
+                        <ol>
+                            <li>Create a Slack app at <a href="https://api.slack.com/apps" target="_blank">api.slack.com/apps</a></li>
+                            <li>Add bot permissions: <code>app_mentions:read</code>, <code>chat:write</code>, <code>commands</code></li>
+                            <li>Create slash command <code>/cloudops</code> with the Commands URL above</li>
+                            <li>Enable Events API with the Events URL above</li>
+                            <li>Subscribe to <code>app_mention</code> events</li>
+                            <li>Install the app to your workspace</li>
+                        </ol>
+                        <a href="SLACK_SETUP.md" target="_blank" class="btn btn-primary">
+                            <i class="fas fa-book"></i> Full Setup Guide
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Budget Configuration Modal -->
     <div id="budget-modal" class="modal">
         <div class="modal-content">
@@ -1488,6 +1566,7 @@ terraform plan > plan.txt</code>
                 if (tabId === 'ai') {
                     loadAIExplanations();
                     loadPostmortems();
+                    loadSlackStatus();
                 }
             });
         });
@@ -1859,6 +1938,7 @@ terraform plan > plan.txt</code>
                                 <p><strong>Timestamp:</strong> ${date}</p>
                                 <p><strong>Changes:</strong> ${planData.changes_detected || 0}</p>
                                 <p><strong>Status:</strong> <span style="color: ${planData.drift_detected ? '#dc3545' : '#28a745'}">${planData.drift_detected ? 'Drift Detected' : 'No Drift'}</span></p>
+                                ${planData.ai_explanation?.evaluated_by ? `<p><strong>Evaluated by:</strong> ${planData.ai_explanation.evaluated_by}</p>` : ''}
                             </div>
                         </div>
                         <div class="plan-actions" style="margin-bottom: 20px;">
@@ -3215,6 +3295,9 @@ terraform plan > plan.txt</code>
                                 <div class="explanation-header">
                                     <div class="explanation-repo">${explanation.repo_name}</div>
                                     <div class="explanation-date">${date}</div>
+                                    <div class="explanation-model" style="font-size: 12px; color: #6c757d;">
+                                        ${explanation.ai_explanation.evaluated_by || 'Unknown'}
+                                    </div>
                                     <div class="explanation-risk" style="color: ${riskColor}">
                                         Risk: ${explanation.ai_explanation.risk_level}
                                     </div>
@@ -3320,9 +3403,14 @@ terraform plan > plan.txt</code>
                             <div class="postmortem-item" style="margin-bottom: 15px; padding: 15px; border: 1px solid #dee2e6; border-radius: 8px; cursor: pointer; background: #fff;" onclick="viewPostmortem('${postmortem.postmortem_id}')">
                                 <div class="postmortem-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                                     <div class="postmortem-title" style="font-weight: bold; font-size: 16px;">${postmortem.title}</div>
-                                    <button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); deletePostmortem('${postmortem.postmortem_id}')" title="Delete postmortem">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
+                                    <div>
+                                        <button class="btn btn-sm btn-primary" onclick="event.stopPropagation(); editPostmortem('${postmortem.postmortem_id}')" title="Edit postmortem">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); deletePostmortem('${postmortem.postmortem_id}')" title="Delete postmortem">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
                                 </div>
                                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; font-size: 14px; color: #6c757d;">
                                     <div><strong>Service:</strong> ${postmortem.service}</div>
@@ -3397,6 +3485,132 @@ terraform plan > plan.txt</code>
                 }
             } catch (error) {
                 alert('Failed to generate postmortem');
+            }
+        }
+
+        async function editPostmortem(postmortemId) {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                alert('Please login to edit postmortems');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/postmortems/${postmortemId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    showEditPostmortemModal(data);
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+            } catch (error) {
+                alert('Failed to load postmortem for editing');
+            }
+        }
+
+        function showEditPostmortemModal(postmortemData) {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'block';
+            modal.id = 'edit-postmortem-modal';
+
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 800px;">
+                    <div class="modal-header">
+                        <h2><i class="fas fa-edit"></i> Edit Postmortem</h2>
+                        <span class="close" onclick="this.closest('.modal').remove()">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="edit-title">Title</label>
+                            <input type="text" id="edit-title" value="${postmortemData.title}" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-service">Service</label>
+                            <input type="text" id="edit-service" value="${postmortemData.service}" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-severity">Severity</label>
+                            <select id="edit-severity" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                <option value="low" ${postmortemData.severity === 'low' ? 'selected' : ''}>Low</option>
+                                <option value="medium" ${postmortemData.severity === 'medium' ? 'selected' : ''}>Medium</option>
+                                <option value="high" ${postmortemData.severity === 'high' ? 'selected' : ''}>High</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-status">Status</label>
+                            <select id="edit-status" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                <option value="draft" ${postmortemData.status === 'draft' ? 'selected' : ''}>Draft</option>
+                                <option value="in_progress" ${postmortemData.status === 'in_progress' ? 'selected' : ''}>In Progress</option>
+                                <option value="complete" ${postmortemData.status === 'complete' ? 'selected' : ''}>Complete</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-summary">Executive Summary</label>
+                            <textarea id="edit-summary" rows="4" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">${postmortemData.executive_summary || postmortemData.incident_summary || ''}</textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-root-cause">Root Cause</label>
+                            <textarea id="edit-root-cause" rows="3" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">${postmortemData.root_cause_analysis || postmortemData.root_cause || ''}</textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-impact">Impact Assessment</label>
+                            <textarea id="edit-impact" rows="3" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">${postmortemData.impact_assessment || postmortemData.impact || ''}</textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer" style="padding: 20px; border-top: 1px solid #dee2e6; text-align: right;">
+                        <button class="btn btn-primary" onclick="savePostmortemChanges('${postmortemData.postmortem_id}')">
+                            <i class="fas fa-save"></i> Save Changes
+                        </button>
+                        <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">
+                            Cancel
+                        </button>
+                    </div>
+                </div>`;
+
+            document.body.appendChild(modal);
+        }
+
+        async function savePostmortemChanges(postmortemId) {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                alert('Please login to save changes');
+                return;
+            }
+
+            const updatedData = {
+                title: document.getElementById('edit-title').value,
+                service: document.getElementById('edit-service').value,
+                severity: document.getElementById('edit-severity').value,
+                status: document.getElementById('edit-status').value,
+                executive_summary: document.getElementById('edit-summary').value,
+                root_cause_analysis: document.getElementById('edit-root-cause').value,
+                impact_assessment: document.getElementById('edit-impact').value
+            };
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/postmortems/${postmortemId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(updatedData)
+                });
+
+                if (response.ok) {
+                    alert('Postmortem updated successfully!');
+                    document.getElementById('edit-postmortem-modal').remove();
+                    loadPostmortems();
+                } else {
+                    const data = await response.json();
+                    alert(`Error: ${data.error}`);
+                }
+            } catch (error) {
+                alert('Failed to save changes');
             }
         }
 
@@ -3649,6 +3863,119 @@ terraform plan > plan.txt</code>
                 // Fallback if popup blocked
                 window.location.href = url;
             }
+        }
+
+        // Slack Bot Functions
+        function showSlackSetupModal() {
+            // Populate API endpoints
+            const baseUrl = CONFIG.API_BASE_URL;
+            document.getElementById('slack-events-url').value = `${baseUrl}/slack/events`;
+            document.getElementById('slack-commands-url').value = `${baseUrl}/slack/commands`;
+
+            document.getElementById('slack-setup-modal').style.display = 'block';
+        }
+
+        function closeSlackSetupModal() {
+            document.getElementById('slack-setup-modal').style.display = 'none';
+        }
+
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            element.select();
+            element.setSelectionRange(0, 99999);
+            document.execCommand('copy');
+
+            // Show feedback
+            const button = element.nextElementSibling;
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-check"></i>';
+            button.style.color = '#28a745';
+
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.style.color = '';
+            }, 2000);
+        }
+
+        function loadSlackStatus() {
+            const displayElement = document.getElementById('slack-status-display');
+
+            displayElement.innerHTML = `
+                <div class="slack-capabilities">
+                    <div class="capability-section">
+                        <h4><i class="fas fa-terminal"></i> Slash Commands</h4>
+                        <div class="capabilities">
+                            <div class="capability">
+                                <i class="fas fa-check-circle"></i>
+                                <span><code>/cloudops status</code> - Infrastructure overview</span>
+                            </div>
+                            <div class="capability">
+                                <i class="fas fa-check-circle"></i>
+                                <span><code>/cloudops drift</code> - Check repository drift</span>
+                            </div>
+                            <div class="capability">
+                                <i class="fas fa-check-circle"></i>
+                                <span><code>/cloudops costs</code> - AWS cost analysis</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="capability-section">
+                        <h4><i class="fas fa-robot"></i> AI Assistant</h4>
+                        <div class="capabilities">
+                            <div class="capability">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Natural language queries with <code>@CloudOps</code></span>
+                            </div>
+                            <div class="capability">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Service documentation search and Q&A</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="slack-cost-info">
+                        <h4><i class="fas fa-dollar-sign"></i> Cost: ~$3.50/month</h4>
+                        <p>Pay-per-request serverless architecture</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function showSlackInfo() {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'block';
+
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2><i class="fab fa-slack"></i> About CloudOps Slack Bot</h2>
+                        <span class="close" onclick="this.closest('.modal').remove()">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <div class="info-section">
+                            <h3><i class="fas fa-magic"></i> How It Works</h3>
+                            <p>Bring CloudOps directly into your Slack workspace with AI-powered infrastructure monitoring.</p>
+                        </div>
+
+                        <div class="info-section">
+                            <h3><i class="fas fa-terminal"></i> Commands</h3>
+                            <div class="capabilities">
+                                <div class="capability">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span><code>/cloudops status</code> - Infrastructure overview</span>
+                                </div>
+                                <div class="capability">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span><code>@CloudOps [question]</code> - AI-powered Q&A</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+
+            document.body.appendChild(modal);
         }
 
         function showResourceDiscoveryInfo() {

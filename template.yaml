@@ -2,6 +2,35 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: CloudOps Assistant - Day 11 with Smart Resource Discovery
 
+Parameters:
+  Environment:
+    Type: String
+    Default: prod
+    AllowedValues: [dev, staging, prod]
+    Description: Deployment environment
+  BedrockModel:
+    Type: String
+    Default: nova-lite
+    Description: Primary Bedrock model for AI features
+  BedrockComplexModel:
+    Type: String
+    Default: nova-lite
+    Description: Bedrock model for complex analysis
+  BedrockSimpleModel:
+    Type: String
+    Default: nova-lite
+    Description: Bedrock model for simple tasks
+  SlackSigningSecret:
+    Type: String
+    Default: ""
+    Description: Slack app signing secret
+    NoEcho: true
+  SlackBotToken:
+    Type: String
+    Default: ""
+    Description: Slack bot token
+    NoEcho: true
+
 Globals:
   Function:
     Timeout: 60
@@ -10,6 +39,10 @@ Globals:
       Variables:
         USER_POOL_ID: !Ref CloudOpsUserPool
         USER_POOL_CLIENT_ID: !Ref CloudOpsUserPoolClient
+        ENVIRONMENT: !Ref Environment
+        BEDROCK_MODEL: !Ref BedrockModel
+        BEDROCK_COMPLEX_MODEL: !Ref BedrockComplexModel
+        BEDROCK_SIMPLE_MODEL: !Ref BedrockSimpleModel
   Api:
     Cors:
       AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
@@ -274,6 +307,38 @@ Resources:
         - Key: Feature
           Value: resource-discovery
 
+  # Slack User Mapping Table
+  # Slack User Mapping Table
+  SlackUserMappingTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: cloudops-assistant-slack-user-mapping
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: slack_user_id
+          AttributeType: S
+        - AttributeName: cognito_user_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: slack_user_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: cognito-user-index
+          KeySchema:
+            - AttributeName: cognito_user_id
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Service
+          Value: cloudops-assistant
+        - Key: Feature
+          Value: slack-integration
+
   # Service Documentation Resources
   ServiceDocsTable:
     Type: AWS::DynamoDB::Table
@@ -362,6 +427,9 @@ Resources:
       CodeUri: backend/lambda/
       Handler: plan_processor.lambda_handler
       MemorySize: 512
+      Environment:
+        Variables:
+          TERRAFORM_PLANS_TABLE: !Ref TerraformPlansTable
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TerraformPlansTable
@@ -385,6 +453,9 @@ Resources:
       Handler: plan_history.lambda_handler
       MemorySize: 256
       Timeout: 30
+      Environment:
+        Variables:
+          TERRAFORM_PLANS_TABLE: !Ref TerraformPlansTable
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref TerraformPlansTable
@@ -418,6 +489,9 @@ Resources:
       Handler: cost_analyzer.lambda_handler
       MemorySize: 256
       Timeout: 30
+      Environment:
+        Variables:
+          COST_CACHE_TABLE: !Ref CostCacheTable
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref CostCacheTable
@@ -459,6 +533,10 @@ Resources:
       Handler: budget_manager.lambda_handler
       MemorySize: 256
       Timeout: 30
+      Environment:
+        Variables:
+          BUDGET_CONFIG_TABLE: !Ref BudgetConfigTable
+          COST_CACHE_TABLE: !Ref CostCacheTable
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref BudgetConfigTable
@@ -501,6 +579,10 @@ Resources:
       Handler: drift_config.lambda_handler
       MemorySize: 1024
       Timeout: 600
+      Environment:
+        Variables:
+          DRIFT_CONFIG_TABLE: !Ref DriftConfigTable
+          TERRAFORM_PLANS_TABLE: !Ref TerraformPlansTable
       Layers:
         - arn:aws:lambda:us-east-1:553035198032:layer:git-lambda2:8
       Policies:
@@ -602,6 +684,9 @@ Resources:
       CodeUri: backend/lambda/
       Handler: ai_explainer.lambda_handler
       MemorySize: 512
+      Environment:
+        Variables:
+          TERRAFORM_PLANS_TABLE: !Ref TerraformPlansTable
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TerraformPlansTable
@@ -821,6 +906,87 @@ Resources:
           Properties:
             Path: /docs/delete
             Method: delete
+
+  SlackBotFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/lambda/
+      Handler: slack_bot.lambda_handler
+      MemorySize: 512
+      Environment:
+        Variables:
+          TERRAFORM_PLANS_TABLE: !Ref TerraformPlansTable
+          POSTMORTEMS_TABLE: !Ref PostmortemsTable
+          SERVICE_DOCS_TABLE: !Ref ServiceDocsTable
+          DRIFT_CONFIGS_TABLE: !Ref DriftConfigTable
+          COST_CACHE_TABLE: !Ref CostCacheTable
+          SLACK_USER_MAPPING_TABLE: !Ref SlackUserMappingTable
+          SLACK_SIGNING_SECRET: !Ref SlackSigningSecret
+          SLACK_BOT_TOKEN: !Ref SlackBotToken
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref TerraformPlansTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref PostmortemsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref ServiceDocsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref DriftConfigTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref CostCacheTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SlackUserMappingTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+                - ce:GetCostAndUsage
+                - cognito-idp:GetUser
+              Resource: '*'
+      Events:
+        SlackEvents:
+          Type: Api
+          Properties:
+            Path: /slack/events
+            Method: post
+        SlackCommands:
+          Type: Api
+          Properties:
+            Path: /slack/commands
+            Method: post
+
+  SlackLinkingFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/lambda/
+      Handler: slack_linking.lambda_handler
+      MemorySize: 256
+      Environment:
+        Variables:
+          SLACK_USER_MAPPING_TABLE: !Ref SlackUserMappingTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SlackUserMappingTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:GetUser
+                - cognito-idp:AdminGetUser
+                - cognito-idp:AdminInitiateAuth
+              Resource: !GetAtt CloudOpsUserPool.Arn
+      Events:
+        SlackLink:
+          Type: Api
+          Properties:
+            Path: /slack/link
+            Method: get
+        SlackConfirm:
+          Type: Api
+          Properties:
+            Path: /slack/confirm
+            Method: post
 
 Outputs:
   CloudOpsAssistantApi:

@@ -21,7 +21,10 @@ logger.setLevel(logging.INFO)
 try:
     ce_client = boto3.client("ce")
     dynamodb = boto3.resource("dynamodb")
-    table = dynamodb.Table("cost-cache")
+    import os
+
+    table_name = os.environ.get("COST_CACHE_TABLE", "cloudops-assistant-cost-cache")
+    table = dynamodb.Table(table_name)
 except Exception as e:
     logger.error(f"Failed to initialize AWS clients: {str(e)}")
     raise
