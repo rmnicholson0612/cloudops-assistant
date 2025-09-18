@@ -117,7 +117,7 @@ def get_pr_diff(pr_data, repo_token=None):
 def generate_ai_review(diff_content, pr_data):
     """Generate AI review using Bedrock"""
     try:
-        prompt = f"""Review this code PR for security, best practices, and potential issues:
+        prompt = f"""You are a senior code reviewer. Review this PR and provide a conversational analysis like ChatGPT would.
 
 PR: {pr_data['pr_title']}
 Repository: {pr_data['repo_name']}
@@ -125,13 +125,19 @@ Repository: {pr_data['repo_name']}
 Changes:
 {diff_content}
 
-Analyze the code changes and provide:
-1. Risk level (LOW/MEDIUM/HIGH) based on potential impact
-2. Security issues or vulnerabilities found
-3. Code quality and best practice violations
-4. Specific recommendations for improvement
+Provide a thorough review covering:
+1. Overall risk level (LOW/MEDIUM/HIGH)
+2. Security concerns if any
+3. Code quality issues
+4. Specific actionable recommendations
 
-Format as JSON with keys: risk_level, security_issues, violations, recommendations"""
+Respond in JSON format with these exact keys:
+- risk_level: "LOW", "MEDIUM", or "HIGH"
+- security_issues: array of strings (each a complete sentence)
+- violations: array of strings (each a complete sentence)
+- recommendations: array of strings (each a complete actionable recommendation)
+
+Keep each array item as a single clear sentence. Do not include nested objects or code blocks."""
 
         body = {
             "messages": [{"role": "user", "content": [{"text": prompt}]}],

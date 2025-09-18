@@ -1,0 +1,289 @@
+<!-- PR Reviews Info Modal -->
+<div id="pr-reviews-info-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2><i class="fas fa-code-branch"></i> About AI-Powered PR Reviews</h2>
+            <span class="close" onclick="closePRReviewsInfo()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="info-section">
+                <h3><i class="fas fa-magic"></i> How It Works</h3>
+                <p>The AI-Powered PR Review system uses <strong>GitHub webhooks</strong> and <strong>AWS Bedrock</strong> to automatically analyze pull requests for security issues and best practices violations.</p>
+
+                <div class="process-steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <strong>GitHub Webhook</strong>
+                            <p>Receives PR events (opened, updated, reopened) from GitHub</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <strong>File Analysis</strong>
+                            <p>Extracts and analyzes changed files and code diffs</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <strong>AI Review</strong>
+                            <p>Amazon Nova Lite analyzes code for security and best practices</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">4</div>
+                        <div class="step-content">
+                            <strong>Automated Comments</strong>
+                            <p>Posts detailed review comments directly to GitHub PR</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h3><i class="fas fa-shield-alt"></i> Analysis Types</h3>
+                <div class="detection-patterns">
+                    <div class="pattern-group">
+                        <h4>Security Analysis</h4>
+                        <ul>
+                            <li><code>XSS Vulnerabilities</code> - Cross-site scripting detection</li>
+                            <li><code>SQL Injection</code> - Database security issues</li>
+                            <li><code>Secrets Detection</code> - Hardcoded credentials and tokens</li>
+                            <li><code>Input Validation</code> - Unsafe user input handling</li>
+                        </ul>
+                    </div>
+                    <div class="pattern-group">
+                        <h4>Best Practices</h4>
+                        <ul>
+                            <li><code>Code Quality</code> - Maintainability and readability</li>
+                            <li><code>Error Handling</code> - Proper exception management</li>
+                            <li><code>Performance</code> - Optimization opportunities</li>
+                            <li><code>Documentation</code> - Code comments and clarity</li>
+                        </ul>
+                    </div>
+                    <div class="pattern-group">
+                        <h4>Infrastructure</h4>
+                        <ul>
+                            <li><code>Terraform</code> - Infrastructure as Code review</li>
+                            <li><code>Docker</code> - Container security and best practices</li>
+                            <li><code>CI/CD</code> - Pipeline configuration analysis</li>
+                            <li><code>Configuration</code> - Environment and deployment settings</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h3><i class="fas fa-chart-line"></i> Risk Assessment</h3>
+                <div class="detection-patterns">
+                    <div class="pattern-group">
+                        <h4 style="color: #28a745;">LOW Risk</h4>
+                        <ul>
+                            <li>Documentation updates and comments</li>
+                            <li>Minor code style improvements</li>
+                            <li>Non-functional configuration changes</li>
+                        </ul>
+                    </div>
+                    <div class="pattern-group">
+                        <h4 style="color: #ffc107;">MEDIUM Risk</h4>
+                        <ul>
+                            <li>Logic changes affecting functionality</li>
+                            <li>New dependencies or libraries</li>
+                            <li>Configuration changes with potential impact</li>
+                        </ul>
+                    </div>
+                    <div class="pattern-group">
+                        <h4 style="color: #dc3545;">HIGH Risk</h4>
+                        <ul>
+                            <li>Security vulnerabilities detected</li>
+                            <li>Database schema or critical data changes</li>
+                            <li>Authentication or authorization modifications</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h3><i class="fas fa-cogs"></i> Current Capabilities</h3>
+                <div class="capabilities">
+                    <div class="capability">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Real-time PR analysis via GitHub webhooks</span>
+                    </div>
+                    <div class="capability">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Multi-language code analysis (Python, JS, Terraform, etc.)</span>
+                    </div>
+                    <div class="capability">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Security vulnerability detection with AI</span>
+                    </div>
+                    <div class="capability">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Best practices validation and recommendations</span>
+                    </div>
+                    <div class="capability">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Risk level assessment (LOW/MEDIUM/HIGH)</span>
+                    </div>
+                    <div class="capability">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Automated GitHub comment posting</span>
+                    </div>
+                    <div class="capability">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Multi-repository support and configuration</span>
+                    </div>
+                    <div class="capability">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Centralized dashboard for review tracking</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h3><i class="fas fa-rocket"></i> Setup Requirements</h3>
+                <div class="future-features">
+                    <div class="future-item">
+                        <div class="future-day">Step 1</div>
+                        <div class="future-desc">Configure GitHub webhook with PR events</div>
+                    </div>
+                    <div class="future-item">
+                        <div class="future-day">Step 2</div>
+                        <div class="future-desc">Add repository to CloudOps monitoring</div>
+                    </div>
+                    <div class="future-item">
+                        <div class="future-day">Step 3</div>
+                        <div class="future-desc">Optional: Add GitHub token for comment posting</div>
+                    </div>
+                    <div class="future-item">
+                        <div class="future-day">Step 4</div>
+                        <div class="future-desc">Create PR to trigger first automated review</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h3><i class="fas fa-lightbulb"></i> Why This Approach Works</h3>
+                <div class="benefits">
+                    <div class="benefit">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <div>
+                            <strong>Fast</strong>
+                            <p>Reviews complete within 30 seconds of PR creation</p>
+                        </div>
+                    </div>
+                    <div class="benefit">
+                        <i class="fas fa-bullseye"></i>
+                        <div>
+                            <strong>Accurate</strong>
+                            <p>AI-powered analysis with structured prompts for consistency</p>
+                        </div>
+                    </div>
+                    <div class="benefit">
+                        <i class="fas fa-dollar-sign"></i>
+                        <div>
+                            <strong>Cost-Effective</strong>
+                            <p>Pay-per-PR model with Amazon Nova Lite (~$0.10 per review)</p>
+                        </div>
+                    </div>
+                    <div class="benefit">
+                        <i class="fas fa-shield-alt"></i>
+                        <div>
+                            <strong>Secure</strong>
+                            <p>GitHub webhook signature validation and JWT authentication</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h3><i class="fas fa-rocket"></i> Future Enhancements</h3>
+                <div class="future-features">
+                    <div class="future-item">
+                        <div class="future-day">Day 14</div>
+                        <div class="future-desc">Intelligent search and discovery integration</div>
+                    </div>
+                    <div class="future-item">
+                        <div class="future-day">Day 15</div>
+                        <div class="future-desc">Compliance scanning integration (Prowler)</div>
+                    </div>
+                    <div class="future-item">
+                        <div class="future-day">Future</div>
+                        <div class="future-desc">Custom rule configuration and team policies</div>
+                    </div>
+                    <div class="future-item">
+                        <div class="future-day">Future</div>
+                        <div class="future-desc">Integration with code quality tools (SonarQube, etc.)</div>
+                    </div>
+                    <div class="future-item">
+                        <div class="future-day">Future</div>
+                        <div class="future-desc">Machine learning model training on team patterns</div>
+                    </div>
+                    <div class="future-item">
+                        <div class="future-day">Future</div>
+                        <div class="future-desc">Slack notifications for high-risk PRs</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h3><i class="fas fa-exclamation-triangle"></i> Prerequisites</h3>
+                <div class="capabilities">
+                    <div class="capability">
+                        <i class="fas fa-check-circle"></i>
+                        <span>GitHub repository with admin access for webhook setup</span>
+                    </div>
+                    <div class="capability">
+                        <i class="fas fa-check-circle"></i>
+                        <span>AWS Bedrock access with Nova Lite model enabled</span>
+                    </div>
+                    <div class="capability">
+                        <i class="fas fa-check-circle"></i>
+                        <span>GitHub Personal Access Token (optional, for comment posting)</span>
+                    </div>
+                    <div class="capability">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Repository configured in CloudOps PR monitoring</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h3><i class="fas fa-dollar-sign"></i> Cost-Effective Design</h3>
+                <div class="benefits">
+                    <div class="benefit">
+                        <i class="fas fa-server"></i>
+                        <div>
+                            <strong>Serverless</strong>
+                            <p>Lambda functions only run when PRs are created/updated</p>
+                        </div>
+                    </div>
+                    <div class="benefit">
+                        <i class="fas fa-database"></i>
+                        <div>
+                            <strong>DynamoDB</strong>
+                            <p>Pay-per-request storage with automatic TTL cleanup</p>
+                        </div>
+                    </div>
+                    <div class="benefit">
+                        <i class="fas fa-robot"></i>
+                        <div>
+                            <strong>AI Processing</strong>
+                            <p>Nova Lite model optimized for cost and speed</p>
+                        </div>
+                    </div>
+                    <div class="benefit">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <div>
+                            <strong>Efficient</strong>
+                            <p>Only analyzes changed files, not entire codebase</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

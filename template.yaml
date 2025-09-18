@@ -1101,6 +1101,11 @@ Resources:
           Properties:
             Path: /pr-reviews
             Method: get
+        PRReviewDetails:
+          Type: Api
+          Properties:
+            Path: /pr-reviews/{review_id}
+            Method: get
         ConfigurePRReviews:
           Type: Api
           Properties:

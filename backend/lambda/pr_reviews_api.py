@@ -1,130 +1,24 @@
 import json
-import logging
 import os
 
 import boto3
+from botocore.exceptions import ClientError
 
-try:
-    from auth_utils import auth_required, get_cors_headers
-except ImportError:
-
-    def auth_required(func):
-        return func
-
-    def get_cors_headers():
-        return {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
-            "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
-        }
-
-
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-
+# Initialize AWS clients
 dynamodb = boto3.resource("dynamodb")
-pr_reviews_table_name = os.environ.get(
-    "PR_REVIEWS_TABLE", "cloudops-assistant-pr-reviews"
-)
-pr_reviews_table = dynamodb.Table(pr_reviews_table_name)
+cognito = boto3.client("cognito-idp")
+
+# Environment variables
+PR_REVIEWS_TABLE = os.environ["PR_REVIEWS_TABLE"]
+USER_POOL_ID = os.environ["USER_POOL_ID"]
 
 
-def lambda_handler(event, context):
-    """PR Reviews API handler"""
-    if event.get("httpMethod") == "OPTIONS":
-        return cors_response()
-
-    return _authenticated_handler(event, context)
-
-
-@auth_required
-def _authenticated_handler(event, context):
-    try:
-        path = event.get("path", "")
-        method = event.get("httpMethod", "")
-
-        if method == "GET" and "/pr-reviews" in path:
-            return get_pr_reviews(event)
-        elif method == "POST" and "/pr-reviews/configure" in path:
-            return configure_pr_reviews(event)
-        else:
-            return error_response("Invalid endpoint", 404)
-
-    except Exception as e:
-        logger.error(f"PR reviews API error: {str(e)}")
-        return error_response(f"Internal server error: {str(e)}")
-
-
-def get_pr_reviews(event):
-    """Get PR reviews for dashboard"""
-    try:
-        # Get recent PR reviews (last 50)
-        response = pr_reviews_table.scan(
-            Limit=50, FilterExpression="attribute_exists(created_at)"
-        )
-
-        reviews = []
-        for item in response.get("Items", []):
-            reviews.append(
-                {
-                    "review_id": item.get("review_id", ""),
-                    "repo_name": item.get("repo_name", ""),
-                    "pr_number": item.get("pr_number", 0),
-                    "pr_title": item.get("pr_title", ""),
-                    "pr_url": item.get("pr_url", ""),
-                    "author": item.get("author", ""),
-                    "status": item.get("status", "pending"),
-                    "risk_level": item.get("ai_review", {}).get(
-                        "risk_level", "UNKNOWN"
-                    ),
-                    "created_at": item.get("created_at", ""),
-                    "analyzed_at": item.get("analyzed_at", ""),
-                }
-            )
-
-        # Sort by most recent
-        reviews.sort(key=lambda x: x.get("created_at", ""), reverse=True)
-
-        return success_response(
-            {"reviews": reviews[:20], "total": len(reviews)}  # Return top 20
-        )
-
-    except Exception as e:
-        logger.error(f"Error getting PR reviews: {str(e)}")
-        return error_response("Failed to get PR reviews")
-
-
-def configure_pr_reviews(event):
-    """Configure PR review settings for repositories"""
-    try:
-        body = json.loads(event.get("body", "{}"))
-        user_id = event["user_info"]["user_id"]
-
-        repo_name = body.get("repo_name", "").strip()
-        github_url = body.get("github_url", "").strip()
-        enabled = body.get("enabled", True)
-
-        if not repo_name or not github_url:
-            return error_response("Repository name and GitHub URL are required")
-
-        # Store configuration (simplified - in real implementation you'd store per user)
-        config_id = f"{user_id}#{repo_name}"
-
-        # This is a placeholder - real implementation would store webhook configs
-        logger.info(f"PR review configuration: {config_id}, enabled: {enabled}")
-
-        return success_response(
-            {
-                "message": "PR review configuration saved",
-                "repo_name": repo_name,
-                "enabled": enabled,
-                "webhook_url": f"{os.environ.get('API_BASE_URL', '')}/pr-webhook",
-            }
-        )
-
-    except Exception as e:
-        logger.error(f"Error configuring PR reviews: {str(e)}")
-        return error_response("Failed to configure PR reviews")
+def get_cors_headers():
+    return {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
+        "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+    }
 
 
 def success_response(data):
@@ -135,7 +29,7 @@ def success_response(data):
     }
 
 
-def error_response(message, status_code=400):
+def error_response(status_code, message):
     return {
         "statusCode": status_code,
         "headers": get_cors_headers(),
@@ -149,3 +43,159 @@ def cors_response():
         "headers": get_cors_headers(),
         "body": "",
     }
+
+
+def get_user_from_token(token):
+    try:
+        response = cognito.get_user(AccessToken=token)
+        return response["Username"]
+    except ClientError as e:
+        print(f"Error getting user: {e}")
+        return None
+
+
+def format_ai_review(ai_review):
+    """Format AI review like ChatGPT output"""
+    if not isinstance(ai_review, dict):
+        return str(ai_review)
+
+    # Generate ChatGPT-style review
+    review_parts = []
+
+    # Overview
+    review_parts.append("# Pull Request Analysis\n")
+
+    # Risk assessment intro
+    risk_level = ai_review.get("risk_level", "MEDIUM")
+    if risk_level == "LOW":
+        review_parts.append(
+            "I've reviewed the changes in this PR and overall they look good with minimal risk. Here's my detailed analysis:\n"
+        )
+    elif risk_level == "HIGH":
+        review_parts.append(
+            "I've identified some significant concerns in this PR that should be addressed before merging. Here's my detailed analysis:\n"
+        )
+    else:
+        review_parts.append(
+            "I've reviewed the changes in this PR and found some areas that could use attention. Here's my detailed analysis:\n"
+        )
+
+    # Security Analysis
+    security_issues = ai_review.get("security_issues", [])
+    if security_issues:
+        review_parts.append("## 🔒 Security Concerns\n")
+        review_parts.append(
+            "I found the following security issues that need attention:\n"
+        )
+        for i, issue in enumerate(security_issues, 1):
+            review_parts.append(f"{i}. **{issue}**\n")
+    else:
+        review_parts.append("## ✅ Security Analysis\n")
+        review_parts.append(
+            "Good news! I didn't identify any obvious security vulnerabilities in these changes.\n"
+        )
+
+    # Code Quality
+    violations = ai_review.get("violations", [])
+    if violations:
+        review_parts.append("## 📝 Code Quality Issues\n")
+        review_parts.append("Here are some code quality improvements I'd suggest:\n")
+        for i, violation in enumerate(violations, 1):
+            review_parts.append(f"{i}. {violation}\n")
+
+    # Recommendations
+    recommendations = ai_review.get("recommendations", [])
+    if recommendations:
+        review_parts.append("## 💡 Recommendations\n")
+        review_parts.append("To improve this PR, I'd suggest:\n")
+        for i, rec in enumerate(recommendations, 1):
+            review_parts.append(f"{i}. {rec}\n")
+
+    # Summary
+    if risk_level == "LOW":
+        review_parts.append("## Summary\n")
+        review_parts.append(
+            "This PR looks solid and ready to merge. The changes are well-contained and don't introduce significant risks."
+        )
+    elif risk_level == "HIGH":
+        review_parts.append("## Summary\n")
+        review_parts.append(
+            "I'd recommend addressing the security concerns and code quality issues before merging this PR. The changes have potential impact that should be carefully reviewed."
+        )
+    else:
+        review_parts.append("## Summary\n")
+        review_parts.append(
+            "This PR is generally good but would benefit from addressing the points mentioned above. Consider the recommendations to improve code quality and maintainability."
+        )
+
+    return "\n".join(review_parts)
+
+
+def lambda_handler(event, context):
+    print(f"Event: {json.dumps(event)}")
+
+    # Handle CORS preflight
+    if event.get("httpMethod") == "OPTIONS":
+        return cors_response()
+
+    # Get authorization token
+    headers = event.get("headers", {})
+    auth_header = headers.get("Authorization") or headers.get("authorization")
+
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return error_response(401, "Missing or invalid authorization header")
+
+    token = auth_header.split(" ")[1]
+    user_id = get_user_from_token(token)
+
+    if not user_id:
+        return error_response(401, "Invalid token")
+
+    try:
+        table = dynamodb.Table(PR_REVIEWS_TABLE)
+        path = event.get("path", "")
+        method = event.get("httpMethod", "")
+
+        if method == "GET" and (
+            "review_id" in (event.get("queryStringParameters") or {})
+        ):
+            # Get specific PR review details via query parameter
+            review_id = event["queryStringParameters"]["review_id"]
+            print(f"Getting PR review details for: {review_id}")
+
+            response = table.get_item(Key={"review_id": review_id})
+
+            if "Item" not in response:
+                return error_response(404, "PR review not found")
+
+            review = response["Item"]
+
+            # Format AI review for display
+            if "ai_review" in review and isinstance(review["ai_review"], dict):
+                ai_review = review["ai_review"]
+                formatted_review = format_ai_review(ai_review)
+                review["ai_review_formatted"] = formatted_review
+
+            return success_response(review)
+
+        elif method == "GET" and path.endswith("/pr-reviews"):
+            # List PR reviews
+            response = table.scan()
+            reviews = response.get("Items", [])
+
+            # Sort by created_at descending
+            reviews.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+
+            return success_response({"reviews": reviews})
+
+        elif method == "POST" and path.endswith("/pr-reviews/configure"):
+            # Configure PR reviews (placeholder)
+
+            return success_response({"message": "Configuration saved"})
+
+        else:
+            return error_response(404, "Endpoint not found")
+
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        return error_response(500, f"Internal server error: {str(e)}")
