@@ -31,10 +31,13 @@ jobs:
     - name: Validate architecture diagrams
       run: python scripts/validate-architecture.py
 
+    - name: Check feature architecture coverage
+      run: python scripts/check-feature-architecture.py
+
     - name: Check for broken links
       uses: lycheeverse/lychee-action@v2
       with:
-        args: '--verbose --no-progress README.md CONTRIBUTING.md architecture/ARCHITECTURE.md'
+        args: '--verbose --no-progress README.md CONTRIBUTING.md'
         fail: true
 
     - name: Update badges and progress

@@ -1902,3 +1902,145 @@ body {
         gap: 5px;
     }
 }
+/* PR Reviews Styles */
+.pr-reviews {
+    padding: 20px;
+}
+
+.pr-reviews-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.pr-review-item {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 15px;
+    transition: box-shadow 0.2s;
+}
+
+.pr-review-item:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.pr-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+}
+
+.pr-title a {
+    font-weight: bold;
+    color: #007bff;
+    text-decoration: none;
+    font-size: 16px;
+}
+
+.pr-title a:hover {
+    text-decoration: underline;
+}
+
+.pr-meta {
+    display: flex;
+    gap: 10px;
+    font-size: 14px;
+    color: #6c757d;
+}
+
+.pr-status {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+}
+
+.pr-config-info {
+    padding: 20px;
+}
+
+.webhook-url {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin: 10px 0;
+}
+
+.webhook-url input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #f8f9fa;
+}
+
+.webhook-events {
+    margin-top: 10px;
+    padding: 10px;
+    background: #e3f2fd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.pr-error, .no-pr-reviews {
+    text-align: center;
+    padding: 40px;
+    color: #6c757d;
+}
+
+.pr-loading {
+    text-align: center;
+    padding: 40px;
+    color: #6c757d;
+}
+/* Enhanced PR Review Item Styles */
+.pr-review-item {
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+}
+
+.pr-review-item:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+    transform: translateY(-2px) !important;
+    border-color: #667eea !important;
+}
+
+.pr-review-item:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+}
+/* AI Analysis Content Styling */
+.ai-analysis-content h3 {
+    color: #007bff;
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 18px;
+}
+
+.ai-analysis-content h4 {
+    color: #495057;
+    margin-top: 20px;
+    margin-bottom: 10px;
+    font-size: 16px;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 5px;
+}
+
+.ai-analysis-content ul {
+    margin: 10px 0;
+    padding-left: 20px;
+}
+
+.ai-analysis-content li {
+    margin-bottom: 5px;
+}
+
+.ai-analysis-content strong {
+    color: #495057;
+}
+
+.structured-analysis {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
