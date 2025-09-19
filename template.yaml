@@ -2,39 +2,7 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: CloudOps Assistant - Day 13 with AI-Powered PR Reviews
 
-Parameters:
-  Environment:
-    Type: String
-    Default: prod
-    AllowedValues: [dev, staging, prod]
-    Description: Deployment environment
-  BedrockModel:
-    Type: String
-    Default: nova-lite
-    Description: Primary Bedrock model for AI features
-  BedrockComplexModel:
-    Type: String
-    Default: nova-lite
-    Description: Bedrock model for complex analysis
-  BedrockSimpleModel:
-    Type: String
-    Default: nova-lite
-    Description: Bedrock model for simple tasks
-  SlackSigningSecret:
-    Type: String
-    Default: ""
-    Description: Slack app signing secret
-    NoEcho: true
-  SlackBotToken:
-    Type: String
-    Default: ""
-    Description: Slack bot token
-    NoEcho: true
-  GitHubWebhookSecret:
-    Type: String
-    Default: ""
-    Description: GitHub webhook secret for PR reviews
-    NoEcho: true
+# No parameters - all configuration comes from environment variables
 
 Globals:
   Function:
@@ -44,10 +12,10 @@ Globals:
       Variables:
         USER_POOL_ID: !Ref CloudOpsUserPool
         USER_POOL_CLIENT_ID: !Ref CloudOpsUserPoolClient
-        ENVIRONMENT: !Ref Environment
-        BEDROCK_MODEL: !Ref BedrockModel
-        BEDROCK_COMPLEX_MODEL: !Ref BedrockComplexModel
-        BEDROCK_SIMPLE_MODEL: !Ref BedrockSimpleModel
+        ENVIRONMENT: ${ENVIRONMENT}
+        BEDROCK_MODEL: ${BEDROCK_MODEL}
+        BEDROCK_COMPLEX_MODEL: ${BEDROCK_COMPLEX_MODEL}
+        BEDROCK_SIMPLE_MODEL: ${BEDROCK_SIMPLE_MODEL}
   Api:
     Cors:
       AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
@@ -960,8 +928,8 @@ Resources:
           DRIFT_CONFIGS_TABLE: !Ref DriftConfigTable
           COST_CACHE_TABLE: !Ref CostCacheTable
           SLACK_USER_MAPPING_TABLE: !Ref SlackUserMappingTable
-          SLACK_SIGNING_SECRET: !Ref SlackSigningSecret
-          SLACK_BOT_TOKEN: !Ref SlackBotToken
+          SLACK_SIGNING_SECRET: ${SLACK_SIGNING_SECRET}
+          SLACK_BOT_TOKEN: ${SLACK_BOT_TOKEN}
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref TerraformPlansTable
@@ -1038,7 +1006,7 @@ Resources:
         Variables:
           PR_REVIEWS_TABLE: !Ref PRReviewsTable
           PR_ANALYZER_FUNCTION: !Ref PRReviewAnalyzerFunction
-          GITHUB_WEBHOOK_SECRET: !Ref GitHubWebhookSecret
+          GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET}
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref PRReviewsTable

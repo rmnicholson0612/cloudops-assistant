@@ -51,11 +51,42 @@ def load_frontend_env() -> dict:
     return env_vars
 
 
+def update_frontend_env(api_url: str) -> None:
+    """Update frontend .env file with API URL from deployment."""
+    env_path = Path("frontend/.env")
+    if not env_path.exists():
+        print("[WARN] frontend/.env not found, skipping update")
+        return
+
+    # Read current .env file
+    lines = []
+    with open(env_path) as f:
+        lines = f.readlines()
+
+    # Update API URL line
+    updated = False
+    for i, line in enumerate(lines):
+        if line.startswith("VITE_API_BASE_URL="):
+            lines[i] = f"VITE_API_BASE_URL={api_url}\n"
+            updated = True
+            break
+
+    if not updated:
+        lines.append(f"VITE_API_BASE_URL={api_url}\n")
+
+    # Write back to file
+    with open(env_path, "w") as f:
+        f.writelines(lines)
+
+    print(f"[OK] Updated frontend/.env with API URL: {api_url}")
+
+
 def generate_config(stack_name: str, environment: str) -> None:
     """Generate frontend config.js file."""
     print("[INFO] Generating frontend configuration...")
 
     api_url = get_stack_output(stack_name)
+    update_frontend_env(api_url)  # Update .env file with API URL
     env_vars = load_frontend_env()
 
     # Convert string booleans to JavaScript booleans
@@ -109,6 +140,7 @@ console.log('API Base URL:', window.CONFIG.API_BASE_URL);
     print(f"[INFO] API URL: {api_url}")
     print(f"[INFO] Environment: {environment}")
     print(f"[INFO] Config written to: {config_path.absolute()}")
+    print(f"[INFO] Frontend .env updated with API URL")
 
 
 def main():

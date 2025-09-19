@@ -313,9 +313,11 @@ def discover_rds_instances(region):
                     "engine": db.get("Engine"),
                     "instance_class": db.get("DBInstanceClass"),
                     "status": db.get("DBInstanceStatus"),
-                    "vpc_id": db.get("DbSubnetGroup", {}).get("VpcId")
-                    if db.get("DbSubnetGroup")
-                    else None,
+                    "vpc_id": (
+                        db.get("DbSubnetGroup", {}).get("VpcId")
+                        if db.get("DbSubnetGroup")
+                        else None
+                    ),
                 }
             )
 

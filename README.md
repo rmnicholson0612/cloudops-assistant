@@ -105,17 +105,18 @@ Built for **maximum functionality at minimum cost**:
 git clone https://github.com/rmnicholson0612/cloudops-assistant
 cd cloudops-assistant
 
-# Setup environment configuration
-cp .env.example .env
-# Edit .env with your deployment preferences
+# Setup backend environment configuration
+cp backend/.env.example backend/.env
+# Edit backend/.env with your deployment preferences
 
-# Setup frontend configuration
-cp frontend/config.js.example frontend/config.js
+# Setup frontend environment configuration
+cp frontend/.env.example frontend/.env
+# Edit frontend/.env with your app preferences
 
 # Deploy to AWS
 make deploy-guided
 
-# Update config.js with the API URL from deployment output
+# The API URL will be automatically updated in frontend/.env
 # Then open frontend/index.html in your browser
 # Register/login required to access all features
 ```

@@ -263,9 +263,9 @@ def handle_upload(event, user_id):
                 "s3_key": s3_key,
                 "upload_date": datetime.now(timezone.utc).isoformat(),
                 "file_size": len(content),
-                "content_preview": content[:200] + "..."
-                if len(content) > 200
-                else content,
+                "content_preview": (
+                    content[:200] + "..." if len(content) > 200 else content
+                ),
                 "uploaded_by": user_id,
                 "ttl": int(
                     (datetime.now(timezone.utc) + timedelta(days=90)).timestamp()
