@@ -1,0 +1,36 @@
+services:
+  localstack:
+    image: localstack/localstack:latest
+    container_name: cloudops-localstack
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=dynamodb,s3,cognito-idp,lambda,apigateway,sns
+      - DEBUG=1
+      - LAMBDA_EXECUTOR=local
+      - AWS_DEFAULT_REGION=us-east-1
+    volumes:
+      - "./init:/etc/localstack/init/ready.d"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    networks:
+      - cloudops-local
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: cloudops-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    networks:
+      - cloudops-local
+    restart: unless-stopped
+
+volumes:
+  ollama-data:
+
+networks:
+  cloudops-local:
+    driver: bridge

@@ -280,6 +280,8 @@ def get_plan_details(plan_id, user_id):
                     "drift_detected": plan.get("drift_detected", False),
                     "plan_content": plan.get("plan_content", ""),
                     "change_summary": plan.get("change_summary", []),
+                    "ai_explanation": plan.get("ai_explanation"),
+                    "ai_analyzed_at": plan.get("ai_analyzed_at"),
                 },
                 cls=DecimalEncoder,
             ),

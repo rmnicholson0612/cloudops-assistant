@@ -19,8 +19,10 @@ except ImportError:
         return func
 
 
+# Set up logging to see what's happening
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+logging.basicConfig(level=logging.INFO)
 
 # Module-level DynamoDB resource for connection reuse
 dynamodb = boto3.resource("dynamodb")
@@ -28,41 +30,44 @@ dynamodb = boto3.resource("dynamodb")
 
 def lambda_handler(event, context):
     """Manage drift monitoring configuration"""
+    logger.info(
+        f"Lambda handler called with method: {event.get('httpMethod')}, path: {event.get('path')}"
+    )
+
     if event.get("httpMethod") == "OPTIONS":
         return {"statusCode": 200, "headers": get_cors_headers(), "body": ""}
 
-    # Apply auth_required decorator logic manually for non-OPTIONS requests
-    try:
-        from auth_utils import verify_token
+    # Check if user_info is already in event (for local development)
+    if "user_info" not in event:
+        # Apply auth_required decorator logic manually for non-OPTIONS requests
+        try:
+            from auth_utils import verify_jwt_token
 
-        token = event.get("headers", {}).get("Authorization", "").replace("Bearer ", "")
-        if not token:
+            user_info, error = verify_jwt_token(event)
+            if error:
+                logger.error(f"JWT verification failed: {error}")
+                return {
+                    "statusCode": 401,
+                    "headers": get_cors_headers(),
+                    "body": json.dumps({"error": error}),
+                }
+
+            event["user_info"] = user_info
+            logger.info(f"JWT verification successful, user_info: {user_info}")
+        except Exception as e:
+            logger.error(f"Auth error: {str(e)}")
             return {
                 "statusCode": 401,
                 "headers": get_cors_headers(),
-                "body": json.dumps({"error": "No token provided"}),
+                "body": json.dumps({"error": "Authentication failed"}),
             }
-
-        user_info = verify_token(token)
-        if not user_info:
-            return {
-                "statusCode": 401,
-                "headers": get_cors_headers(),
-                "body": json.dumps({"error": "Invalid token"}),
-            }
-
-        event["user_info"] = user_info
-    except Exception as e:
-        logger.error(f"Auth error: {str(e)}")
-        return {
-            "statusCode": 401,
-            "headers": get_cors_headers(),
-            "body": json.dumps({"error": "Authentication failed"}),
-        }
+    else:
+        logger.info(f"Using existing user_info from event: {event['user_info']}")
 
     try:
         method = event.get("httpMethod")
         path = event.get("path", "")
+        logger.info(f"Processing {method} request to {path}")
 
         if method == "POST" and "/drift/configure" in path:
             return configure_drift_monitoring(event)
@@ -75,17 +80,22 @@ def lambda_handler(event, context):
         elif method == "DELETE" and "/drift/delete" in path:
             return delete_drift_config(event)
         else:
+            logger.error(f"Invalid endpoint: {method} {path}")
             return error_response("Invalid endpoint")
 
     except Exception as e:
         logger.error(f"Error in drift config handler: {str(e)}")
-        return error_response("Internal server error")
+        import traceback
+
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        return error_response(f"Internal server error: {str(e)}")
 
 
 def configure_drift_monitoring(event):
     """Configure a repository for drift monitoring"""
     try:
-        body = json.loads(event.get("body", "{}"))
+        body_str = event.get("body") or "{}"
+        body = json.loads(body_str) if body_str else {}
         user_id = str(event["user_info"]["user_id"]).replace("'", "").replace('"', "")
 
         # Sanitize and validate inputs
@@ -180,7 +190,11 @@ def configure_drift_monitoring(event):
 def get_drift_status(event):
     """Get drift monitoring status for user's repositories"""
     try:
-        user_id = event["user_info"]["user_id"]
+        logger.info(f"Event received: {json.dumps(event, default=str)[:500]}...")
+        logger.info(f"Event user_info: {event.get('user_info', 'NOT_FOUND')}")
+
+        user_id = str(event["user_info"]["user_id"]).strip()
+        logger.info(f"Getting drift status for user_id: '{user_id}'")
 
         drift_table_name = os.environ.get(
             "DRIFT_CONFIG_TABLE", "cloudops-assistant-drift-config"
@@ -190,14 +204,28 @@ def get_drift_status(event):
         )
         config_table = dynamodb.Table(drift_table_name)
 
-        # Get user's drift configurations using GSI query for better performance
-        response = config_table.query(
-            IndexName="user-id-index",
-            KeyConditionExpression=DynamoKey("user_id").eq(user_id),
-            Limit=50,  # Limit results for performance
-        )
-
-        configs = response.get("Items", [])
+        # Query configurations using GSI
+        try:
+            logger.info(
+                f"Querying GSI with user_id: '{user_id}' (type: {type(user_id)})"
+            )
+            response = config_table.query(
+                IndexName="user-id-index",
+                KeyConditionExpression=DynamoKey("user_id").eq(user_id),
+                Limit=50,
+            )
+            configs = response.get("Items", [])
+            logger.info(
+                f"GSI query successful, found {len(configs)} configs for user_id: {user_id}"
+            )
+            logger.info(f"Query response: {json.dumps(response, default=str)[:200]}...")
+        except Exception as gsi_error:
+            logger.error(f"GSI query failed for user_id '{user_id}': {gsi_error}")
+            logger.error(f"Exception type: {type(gsi_error)}")
+            logger.error(
+                f"Exception args: {gsi_error.args if hasattr(gsi_error, 'args') else 'No args'}"
+            )
+            return error_response(f"Database query failed: {str(gsi_error)}")
 
         # Get recent drift results
         plans_table = dynamodb.Table(plans_table_name)
@@ -207,18 +235,24 @@ def get_drift_status(event):
             # Sanitize repo_name from database record
             repo_name = str(config.get("repo_name", "")).strip()
             if repo_name:
-                plan_response = plans_table.query(
-                    IndexName="repo-timestamp-index",
-                    KeyConditionExpression=DynamoKey("repo_name").eq(repo_name),
-                    ScanIndexForward=False,
-                    Limit=1,
-                )
-            else:
-                plan_response = {"Items": []}
-
-            latest_scan = plan_response.get("Items", [])
-            if latest_scan:
-                config["last_scan"] = latest_scan[0]
+                try:
+                    plan_response = plans_table.query(
+                        IndexName="repo-timestamp-index",
+                        KeyConditionExpression=DynamoKey("repo_name").eq(repo_name),
+                        ScanIndexForward=False,
+                        Limit=1,
+                    )
+                    latest_scan = plan_response.get("Items", [])
+                    if latest_scan:
+                        config["last_scan"] = latest_scan[0]
+                    else:
+                        config["last_scan"] = None
+                except Exception as plan_error:
+                    logger.error(
+                        f"Failed to get latest scan for {repo_name}: {plan_error}"
+                    )
+                    # Don't fail the whole request, just log the error
+                    config["last_scan"] = None
             else:
                 config["last_scan"] = None
 
@@ -235,6 +269,19 @@ def get_drift_status(event):
 
         converted_configs = convert_decimals(configs)
 
+        logger.info(
+            f"Final result: Found {len(configs)} drift configurations for user {user_id}"
+        )
+        for config in configs:
+            logger.info(
+                f"Config: {config.get('config_id')} - {config.get('repo_name')}"
+            )
+
+        if len(configs) == 0:
+            logger.warning(
+                f"No configurations found for user_id '{user_id}' - this might indicate an authentication or query issue"
+            )
+
         return {
             "statusCode": 200,
             "headers": get_cors_headers(),
@@ -245,7 +292,12 @@ def get_drift_status(event):
 
     except Exception as e:
         logger.error(f"Error getting drift status: {str(e)}")
-        return error_response("Failed to get drift status")
+        logger.error(f"Exception type: {type(e)}")
+        logger.error(f"Exception args: {e.args if hasattr(e, 'args') else 'No args'}")
+        import traceback
+
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        return error_response(f"Failed to get drift status: {str(e)}")
 
 
 def run_manual_scan(event):
@@ -347,7 +399,7 @@ def run_manual_scan(event):
 
     except Exception as e:
         logger.error(f"Error running manual scan: {str(e)}")
-        return error_response("Failed to run manual scan")
+        return error_response(f"Failed to run manual scan: {str(e)}")
 
 
 def update_drift_config(event):
@@ -363,7 +415,8 @@ def update_drift_config(event):
 
         config_id = urllib.parse.unquote(config_id)
 
-        body = json.loads(event.get("body", "{}"))
+        body_str = event.get("body") or "{}"
+        body = json.loads(body_str) if body_str else {}
         schedule = str(body.get("schedule", "daily")).strip()[:20]
         alert_email = (
             str(body.get("alert_email", "")).strip()[:100]

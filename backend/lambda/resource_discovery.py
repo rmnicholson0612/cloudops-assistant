@@ -78,7 +78,8 @@ def _authenticated_handler(event, context):
 def start_discovery_scan(event):
     """Start a new resource discovery scan"""
     try:
-        body = json.loads(event.get("body", "{}"))
+        body_str = event.get("body") or "{}"
+        body = json.loads(body_str) if body_str else {}
 
         regions = body.get("regions", ["us-east-1"])
         resource_types = body.get("resource_types", ["EC2", "Lambda", "RDS", "S3"])

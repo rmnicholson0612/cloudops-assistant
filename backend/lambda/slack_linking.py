@@ -154,7 +154,8 @@ def handle_link_request(event):
 def handle_link_confirmation(event):
     """Handle link confirmation with credentials"""
     try:
-        body = json.loads(event.get("body", "{}"))
+        body_str = event.get("body") or "{}"
+        body = json.loads(body_str) if body_str else {}
         token = body.get("token")
         email = body.get("email")
         password = body.get("password")

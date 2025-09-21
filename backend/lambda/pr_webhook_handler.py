@@ -46,7 +46,8 @@ def lambda_handler(event, context):
             return error_response("Invalid signature", 401)
 
         # Parse webhook payload
-        body = json.loads(event.get("body", "{}"))
+        body_str = event.get("body") or "{}"
+        body = json.loads(body_str) if body_str else {}
         github_event = event.get("headers", {}).get("X-GitHub-Event", "")
 
         logger.info(f"GitHub event: {github_event}")

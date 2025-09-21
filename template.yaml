@@ -1,13 +1,13 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: CloudOps Assistant - Day 13 with AI-Powered PR Reviews
+Description: CloudOps Assistant - Day 14 with Local Development Support
 
 # No parameters - all configuration comes from environment variables
 
 Globals:
   Function:
     Timeout: 60
-    Runtime: python3.13
+    Runtime: python3.12
     Environment:
       Variables:
         USER_POOL_ID: !Ref CloudOpsUserPool
@@ -378,7 +378,7 @@ Resources:
   ServiceDocsBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: cloudops-assistant-service-docs
+      BucketName: !Sub 'cloudops-assistant-service-docs-${AWS::AccountId}'
       VersioningConfiguration:
         Status: Enabled
       PublicAccessBlockConfiguration:
@@ -578,6 +578,11 @@ Resources:
           Properties:
             Path: /budgets/delete/{budget_id}
             Method: delete
+        UpdateBudget:
+          Type: Api
+          Properties:
+            Path: /budgets/update/{budget_id}
+            Method: put
 
   DriftConfigFunction:
     Type: AWS::Serverless::Function

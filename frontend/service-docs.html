@@ -523,33 +523,39 @@
         });
 
         function checkAuth() {
-            const token = localStorage.getItem('authToken');
+            // Get token from URL parameter or localStorage
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token') || localStorage.getItem('access_token');
+
             if (!token) {
+                alert('Please log in first');
                 window.location.href = 'index.html';
                 return;
             }
 
-            try {
-                const payload = JSON.parse(atob(token.split('.')[1]));
-                currentUser = payload.sub;
-            } catch (e) {
-                localStorage.removeItem('authToken');
-                window.location.href = 'index.html';
-            }
+            // Store the token for API calls without trying to decode it
+            window.authToken = token;
+            currentUser = 'authenticated';
         }
 
         async function loadServices() {
             try {
-                const response = await fetch(`${CONFIG.API_BASE_URL}/services`, {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/docs/list`, {
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                        'Authorization': `Bearer ${window.authToken}`
                     }
                 });
 
                 if (response.ok) {
-                    services = await response.json();
-                    populateServiceSelect();
-                    displayServices();
+                    const result = await response.json();
+                    if (result.services) {
+                        services = Object.keys(result.services).map(name => ({
+                            service_name: name,
+                            document_count: result.services[name].length
+                        }));
+                        populateServiceSelect();
+                        displayServices();
+                    }
                 } else {
                     console.error('Failed to load services');
                 }
@@ -601,19 +607,22 @@
                 return;
             }
 
-            const formData = new FormData();
-            formData.append('service_name', serviceSelect.value);
-            formData.append('title', titleInput.value);
-            formData.append('description', descriptionInput.value);
-            formData.append('file', fileInput.files[0]);
+            // Read file content
+            const file = fileInput.files[0];
+            const content = await file.text();
 
             try {
-                const response = await fetch(`${CONFIG.API_BASE_URL}/documents/upload`, {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/docs/upload`, {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${window.authToken}`
                     },
-                    body: formData
+                    body: JSON.stringify({
+                        service_name: serviceSelect.value,
+                        doc_name: titleInput.value,
+                        content: content
+                    })
                 });
 
                 if (response.ok) {
@@ -647,11 +656,11 @@
             resultsContainer.innerHTML = '<div class="loading"><div class="spinner"></div>Searching...</div>';
 
             try {
-                const response = await fetch(`${CONFIG.API_BASE_URL}/documents/search`, {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/docs/search`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                        'Authorization': `Bearer ${window.authToken}`
                     },
                     body: JSON.stringify({ query })
                 });
@@ -716,7 +725,7 @@
             try {
                 const response = await fetch(`${CONFIG.API_BASE_URL}/services/${serviceName}/documents`, {
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                        'Authorization': `Bearer ${window.authToken}`
                     }
                 });
 
@@ -766,7 +775,7 @@
                 const response = await fetch(`${CONFIG.API_BASE_URL}/documents/${documentId}`, {
                     method: 'DELETE',
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                        'Authorization': `Bearer ${window.authToken}`
                     }
                 });
 
@@ -817,843 +826,6 @@
                 searchDocumentation();
             }
         });
-    </script>
-</body>
-</html>ing: 20px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .modal-header h3 {
-            margin: 0;
-            font-size: 1.5rem;
-        }
-
-        .close {
-            color: white;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-            line-height: 1;
-        }
-
-        .close:hover {
-            opacity: 0.7;
-        }
-
-        .modal-body {
-            padding: 30px;
-            max-height: 70vh;
-            overflow-y: auto;
-        }
-
-        .modal-footer {
-            padding: 20px 30px;
-            border-top: 1px solid #e5e7eb;
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-        }
-
-        .btn-secondary {
-            background: #6b7280;
-            color: white;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            font-weight: 500;
-        }
-
-        .btn-secondary:hover {
-            background: #4b5563;
-        }
-
-        #docContent {
-            width: 100%;
-            min-height: 300px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            padding: 15px;
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-            font-size: 14px;
-            line-height: 1.5;
-            resize: vertical;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: #6b7280;
-        }
-
-        .error {
-            background: #fef2f2;
-            color: #dc2626;
-            padding: 15px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-        }
-
-        .success {
-            background: #f0fdf4;
-            color: #16a34a;
-            padding: 15px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>📚 Service Documentation</h1>
-            <p>Upload and search your service documentation with AI assistance - Day 10 Complete</p>
-        </div>
-
-        <div class="content">
-            <!-- Upload Section -->
-            <div class="section">
-                <h2>Upload Documentation</h2>
-                <div class="upload-section" id="uploadSection">
-                    <div class="loading">Loading available services...</div>
-                </div>
-            </div>
-
-            <!-- Search Section -->
-            <div class="section">
-                <h2>Search Documentation</h2>
-                <div class="search-section">
-                    <input type="text" class="search-input" id="searchInput"
-                           placeholder="Ask about your services... e.g., 'How do I restart the payment service?'">
-                    <button class="btn" onclick="searchDocumentation()">Search</button>
-
-                    <div class="chat-container" id="chatContainer">
-                        <div class="message ai">
-                            <div class="timestamp">System</div>
-                            <div>Welcome! Upload your service documentation and ask me questions about your infrastructure.</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Services List -->
-            <div class="section">
-                <h2>Your Services</h2>
-                <div class="services-list" id="servicesList">
-                    <div class="loading">Loading your services...</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Document View/Edit Modal -->
-    <div id="docModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="modalTitle">Document</h3>
-                <span class="close" onclick="closeModal()">&times;</span>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label>Document Content</label>
-                    <textarea id="docContent" placeholder="Loading..."></textarea>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn-secondary" onclick="closeModal()">Cancel</button>
-                <button class="btn" onclick="saveDocument()" id="saveBtn">Save Changes</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        const API_BASE = window.CONFIG?.API_BASE_URL || 'https://69f1w0oq3k.execute-api.us-east-1.amazonaws.com/Prod';
-
-        // Get auth token from URL parameter or localStorage
-        const urlParams = new URLSearchParams(window.location.search);
-        let authToken = urlParams.get('token') || localStorage.getItem('access_token');
-
-        // Check authentication
-        if (!authToken) {
-            alert('Please log in first');
-            window.location.href = 'index.html';
-        }
-
-        // Load services on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            loadServices();
-            loadAvailableServices();
-            setupDragAndDrop();
-        });
-
-        async function loadAvailableServices() {
-            try {
-                const response = await fetch(`${API_BASE}/docs/services`, {
-                    headers: {
-                        'Authorization': `Bearer ${authToken}`
-                    }
-                });
-
-                const result = await response.json();
-                if (response.ok) {
-                    showServiceRegistration(result.available_services || []);
-                    // Populate dropdowns after the HTML is created
-                    setTimeout(populateServiceDropdowns, 50);
-                } else {
-                    console.error('Failed to load available services:', result.error);
-                }
-            } catch (error) {
-                console.error('Network error loading available services:', error);
-            }
-        }
-
-        async function loadServices() {
-            try {
-                const response = await fetch(`${API_BASE}/docs/list`, {
-                    headers: {
-                        'Authorization': `Bearer ${authToken}`
-                    }
-                });
-
-                const result = await response.json();
-                const servicesList = document.getElementById('servicesList');
-
-                if (response.ok) {
-                    if (!result.services || Object.keys(result.services).length === 0) {
-                        servicesList.innerHTML = '<div class="loading">No services found. Upload some documentation to get started!</div>';
-                        return;
-                    }
-
-                    allServices = result.services;
-                    let html = '';
-                    for (const [serviceName, docs] of Object.entries(result.services)) {
-                        html += `
-                            <div class="service-card">
-                                <h3 class="service-title" onclick="viewServiceDocs('${serviceName}')">${serviceName}</h3>
-                                <p>${docs.length} document${docs.length > 1 ? 's' : ''}</p>
-                            </div>
-                        `;
-                    }
-                    servicesList.innerHTML = html;
-                    // Populate service dropdowns after loading services
-                    populateServiceDropdowns();
-                } else {
-                    console.error('API Error:', result);
-                    servicesList.innerHTML = `<div class="error">Failed to load services: ${result.error || 'Unknown error'}</div>`;
-                }
-            } catch (error) {
-                console.error('Network error:', error);
-                document.getElementById('servicesList').innerHTML = `<div class="error">Network error: ${error.message}</div>`;
-            }
-        }
-
-        async function uploadDocument() {
-            const serviceSelect = document.getElementById('manualServiceSelect') || document.getElementById('manualServiceSelectFallback');
-            const serviceInput = document.getElementById('manualServiceName') || document.getElementById('manualServiceNameFallback');
-
-            let serviceName = '';
-            if (serviceSelect && serviceSelect.value) {
-                if (serviceSelect.value === '__new__') {
-                    serviceName = serviceInput.value.trim();
-                } else {
-                    serviceName = serviceSelect.value;
-                }
-            }
-
-            const docName = document.getElementById('manualDocName').value.trim();
-            const content = document.getElementById('manualDocContent').value.trim();
-
-            if (!serviceName || !docName || !content) {
-                showError('Please fill in all fields');
-                return;
-            }
-
-            try {
-                const response = await fetch(`${API_BASE}/docs/upload`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authToken}`
-                    },
-                    body: JSON.stringify({
-                        service_name: serviceName,
-                        doc_name: docName,
-                        content: content
-                    })
-                });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    showSuccess(`Document uploaded successfully for ${serviceName}`);
-                    // Clear form
-                    if (serviceSelect) serviceSelect.value = '';
-                    if (serviceInput) serviceInput.value = '';
-                    document.getElementById('manualDocName').value = '';
-                    document.getElementById('manualDocContent').value = '';
-                    // Reload services
-                    loadServices();
-                    loadAvailableServices();
-                } else {
-                    showError(result.error || 'Upload failed');
-                }
-            } catch (error) {
-                showError('Network error: ' + error.message);
-            }
-        }
-
-        async function searchDocumentation() {
-            const query = document.getElementById('searchInput').value.trim();
-            if (!query) return;
-
-            // Add user message to chat
-            addMessage('user', query);
-            document.getElementById('searchInput').value = '';
-
-            // Show loading
-            const loadingId = addMessage('ai', 'Searching documentation...', null, true);
-
-            try {
-                const response = await fetch(`${API_BASE}/docs/search`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authToken}`
-                    },
-                    body: JSON.stringify({ query: query })
-                });
-
-                const result = await response.json();
-
-                // Remove loading message
-                document.getElementById(loadingId).remove();
-
-                if (response.ok) {
-                    addMessage('ai', result.answer, result.sources);
-                } else {
-                    addMessage('ai', 'Error: ' + (result.error || 'Search failed'));
-                }
-            } catch (error) {
-                document.getElementById(loadingId).remove();
-                addMessage('ai', 'Network error: ' + error.message);
-            }
-        }
-
-        async function registerService() {
-            const serviceName = document.getElementById('selectedServiceName').value;
-            const serviceOwner = document.getElementById('serviceOwner').value;
-            const githubRepo = document.getElementById('githubRepo').value;
-
-            if (!serviceOwner) {
-                showError('Please enter a service owner');
-                return;
-            }
-
-            try {
-                const response = await fetch(`${API_BASE}/docs/register`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authToken}`
-                    },
-                    body: JSON.stringify({
-                        service_name: serviceName,
-                        service_owner: serviceOwner,
-                        github_repo: githubRepo
-                    })
-                });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    showSuccess(`Service ${serviceName} registered successfully!`);
-                    loadServices();
-                } else {
-                    showError(result.error || 'Registration failed');
-                }
-            } catch (error) {
-                showError('Network error: ' + error.message);
-            }
-        }
-
-        function showServiceRegistration(availableServices) {
-            const uploadSection = document.querySelector('.upload-section');
-            if (availableServices.length > 0) {
-                uploadSection.innerHTML = `
-                    <h3>Register Service from GitHub Repos</h3>
-                    <div class="form-group">
-                        <label>Available Services from GitHub</label>
-                        <select id="serviceSelect" onchange="selectService()">
-                            <option value="">Select a service from your repos...</option>
-                            ${availableServices.map(service =>
-                                `<option value="${JSON.stringify(service).replace(/"/g, '&quot;')}">${service.service_name}</option>`
-                            ).join('')}
-                        </select>
-                    </div>
-                    <div id="serviceForm" style="display: none; margin-top: 20px;">
-                        <div class="form-group">
-                            <label>Service Name</label>
-                            <input type="text" id="selectedServiceName" readonly>
-                        </div>
-                        <div class="form-group">
-                            <label>Service Owner</label>
-                            <input type="text" id="serviceOwner" placeholder="e.g., DevOps Team, John Doe">
-                        </div>
-                        <div class="form-group">
-                            <label>GitHub Repository</label>
-                            <input type="text" id="githubRepo" readonly>
-                        </div>
-                        <button class="btn" onclick="registerService()">
-                            <i class="fas fa-plus"></i> Register Service
-                        </button>
-                    </div>
-                    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
-                        <h4>Manual Upload</h4>
-                        <div class="form-group">
-                            <label>Service Name</label>
-                            <select id="manualServiceSelect" onchange="handleServiceSelection()">
-                                <option value="">Select existing service...</option>
-                                <option value="__new__">+ Add New Service</option>
-                            </select>
-                            <input type="text" id="manualServiceName" placeholder="Enter new service name" style="display: none; margin-top: 10px;">
-                        </div>
-                        <div class="form-group">
-                            <label>Document Name</label>
-                            <input type="text" id="manualDocName" placeholder="e.g., runbook.md">
-                        </div>
-                        <div class="form-group">
-                            <label>Document Content</label>
-                            <textarea id="manualDocContent" placeholder="Paste your markdown content here..."></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label>Or Upload File</label>
-                            <div class="file-upload-area">
-                                <input type="file" id="fileInput" accept=".md,.txt" onchange="handleFileSelect()">
-                            </div>
-                        </div>
-                        <button class="btn" onclick="uploadDocument()">
-                            <i class="fas fa-upload"></i> Upload Document
-                        </button>
-                    </div>
-                `;
-            } else {
-                uploadSection.innerHTML = `
-                    <div class="upload-info">
-                        <p><i class="fas fa-info-circle"></i> No GitHub repositories found. Please scan repositories first in the Drift Detection tab, or upload documentation manually below.</p>
-                    </div>
-                    <div class="form-group">
-                        <label>Service Name</label>
-                        <select id="manualServiceSelectFallback" onchange="handleServiceSelectionFallback()">
-                            <option value="">Select existing service...</option>
-                            <option value="__new__">+ Add New Service</option>
-                        </select>
-                        <input type="text" id="manualServiceNameFallback" placeholder="Enter new service name" style="display: none; margin-top: 10px;">
-                    </div>
-                    <div class="form-group">
-                        <label>Document Name</label>
-                        <input type="text" id="manualDocName" placeholder="e.g., runbook.md">
-                    </div>
-                    <div class="form-group">
-                        <label>Document Content</label>
-                        <textarea id="manualDocContent" placeholder="Paste your markdown content here..."></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>Or Upload File</label>
-                        <div class="file-upload-area">
-                            <input type="file" id="fileInputFallback" accept=".md,.txt" onchange="handleFileSelectFallback()">
-                        </div>
-                    </div>
-                    <button class="btn" onclick="uploadDocument()">
-                        <i class="fas fa-upload"></i> Upload Document
-                    </button>
-                `;
-            }
-        }
-
-        function setupDragAndDrop() {
-            const uploadSection = document.getElementById('uploadSection');
-
-            uploadSection.addEventListener('dragover', function(e) {
-                e.preventDefault();
-                uploadSection.classList.add('dragover');
-            });
-
-            uploadSection.addEventListener('dragleave', function(e) {
-                e.preventDefault();
-                uploadSection.classList.remove('dragover');
-            });
-
-            uploadSection.addEventListener('drop', function(e) {
-                e.preventDefault();
-                uploadSection.classList.remove('dragover');
-
-                const files = e.dataTransfer.files;
-                if (files.length > 0) {
-                    const file = files[0];
-                    if (file.name.endsWith('.md')) {
-                        const reader = new FileReader();
-                        reader.onload = function(e) {
-                            document.getElementById('manualDocContent').value = e.target.result;
-                            document.getElementById('manualDocName').value = file.name;
-                        };
-                        reader.readAsText(file);
-                    } else {
-                        showError('Please upload a .md file');
-                    }
-                }
-            });
-        }
-
-        function selectService() {
-            const select = document.getElementById('serviceSelect');
-            const serviceForm = document.getElementById('serviceForm');
-
-            if (select.value) {
-                const service = JSON.parse(select.value.replace(/&quot;/g, '"'));
-                document.getElementById('selectedServiceName').value = service.service_name;
-                document.getElementById('serviceOwner').value = service.suggested_owner;
-                document.getElementById('githubRepo').value = service.github_repo;
-                serviceForm.style.display = 'block';
-            } else {
-                serviceForm.style.display = 'none';
-            }
-        }
-
-        function addMessage(type, content, sources = null, isLoading = false) {
-            const chatContainer = document.getElementById('chatContainer');
-            const messageId = 'msg-' + Date.now();
-
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${type}`;
-            messageDiv.id = messageId;
-
-            const timestamp = new Date().toLocaleTimeString();
-
-            // Format content with proper line breaks and structure
-            let formattedContent = content;
-            if (type === 'ai' && !isLoading) {
-                // Convert line breaks to HTML and preserve formatting
-                formattedContent = content
-                    .replace(/\n\n/g, '</p><p>')
-                    .replace(/\n/g, '<br>')
-                    .replace(/^/, '<p>')
-                    .replace(/$/, '</p>');
-
-                // Fix any double paragraph tags
-                formattedContent = formattedContent.replace(/<p><\/p>/g, '');
-            }
-
-            let html = `<div class="timestamp">${timestamp}</div><div>${formattedContent}</div>`;
-
-            if (sources && sources.length > 0) {
-                html += '<div class="sources"><h4>Sources:</h4>';
-                sources.forEach(source => {
-                    html += `<span class="source">${source.service}/${source.document}</span>`;
-                });
-                html += '</div>';
-            }
-
-            messageDiv.innerHTML = html;
-            chatContainer.appendChild(messageDiv);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-
-            return messageId;
-        }
-
-        function showError(message) {
-            const errorDiv = document.createElement('div');
-            errorDiv.className = 'error';
-            errorDiv.textContent = message;
-            document.querySelector('.content').insertBefore(errorDiv, document.querySelector('.section'));
-            setTimeout(() => errorDiv.remove(), 5000);
-        }
-
-        function showSuccess(message) {
-            const successDiv = document.createElement('div');
-            successDiv.className = 'success';
-            successDiv.textContent = message;
-            document.querySelector('.content').insertBefore(successDiv, document.querySelector('.section'));
-            setTimeout(() => successDiv.remove(), 5000);
-        }
-
-        function handleFileSelect() {
-            const fileInput = document.getElementById('fileInput');
-            const file = fileInput.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('manualDocContent').value = e.target.result;
-                    document.getElementById('manualDocName').value = file.name;
-                };
-                reader.readAsText(file);
-            }
-        }
-
-        function handleFileSelectFallback() {
-            const fileInput = document.getElementById('fileInputFallback');
-            const file = fileInput.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('manualDocContent').value = e.target.result;
-                    document.getElementById('manualDocName').value = file.name;
-                };
-                reader.readAsText(file);
-            }
-        }
-
-        function handleServiceSelection() {
-            const select = document.getElementById('manualServiceSelect');
-            const input = document.getElementById('manualServiceName');
-
-            if (select.value === '__new__') {
-                input.style.display = 'block';
-                input.focus();
-            } else {
-                input.style.display = 'none';
-                input.value = '';
-            }
-        }
-
-        function handleServiceSelectionFallback() {
-            const select = document.getElementById('manualServiceSelectFallback');
-            const input = document.getElementById('manualServiceNameFallback');
-
-            if (select.value === '__new__') {
-                input.style.display = 'block';
-                input.focus();
-            } else {
-                input.style.display = 'none';
-                input.value = '';
-            }
-        }
-
-        function populateServiceDropdowns() {
-            const serviceNames = Object.keys(allServices);
-
-            const dropdowns = ['manualServiceSelect', 'manualServiceSelectFallback'];
-            dropdowns.forEach(id => {
-                const select = document.getElementById(id);
-                if (select) {
-                    // Clear existing options except first two
-                    while (select.children.length > 2) {
-                        select.removeChild(select.lastChild);
-                    }
-                    // Add service options
-                    serviceNames.forEach(name => {
-                        const option = document.createElement('option');
-                        option.value = name;
-                        option.textContent = name;
-                        select.appendChild(option);
-                    });
-                }
-            });
-        }
-
-        // Enter key support for search
-        document.getElementById('searchInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                searchDocumentation();
-            }
-        });
-
-        // Modal functions
-        let currentService = '';
-        let currentDoc = '';
-        let allServices = {};
-
-        async function viewServiceDocs(serviceName) {
-            document.getElementById('modalTitle').textContent = `${serviceName} Documentation`;
-            document.getElementById('docModal').style.display = 'block';
-
-            const docs = allServices[serviceName] || [];
-
-            const tableHtml = `
-                <table class="docs-table">
-                    <thead>
-                        <tr>
-                            <th>Document Name</th>
-                            <th>Upload Date</th>
-                            <th>Size</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${docs.map(doc => `
-                            <tr>
-                                <td><strong>${doc.doc_name}</strong></td>
-                                <td>${new Date(doc.upload_date).toLocaleDateString()}</td>
-                                <td>${(doc.file_size / 1024).toFixed(1)} KB</td>
-                                <td>
-                                    <button class="edit-btn" onclick="editDocument('${serviceName}', '${doc.doc_name}')">Edit</button>
-                                    <button class="edit-btn" style="background: #dc3545; margin-left: 5px;" onclick="deleteDocument('${serviceName}', '${doc.doc_name}')">Delete</button>
-                                </td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
-
-            document.querySelector('.modal-body').innerHTML = tableHtml;
-            document.querySelector('.modal-footer').style.display = 'none';
-        }
-
-        async function editDocument(serviceName, docName) {
-            document.querySelector('.modal-footer').style.display = 'flex';
-            document.querySelector('.modal-body').innerHTML = `
-                <div class="form-group">
-                    <label>Document Content</label>
-                    <textarea id="docContent" placeholder="Loading..."></textarea>
-                </div>
-            `;
-
-            currentService = serviceName;
-            currentDoc = docName;
-            document.getElementById('modalTitle').textContent = `${serviceName} / ${docName}`;
-
-            try {
-                const response = await fetch(`${API_BASE}/docs/get`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authToken}`
-                    },
-                    body: JSON.stringify({
-                        service_name: serviceName,
-                        doc_name: docName
-                    })
-                });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    document.getElementById('docContent').value = result.content;
-                } else {
-                    document.getElementById('docContent').value = 'Error loading document: ' + (result.error || 'Unknown error');
-                }
-            } catch (error) {
-                document.getElementById('docContent').value = 'Network error: ' + error.message;
-            }
-        }
-
-        async function viewDocument(serviceName, docName) {
-            currentService = serviceName;
-            currentDoc = docName;
-
-            document.getElementById('modalTitle').textContent = `${serviceName} / ${docName}`;
-            document.getElementById('docContent').value = 'Loading...';
-            document.getElementById('docModal').style.display = 'block';
-
-            try {
-                const response = await fetch(`${API_BASE}/docs/get`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authToken}`
-                    },
-                    body: JSON.stringify({
-                        service_name: serviceName,
-                        doc_name: docName
-                    })
-                });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    document.getElementById('docContent').value = result.content;
-                } else {
-                    document.getElementById('docContent').value = 'Error loading document: ' + (result.error || 'Unknown error');
-                }
-            } catch (error) {
-                document.getElementById('docContent').value = 'Network error: ' + error.message;
-            }
-        }
-
-        async function saveDocument() {
-            const content = document.getElementById('docContent').value;
-            const saveBtn = document.getElementById('saveBtn');
-
-            saveBtn.disabled = true;
-            saveBtn.textContent = 'Saving...';
-
-            try {
-                const response = await fetch(`${API_BASE}/docs/upload`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authToken}`
-                    },
-                    body: JSON.stringify({
-                        service_name: currentService,
-                        doc_name: currentDoc,
-                        content: content
-                    })
-                });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    showSuccess('Document saved successfully!');
-                    closeModal();
-                    loadServices();
-                } else {
-                    showError('Failed to save: ' + (result.error || 'Unknown error'));
-                }
-            } catch (error) {
-                showError('Network error: ' + error.message);
-            } finally {
-                saveBtn.disabled = false;
-                saveBtn.textContent = 'Save Changes';
-            }
-        }
-
-        function closeModal() {
-            document.getElementById('docModal').style.display = 'none';
-            currentService = '';
-            currentDoc = '';
-        }
-
-        window.onclick = function(event) {
-            const modal = document.getElementById('docModal');
-            if (event.target === modal) {
-                closeModal();
-            }
-        }
-
-        async function deleteDocument(serviceName, docName) {
-            if (!confirm(`Are you sure you want to delete ${docName} from ${serviceName}?`)) {
-                return;
-            }
-
-            try {
-                const response = await fetch(`${API_BASE}/docs/delete`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authToken}`
-                    },
-                    body: JSON.stringify({
-                        service_name: serviceName,
-                        doc_name: docName
-                    })
-                });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    showSuccess('Document deleted successfully!');
-                    closeModal();
-                    loadServices();
-                } else {
-                    showError('Failed to delete: ' + (result.error || 'Unknown error'));
-                }
-            } catch (error) {
-                showError('Network error: ' + error.message);
-            }
-        }
     </script>
 </body>
 </html>

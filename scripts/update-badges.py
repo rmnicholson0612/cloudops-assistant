@@ -75,13 +75,13 @@ def main():
     readme_path = Path("README.md")
 
     if not readme_path.exists():
-        print("❌ README.md not found")
+        print("README.md not found")
         sys.exit(1)
 
     content = readme_path.read_text(encoding='utf-8')
     current_day = get_current_day()
 
-    print(f"ℹ️  Current day: {current_day}")
+    print(f"Current day: {current_day}")
 
     # Update all sections
     content = update_day_badge(content, current_day)
@@ -91,7 +91,7 @@ def main():
     # Write back to file
     readme_path.write_text(content, encoding='utf-8')
 
-    print("✅ README.md badges and progress updated")
+    print("README.md badges and progress updated")
 
 
 if __name__ == "__main__":

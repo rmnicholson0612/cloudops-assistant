@@ -166,7 +166,7 @@ def main():
 
 window.CONFIG = {{
     // API Configuration (Local Development)
-    API_BASE_URL: 'http://localhost:3001/dev',  // Update this for local API
+    API_BASE_URL: 'http://localhost:8080',  // Local development server
 
     // App Configuration
     APP_NAME: '{env_vars.get("APP_NAME", "CloudOps Assistant")}',

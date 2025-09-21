@@ -42,7 +42,8 @@ def lambda_handler(event, context):
 def register_user(event):
     """Register a new user"""
     try:
-        body = json.loads(event.get("body", "{}"))
+        body_str = event.get("body") or "{}"
+        body = json.loads(body_str) if body_str else {}
 
         email = body.get("email", "").strip().lower()
         password = body.get("password", "")
@@ -90,7 +91,8 @@ def register_user(event):
 def login_user(event):
     """Login user and return JWT token"""
     try:
-        body = json.loads(event.get("body", "{}"))
+        body_str = event.get("body") or "{}"
+        body = json.loads(body_str) if body_str else {}
 
         email = body.get("email", "").strip().lower()
         password = body.get("password", "")
@@ -139,7 +141,8 @@ def login_user(event):
 def verify_token(event):
     """Verify JWT token"""
     try:
-        body = json.loads(event.get("body", "{}"))
+        body_str = event.get("body") or "{}"
+        body = json.loads(body_str) if body_str else {}
         token = body.get("token", "")
 
         if not token:

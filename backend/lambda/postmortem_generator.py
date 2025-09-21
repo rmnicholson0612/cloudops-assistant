@@ -81,8 +81,6 @@ def parse_postmortem_request(event):
     """Parse and validate postmortem creation request"""
     try:
         body_str = event.get("body", "{}")
-        if not body_str:
-            body_str = "{}"
         return json.loads(body_str)
     except json.JSONDecodeError as e:
         logger.error(f"JSON decode error: {str(e)}")
@@ -577,9 +575,99 @@ def get_cost_data_in_range(start_time, end_time, service):
         return {}
 
 
+def is_local_environment():
+    """Detect if running in local development environment"""
+    return (
+        os.environ.get("AWS_ENDPOINT_URL") == "http://localhost:4566"
+        or os.environ.get("LOCALSTACK_HOSTNAME")
+        or os.environ.get("LOCAL_DEV") == "true"
+    )
+
+
+def generate_local_ai_analysis(data):
+    """Generate AI analysis using local Ollama"""
+    try:
+        import requests
+
+        prompt = f"""Create a postmortem analysis for this incident:
+
+Title: {data['title']}
+Service: {data['service']}
+Severity: {data['severity']}
+Summary: {data['incident_summary']}
+
+Provide:
+1. Executive summary
+2. Root cause analysis
+3. Impact assessment
+4. Key lessons learned
+5. Action items
+
+Be concise and practical:"""
+
+        response = requests.post(
+            "http://localhost:11434/api/generate",
+            json={
+                "model": "gemma3:270m",
+                "prompt": prompt,
+                "stream": False,
+                "options": {"num_predict": 800, "temperature": 0.1},
+            },
+            timeout=45,
+        )
+
+        if response.status_code == 200:
+            result = response.json()
+            ai_text = result.get("response", "")
+
+            return {
+                "executive_summary": ai_text[:500] + "...",
+                "detailed_timeline": [],
+                "root_cause_analysis": "Analysis generated using local AI",
+                "impact_assessment": "Impact assessment from local AI analysis",
+                "detection_and_response": "Detection and response analysis",
+                "resolution_details": "Resolution details from analysis",
+                "lessons_learned": [
+                    "Improve monitoring",
+                    "Enhance response procedures",
+                ],
+                "action_items": ["Review incident response", "Update documentation"],
+                "preventive_measures": [
+                    "Implement better monitoring",
+                    "Improve testing",
+                ],
+                "monitoring_improvements": [
+                    "Add proactive alerts",
+                    "Enhance dashboards",
+                ],
+            }
+        else:
+            raise Exception(f"Ollama API error: {response.status_code}")
+
+    except Exception as e:
+        logger.warning(f"Local AI analysis failed: {e}")
+        return {
+            "executive_summary": "Local AI analysis unavailable - manual review required",
+            "detailed_timeline": [],
+            "root_cause_analysis": "Root cause analysis to be completed manually",
+            "impact_assessment": "Impact assessment pending",
+            "detection_and_response": "Detection and response analysis needed",
+            "resolution_details": "Resolution details to be documented",
+            "lessons_learned": ["Complete manual analysis"],
+            "action_items": ["Conduct detailed incident review"],
+            "preventive_measures": ["Implement preventive measures"],
+            "monitoring_improvements": ["Enhance monitoring capabilities"],
+        }
+
+
 def generate_ai_analysis(data):
     """Generate comprehensive AI analysis for postmortem report"""
     logger.info(f"Starting AI analysis for: {data['title']}")
+
+    # Use local AI for development
+    if is_local_environment():
+        return generate_local_ai_analysis(data)
+
     try:
         # Build detailed context for AI
         terraform_context = ""

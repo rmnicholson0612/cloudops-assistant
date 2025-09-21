@@ -20,9 +20,9 @@
                 </div>
                 <div class="header-right">
                     <div class="progress-badge">
-                        <span>Day <span id="current-day">14</span>/<span id="total-days">30</span></span>
+                        <span>Day <span id="current-day">0</span>/<span id="total-days">0</span></span>
                         <div class="progress-bar">
-                            <div class="progress-fill" id="progress-fill" style="width: 60.3%"></div>
+                            <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
                         </div>
                     </div>
                     <div class="auth-section" id="auth-section">
@@ -87,6 +87,9 @@
                             <input type="password" id="github-token" placeholder="GitHub token (optional for public repos)" class="github-input">
                             <button class="btn btn-primary" onclick="scanRepos()">
                                 <i class="fas fa-search"></i> Scan Repositories
+                            </button>
+                            <button class="btn btn-secondary" onclick="clearGitHubForm()" title="Clear form">
+                                <i class="fas fa-times"></i>
                             </button>
                         </div>
                     </div>
@@ -230,7 +233,6 @@
                             <button class="btn btn-info" onclick="showResourceDiscoveryInfo()" title="About Resource Discovery">
                                 <i class="fas fa-info-circle"></i>
                             </button>
-                            <div class="feature-badge">✅ Day 11 Complete</div>
                         </div>
                         <button class="btn btn-primary" onclick="openResourceDiscovery()">
                             <i class="fas fa-external-link-alt"></i> Open Resource Discovery
@@ -366,7 +368,6 @@
                             <button class="btn btn-info" onclick="showSlackInfo()" title="About Slack Bot">
                                 <i class="fas fa-info-circle"></i>
                             </button>
-                            <div class="feature-badge">✅ Day 12 Complete</div>
                         </div>
                         <button class="btn btn-primary" onclick="showSlackSetupModal()">
                             <i class="fas fa-cog"></i> Configure Slack Bot
@@ -396,7 +397,6 @@
                             <button class="btn btn-info" onclick="showPRReviewsInfo()" title="About PR Reviews" style="cursor: pointer;">
                                 <i class="fas fa-info-circle"></i>
                             </button>
-                            <div class="feature-badge">✅ Day 13 Complete</div>
                         </div>
                         <button class="btn btn-primary" onclick="debugPRReviews()">
                             <i class="fas fa-refresh"></i> Refresh
@@ -658,7 +658,7 @@ terraform plan > plan.txt</code>
                             <div class="future-desc">Scheduled automatic scanning</div>
                         </div>
                         <div class="future-item">
-                            <div class="future-day">Day 12</div>
+                            <div class="future-day">✅ Complete</div>
                             <div class="future-desc">Slack notifications for drift</div>
                         </div>
                         <div class="future-item">
@@ -845,7 +845,7 @@ terraform plan > plan.txt</code>
                             <div class="future-desc">AI-powered cost optimization tips</div>
                         </div>
                         <div class="future-item">
-                            <div class="future-day">Day 12</div>
+                            <div class="future-day">✅ Complete</div>
                             <div class="future-desc">Slack notifications for cost spikes</div>
                         </div>
                         <div class="future-item">
@@ -1983,6 +1983,9 @@ terraform plan > plan.txt</code>
             // Initialize month selector immediately
             initializeMonthSelector();
 
+            // Auto-populate GitHub form fields from config
+            autoPopulateGitHubForm();
+
             // Load cost data if costs tab is initially active
             if (document.querySelector('.tab-btn[data-tab="costs"]').classList.contains('active')) {
                 loadCostData();
@@ -1990,8 +1993,18 @@ terraform plan > plan.txt</code>
 
             // Load drift status only if logged in
             if (localStorage.getItem('access_token')) {
-                // Auto-setup drift monitoring from config
-                setTimeout(autoSetupDriftMonitoring, 2000);
+                // Load drift status without auto-setup to avoid repeated API calls
+                loadDriftStatus();
+
+                // Auto-scan repos on page load if configured and logged in
+                if (CONFIG.GITHUB_DEFAULT_TARGET && CONFIG.GITHUB_DEFAULT_TARGET.trim() !== '') {
+                    setTimeout(() => {
+                        if (document.querySelector('.tab-btn[data-tab="drift"]').classList.contains('active')) {
+                            console.log('Auto-scanning repos on page load...');
+                            scanRepos();
+                        }
+                    }, 2000);
+                }
             } else {
                 // Show login message immediately if not logged in
                 loadDriftStatus();
@@ -2257,6 +2270,12 @@ terraform plan > plan.txt</code>
         }
 
         async function viewPlanDetails(planId) {
+            // Close current modal first
+            const currentModal = document.querySelector('.modal');
+            if (currentModal) {
+                currentModal.remove();
+            }
+
             const token = localStorage.getItem('access_token');
             if (!token) {
                 alert('Please login to view plan details');
@@ -2783,6 +2802,7 @@ terraform plan > plan.txt</code>
 
         function closeBudgetModal() {
             document.getElementById('budget-modal').style.display = 'none';
+            resetBudgetModal();
         }
 
         function showBudgetInfo() {
@@ -2915,6 +2935,9 @@ terraform plan > plan.txt</code>
                                 </div>
                                 <div class="budget-actions">
                                     <div class="budget-status">${budget.status.replace('_', ' ')}</div>
+                                    <button class="btn btn-sm btn-warning" onclick="editBudget('${budget.budget_id}', '${budget.budget_name}', ${budget.monthly_limit}, '${budget.service_filter || 'all'}')" title="Edit budget">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
                                     <button class="btn btn-sm btn-danger" onclick="deleteBudget('${budget.budget_id}')">
                                         <i class="fas fa-trash"></i>
                                     </button>
@@ -2934,6 +2957,93 @@ terraform plan > plan.txt</code>
                     <i class="fas fa-times-circle"></i> Failed to load budget status
                 </div>`;
             }
+        }
+
+        function editBudget(budgetId, budgetName, monthlyLimit, serviceFilter) {
+            // Pre-populate the modal with current values
+            document.getElementById('budget-name').value = budgetName;
+            document.getElementById('budget-amount').value = monthlyLimit;
+            document.getElementById('service-filter').value = serviceFilter;
+
+            // Change the save button to update
+            const saveBtn = document.querySelector('#budget-modal .btn-primary');
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> Update Budget Alert';
+            saveBtn.onclick = () => updateBudgetConfig(budgetId);
+
+            showBudgetModal();
+        }
+
+        async function updateBudgetConfig(budgetId) {
+            const budgetName = document.getElementById('budget-name').value.trim();
+            const budgetAmount = document.getElementById('budget-amount').value;
+            const budgetEmail = document.getElementById('budget-email').value.trim();
+            const serviceFilter = document.getElementById('service-filter').value;
+
+            // Get selected thresholds
+            const thresholdCheckboxes = document.querySelectorAll('.threshold-options input[type="checkbox"]');
+            const thresholds = [];
+            thresholdCheckboxes.forEach((checkbox, index) => {
+                if (checkbox.checked) {
+                    thresholds.push([50, 80, 100][index]);
+                }
+            });
+
+            if (!budgetName || !budgetAmount || budgetAmount <= 0 || thresholds.length === 0) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                alert('Please login to update budgets');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/budgets/update/${budgetId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        budget_name: budgetName,
+                        monthly_limit: parseFloat(budgetAmount),
+                        thresholds: thresholds,
+                        email: budgetEmail,
+                        service_filter: serviceFilter
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('Budget updated successfully!');
+                    closeBudgetModal();
+                    resetBudgetModal();
+                    loadBudgetStatus();
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+            } catch (error) {
+                alert('Failed to update budget');
+            }
+        }
+
+        function resetBudgetModal() {
+            // Reset modal to original state
+            document.getElementById('budget-name').value = 'Monthly AWS Budget';
+            document.getElementById('budget-amount').value = '';
+            document.getElementById('budget-email').value = '';
+            document.getElementById('service-filter').value = 'all';
+
+            // Reset checkboxes
+            document.querySelectorAll('.threshold-options input[type="checkbox"]').forEach(cb => cb.checked = true);
+
+            // Reset save button
+            const saveBtn = document.querySelector('#budget-modal .btn-primary');
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Budget Alert';
+            saveBtn.onclick = saveBudgetConfig;
         }
 
         async function deleteBudget(budgetId) {
@@ -3058,6 +3168,7 @@ terraform plan > plan.txt</code>
 
             try {
                 console.log('Fetching drift status from:', `${CONFIG.API_BASE_URL}/drift/status`);
+                console.log('Using token:', token ? 'Present' : 'Missing');
 
                 const response = await fetch(`${CONFIG.API_BASE_URL}/drift/status`, {
                     headers: {
@@ -3066,6 +3177,7 @@ terraform plan > plan.txt</code>
                 });
 
                 console.log('Response status:', response.status);
+                console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
                 const data = await response.json();
                 console.log('Response data:', data);
@@ -3114,12 +3226,14 @@ terraform plan > plan.txt</code>
                     console.error('API error:', data);
                     displayElement.innerHTML = `<div class="drift-error">
                         <i class="fas fa-exclamation-triangle"></i> Error loading drift status: ${data.error || 'Unknown error'}
+                        <br><small>Status: ${response.status}</small>
                     </div>`;
                 }
             } catch (error) {
                 console.error('Network error:', error);
                 displayElement.innerHTML = `<div class="drift-error">
                     <i class="fas fa-times-circle"></i> Failed to load drift status: ${error.message}
+                    <br><small>Check console for details</small>
                 </div>`;
             }
         }
@@ -3400,6 +3514,7 @@ terraform plan > plan.txt</code>
 
         // Add repository to drift monitoring
         async function addToMonitoring(repoName, repoUrl, githubTarget) {
+            console.log('Adding to monitoring:', { repoName, repoUrl, githubTarget });
             const token = localStorage.getItem('access_token');
             if (!token) {
                 alert('Please login to add repositories to monitoring');
@@ -3408,12 +3523,15 @@ terraform plan > plan.txt</code>
 
             // Check if already exists
             try {
+                console.log('Checking existing configurations...');
                 const statusResponse = await fetch(`${CONFIG.API_BASE_URL}/drift/status`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
+                console.log('Status response:', statusResponse.status);
                 if (statusResponse.ok) {
                     const statusData = await statusResponse.json();
+                    console.log('Existing configurations:', statusData);
                     const alreadyExists = statusData.configurations.some(config =>
                         config.repo_name === repoName
                     );
@@ -3425,31 +3543,41 @@ terraform plan > plan.txt</code>
                 }
 
                 // Add to monitoring
+                const configData = {
+                    repo_name: repoName,
+                    github_url: repoUrl.endsWith('.git') ? repoUrl : repoUrl + '.git',
+                    terraform_dir: '.',
+                    schedule: 'daily',
+                    alert_email: ''
+                };
+                console.log('Adding configuration:', configData);
+
                 const response = await fetch(`${CONFIG.API_BASE_URL}/drift/configure`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify({
-                        repo_name: repoName,
-                        github_url: repoUrl.endsWith('.git') ? repoUrl : repoUrl + '.git',
-                        terraform_dir: '.',
-                        schedule: 'daily',
-                        alert_email: ''
-                    })
+                    body: JSON.stringify(configData)
                 });
 
+                console.log('Configure response:', response.status);
                 const data = await response.json();
+                console.log('Configure response data:', data);
 
                 if (response.ok) {
                     alert(`${repoName} added to drift monitoring!`);
-                    loadDriftStatus();
+                    // Refresh drift status to show the new repository
+                    setTimeout(() => {
+                        loadDriftStatus();
+                    }, 500);
                 } else {
-                    alert(`Error: ${data.error}`);
+                    console.error('Configure error response:', data);
+                    alert(`Error: ${data.error || 'Unknown error occurred'}`);
                 }
             } catch (error) {
-                alert('Failed to add repository to monitoring');
+                console.error('Error adding to monitoring:', error);
+                alert('Failed to add repository to monitoring: ' + error.message);
             }
         }
 
@@ -3481,6 +3609,38 @@ terraform plan > plan.txt</code>
             }
         }
 
+        // Auto-populate GitHub form fields from config
+        function autoPopulateGitHubForm() {
+            const githubTargetInput = document.getElementById('github-target');
+            const githubTokenInput = document.getElementById('github-token');
+
+            // Auto-populate target if configured
+            if (CONFIG.GITHUB_DEFAULT_TARGET && CONFIG.GITHUB_DEFAULT_TARGET.trim() !== '') {
+                githubTargetInput.value = CONFIG.GITHUB_DEFAULT_TARGET;
+                githubTargetInput.style.backgroundColor = '#e8f5e8'; // Light green to show it's pre-filled
+            }
+
+            // Auto-populate token if configured
+            if (CONFIG.GITHUB_DEFAULT_TOKEN && CONFIG.GITHUB_DEFAULT_TOKEN.trim() !== '') {
+                githubTokenInput.value = CONFIG.GITHUB_DEFAULT_TOKEN;
+                githubTokenInput.style.backgroundColor = '#e8f5e8'; // Light green to show it's pre-filled
+            }
+        }
+
+        // Clear GitHub form fields
+        function clearGitHubForm() {
+            const githubTargetInput = document.getElementById('github-target');
+            const githubTokenInput = document.getElementById('github-token');
+
+            githubTargetInput.value = '';
+            githubTokenInput.value = '';
+            githubTargetInput.style.backgroundColor = '';
+            githubTokenInput.style.backgroundColor = '';
+
+            // Clear scan results
+            document.getElementById('scan-results').innerHTML = 'Enter a GitHub username or organization to scan for terraform repositories...';
+        }
+
         // Auto-populate GitHub targets
         function populateGitHubTargets() {
             const githubInput = document.getElementById('github-target');
@@ -3498,6 +3658,94 @@ terraform plan > plan.txt</code>
                 githubInput.setAttribute('list', 'github-targets');
                 githubInput.parentNode.appendChild(datalist);
             }
+        }
+
+        // Service Documentation Functions
+        function openServiceDocs() {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                alert('Please login to access service documentation');
+                return;
+            }
+            window.open(`service-docs.html?token=${encodeURIComponent(token)}`, '_blank');
+        }
+
+        function openResourceDiscovery() {
+            window.open('resource-discovery.html', '_blank');
+        }
+
+        function showServiceDocsInfoModal() {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'block';
+
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2><i class="fas fa-search"></i> About Service Documentation Search</h2>
+                        <span class="close" onclick="this.closest('.modal').remove()">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <div class="info-section">
+                            <h3><i class="fas fa-magic"></i> How It Works</h3>
+                            <p>The Service Documentation Search uses <strong>AI-powered RAG</strong> to help you find answers in your service documentation.</p>
+
+                            <div class="capabilities">
+                                <div class="capability">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Upload documentation for each service</span>
+                                </div>
+                                <div class="capability">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Natural language search queries</span>
+                                </div>
+                                <div class="capability">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>AI-powered conversational responses</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+
+            document.body.appendChild(modal);
+        }
+
+        function showResourceDiscoveryInfo() {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'block';
+
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2><i class="fas fa-search-plus"></i> About Smart Resource Discovery</h2>
+                        <span class="close" onclick="this.closest('.modal').remove()">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <div class="info-section">
+                            <h3><i class="fas fa-magic"></i> How It Works</h3>
+                            <p>Smart Resource Discovery automatically scans your AWS account to find and categorize all resources.</p>
+
+                            <div class="capabilities">
+                                <div class="capability">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Discovers EC2, Lambda, RDS, S3, and more</span>
+                                </div>
+                                <div class="capability">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>AI-powered service grouping</span>
+                                </div>
+                                <div class="capability">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Cost attribution per service</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+
+            document.body.appendChild(modal);
         }
 
         // Authentication Functions
@@ -3682,6 +3930,21 @@ terraform plan > plan.txt</code>
             if (document.querySelector('.tab-btn[data-tab="costs"]').classList.contains('active')) {
                 loadCostData();
             }
+
+            // Auto-scan repos on first login if configured
+            console.log('Checking auto-scan conditions:');
+            console.log('- GITHUB_DEFAULT_TARGET:', CONFIG.GITHUB_DEFAULT_TARGET);
+            console.log('- auto_scan_completed:', sessionStorage.getItem('auto_scan_completed'));
+            console.log('- drift tab active:', document.querySelector('.tab-btn[data-tab="drift"]').classList.contains('active'));
+
+            if (CONFIG.GITHUB_DEFAULT_TARGET && CONFIG.GITHUB_DEFAULT_TARGET.trim() !== '' && !sessionStorage.getItem('auto_scan_completed')) {
+                console.log('Auto-scan triggered!');
+                sessionStorage.setItem('auto_scan_completed', 'true');
+                setTimeout(() => {
+                    console.log('Running auto-scan...');
+                    scanRepos();
+                }, 1500);
+            }
         }
 
         // AI Explanation Functions
@@ -3720,19 +3983,24 @@ terraform plan > plan.txt</code>
                         }[explanation.ai_explanation.risk_level] || '#6c757d';
 
                         html += `
-                            <div class="explanation-item">
-                                <div class="explanation-header">
-                                    <div class="explanation-repo">${explanation.repo_name}</div>
-                                    <div class="explanation-date">${date}</div>
-                                    <div class="explanation-model" style="font-size: 12px; color: #6c757d;">
-                                        ${explanation.ai_explanation.evaluated_by || 'Unknown'}
-                                    </div>
-                                    <div class="explanation-risk" style="color: ${riskColor}">
+                            <div class="explanation-item" style="cursor: pointer; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; margin-bottom: 15px; background: #fff; transition: box-shadow 0.2s;" onclick="showAIExplanationDetails('${explanation.plan_id}')" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='none'">
+                                <div class="explanation-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                    <div class="explanation-repo" style="font-weight: bold; font-size: 16px;">${explanation.repo_name}</div>
+                                    <div class="explanation-risk" style="color: ${riskColor}; font-weight: bold;">
                                         Risk: ${explanation.ai_explanation.risk_level}
                                     </div>
                                 </div>
-                                <div class="explanation-summary">
-                                    ${explanation.ai_explanation.summary}
+                                <div class="explanation-meta" style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #6c757d; margin-bottom: 10px;">
+                                    <div class="explanation-date">${date}</div>
+                                    <div class="explanation-model">
+                                        ${explanation.ai_explanation.evaluated_by || 'Unknown'}
+                                    </div>
+                                </div>
+                                <div class="explanation-summary" style="color: #495057; line-height: 1.4;">
+                                    ${explanation.ai_explanation.summary.substring(0, 150)}${explanation.ai_explanation.summary.length > 150 ? '...' : ''}
+                                </div>
+                                <div style="margin-top: 10px; font-size: 12px; color: #007bff;">
+                                    <i class="fas fa-eye"></i> Click to view full analysis
                                 </div>
                             </div>`;
                     });
@@ -3781,6 +4049,133 @@ terraform plan > plan.txt</code>
             } catch (error) {
                 alert('Failed to generate AI explanation');
             }
+        }
+
+        async function showAIExplanationDetails(planId) {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                alert('Please login to view explanation details');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/plan-details/${encodeURIComponent(planId)}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    showAIExplanationModal(data);
+                } else {
+                    alert(`Error loading explanation: ${data.error}`);
+                }
+            } catch (error) {
+                alert('Failed to load explanation details');
+            }
+        }
+
+        function showAIExplanationModal(planData) {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'block';
+
+            const date = new Date(planData.ai_analyzed_at || planData.timestamp).toLocaleString();
+            const aiExplanation = planData.ai_explanation || {};
+            const riskColor = {
+                'LOW': '#28a745',
+                'MEDIUM': '#ffc107',
+                'HIGH': '#dc3545'
+            }[aiExplanation.risk_level] || '#6c757d';
+
+            // Format summary with basic markdown and ANSI colors
+            let summaryHtml = aiExplanation.summary || 'No summary available';
+            if (summaryHtml !== 'No summary available') {
+                summaryHtml = summaryHtml
+                    .replace(/\x1b\[0m/g, '</span>')  // Reset
+                    .replace(/\x1b\[1m/g, '<span style="font-weight: bold;">')  // Bold
+                    .replace(/\x1b\[33m/g, '<span style="color: #b58900;">')  // Yellow
+                    .replace(/\x1b\[32m/g, '<span style="color: #859900;">')  // Green
+                    .replace(/\x1b\[31m/g, '<span style="color: #dc322f;">')  // Red
+                    .replace(/\x1b\[90m/g, '<span style="color: #586e75;">')  // Dark gray
+                    .replace(/\x1b\[[0-9;]*m/g, '')  // Strip any remaining codes
+                    .replace(/```([\s\S]*?)```/g, '<pre style="background: #f1f3f4; padding: 10px; border-radius: 4px; overflow-x: auto;"><code>$1</code></pre>')
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    .replace(/\n/g, '<br>');
+            }
+
+            // Format recommendations
+            let recommendationsHtml = '';
+            if (aiExplanation.recommendations && Array.isArray(aiExplanation.recommendations)) {
+                recommendationsHtml = '<ul>' + aiExplanation.recommendations.map(rec => `<li>${rec}</li>`).join('') + '</ul>';
+            } else if (aiExplanation.recommendations) {
+                recommendationsHtml = `<p>${aiExplanation.recommendations}</p>`;
+            }
+
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 900px;">
+                    <div class="modal-header">
+                        <h2><i class="fas fa-robot"></i> AI Terraform Analysis</h2>
+                        <span class="close" onclick="this.closest('.modal').remove()">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <div class="ai-explanation-metadata" style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                                <div>
+                                    <p><strong>Repository:</strong> ${planData.repo_name}</p>
+                                    <p><strong>Plan ID:</strong> ${planData.plan_id}</p>
+                                    <p><strong>Changes Detected:</strong> ${planData.changes_detected || 0}</p>
+                                </div>
+                                <div>
+                                    <p><strong>Risk Level:</strong> <span style="color: ${riskColor}; font-weight: bold;">${aiExplanation.risk_level || 'Unknown'}</span></p>
+                                    <p><strong>Analyzed By:</strong> ${aiExplanation.evaluated_by || 'Unknown'}</p>
+                                    <p><strong>Analyzed:</strong> ${date}</p>
+                                </div>
+                            </div>
+                            <div style="margin-top: 10px;">
+                                <p><strong>Drift Status:</strong> <span style="color: ${planData.drift_detected ? '#dc3545' : '#28a745'}">${planData.drift_detected ? 'Drift Detected' : 'No Drift'}</span></p>
+                            </div>
+                        </div>
+
+                        <div class="ai-analysis-sections">
+                            <div class="analysis-section" style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px;">
+                                <h4><i class="fas fa-clipboard-list"></i> Summary</h4>
+                                <div style="line-height: 1.6; color: #495057;">
+                                    ${summaryHtml}
+                                </div>
+                            </div>
+
+                            ${aiExplanation.impact ? `
+                            <div class="analysis-section" style="margin-bottom: 20px; padding: 15px; background: #fff3cd; border-radius: 6px; border-left: 4px solid #ffc107;">
+                                <h4><i class="fas fa-exclamation-triangle"></i> Impact Assessment</h4>
+                                <div style="line-height: 1.6; color: #856404;">
+                                    ${aiExplanation.impact}
+                                </div>
+                            </div>` : ''}
+
+                            ${recommendationsHtml ? `
+                            <div class="analysis-section" style="margin-bottom: 20px; padding: 15px; background: #d4edda; border-radius: 6px; border-left: 4px solid #28a745;">
+                                <h4><i class="fas fa-lightbulb"></i> Recommendations</h4>
+                                <div style="line-height: 1.6; color: #155724;">
+                                    ${recommendationsHtml}
+                                </div>
+                            </div>` : ''}
+                        </div>
+
+                        <div class="explanation-actions" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #dee2e6;">
+                            <button class="btn btn-primary" onclick="viewPlanDetails('${planData.plan_id}')">
+                                <i class="fas fa-file-alt"></i> View Full Plan
+                            </button>
+                            <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>`;
+
+            document.body.appendChild(modal);
         }
 
         // Postmortem Functions
@@ -4254,11 +4649,11 @@ terraform plan > plan.txt</code>
                             <h3><i class="fas fa-rocket"></i> Future Enhancements</h3>
                             <div class="future-features">
                                 <div class="future-item">
-                                    <div class="future-day">Day 12</div>
+                                    <div class="future-day">✅ Complete</div>
                                     <div class="future-desc">Slack bot integration for documentation queries</div>
                                 </div>
                                 <div class="future-item">
-                                    <div class="future-day">Day 13</div>
+                                    <div class="future-day">✅ Complete</div>
                                     <div class="future-desc">AI-powered PR reviews with documentation context</div>
                                 </div>
                                 <div class="future-item">

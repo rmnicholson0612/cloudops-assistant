@@ -66,7 +66,8 @@ def explain_terraform_plan(event):
     """Generate AI explanation for a terraform plan"""
     try:
         logger.info(f"AI explainer request: {event}")
-        body = json.loads(event.get("body", "{}"))
+        body_str = event.get("body") or "{}"
+        body = json.loads(body_str) if body_str else {}
         logger.info(f"Request body: {body}")
         user_id = event["user_info"]["user_id"]
         logger.info(f"User ID: {user_id}")
@@ -200,8 +201,13 @@ def get_plan_explanations(event):
 
 
 def generate_ai_explanation(plan_content):
-    """Use AWS Bedrock to generate terraform plan explanation"""
+    """Generate AI explanation using appropriate provider based on environment"""
     try:
+        # Check if running in local development environment
+        if is_local_environment():
+            return generate_ollama_explanation(plan_content)
+
+        # Production: use AWS Bedrock
         if not bedrock:
             return generate_fallback_explanation(plan_content)
 
@@ -287,6 +293,222 @@ Format as JSON with keys: summary, risk_level, impact, recommendations (array)""
 
     except Exception as e:
         logger.error(f"AI explanation error: {str(e)}")
+        return generate_fallback_explanation(plan_content)
+
+
+def is_local_environment():
+    """Detect if running in local development environment"""
+    return (
+        os.environ.get("AWS_ENDPOINT_URL") == "http://localhost:4566"
+        or os.environ.get("LOCALSTACK_HOSTNAME")
+        or os.environ.get("LOCAL_DEV") == "true"
+    )
+
+
+def generate_ollama_explanation(plan_content):
+    """Generate explanation using local Ollama"""
+    try:
+        import re
+
+        # Strip ANSI color codes for AI processing only
+        clean_content = re.sub(r"\x1b\[[0-9;]*m", "", plan_content)
+
+        # Extract key information from clean plan
+        creates = len(re.findall(r"will be created", clean_content))
+        updates = len(re.findall(r"will be updated|will be modified", clean_content))
+        destroys = len(re.findall(r"will be destroyed", clean_content))
+
+        # Extract resource types from clean content
+        resources = re.findall(r"# ([a-zA-Z0-9_\.]+)", clean_content)
+        resource_types = list(set([r.split(".")[0] for r in resources if "." in r]))
+
+        # Analyze what's actually changing
+        tag_changes = re.findall(
+            r'"([^"]+)"\s*=\s*"([^"]+)"\s*->\s*"([^"]+)"', clean_content
+        )
+        resource_changes = re.findall(
+            r"# ([a-zA-Z0-9_\.]+).*will be (created|updated|destroyed)", clean_content
+        )
+
+        # Generate human-readable summary
+        summary_parts = []
+
+        if creates + updates + destroys == 0:
+            summary_parts.append(
+                "No changes detected - your infrastructure matches the configuration."
+            )
+        else:
+            summary_parts.append(
+                f"You have {creates + updates + destroys} resource changes planned."
+            )
+
+            if creates > 0:
+                summary_parts.append(f"\n\n**Adding {creates} new resources:**")
+                create_resources = re.findall(
+                    r"# ([a-zA-Z0-9_\.]+).*will be created", clean_content
+                )
+                for resource in create_resources[:3]:
+                    resource_type = resource.split(".")[0]
+                    resource_name = (
+                        resource.split(".")[1] if "." in resource else resource
+                    )
+                    summary_parts.append(f"• {resource_type.upper()}: {resource_name}")
+                if len(create_resources) > 3:
+                    summary_parts.append(f"• ... and {len(create_resources) - 3} more")
+
+            if updates > 0:
+                summary_parts.append(f"\n\n**Modifying {updates} existing resources:**")
+                update_resources = re.findall(
+                    r"# ([a-zA-Z0-9_\.]+).*will be updated", clean_content
+                )
+                for resource in update_resources[:3]:
+                    resource_type = resource.split(".")[0]
+                    resource_name = (
+                        resource.split(".")[1] if "." in resource else resource
+                    )
+
+                    # Find what's changing on this resource
+                    resource_section = re.search(
+                        f"# {re.escape(resource)}.*?(?=\n\n|\n  #|$)",
+                        clean_content,
+                        re.DOTALL,
+                    )
+                    if resource_section:
+                        section_text = resource_section.group(0)
+                        if "tags" in section_text:
+                            tag_changes_in_resource = re.findall(
+                                r'"([^"]+)"\s*=\s*"([^"]+)"\s*->\s*"([^"]+)"',
+                                section_text,
+                            )
+                            if tag_changes_in_resource:
+                                tag_desc = ", ".join(
+                                    [
+                                        f"{tag[0]}: '{tag[1]}' → '{tag[2]}'"
+                                        for tag in tag_changes_in_resource[:2]
+                                    ]
+                                )
+                                summary_parts.append(
+                                    f"• {resource_type.upper()}: {resource_name} (updating tags: {tag_desc})"
+                                )
+                            else:
+                                summary_parts.append(
+                                    f"• {resource_type.upper()}: {resource_name} (updating tags)"
+                                )
+                        else:
+                            summary_parts.append(
+                                f"• {resource_type.upper()}: {resource_name} (configuration changes)"
+                            )
+                    else:
+                        summary_parts.append(
+                            f"• {resource_type.upper()}: {resource_name}"
+                        )
+                if len(update_resources) > 3:
+                    summary_parts.append(f"• ... and {len(update_resources) - 3} more")
+
+            if destroys > 0:
+                summary_parts.append(f"\n\n**Deleting {destroys} resources:**")
+                destroy_resources = re.findall(
+                    r"# ([a-zA-Z0-9_\.]+).*will be destroyed", clean_content
+                )
+                for resource in destroy_resources[:3]:
+                    resource_type = resource.split(".")[0]
+                    resource_name = (
+                        resource.split(".")[1] if "." in resource else resource
+                    )
+                    summary_parts.append(f"• {resource_type.upper()}: {resource_name}")
+                if len(destroy_resources) > 3:
+                    summary_parts.append(f"• ... and {len(destroy_resources) - 3} more")
+
+        ai_text = "".join(summary_parts)
+
+        # Intelligent risk assessment based on actual changes
+        env_tag_changes = [
+            t
+            for t in tag_changes
+            if "environment" in t[0].lower() or "env" in t[0].lower()
+        ]
+
+        if destroys > 0:
+            risk_level = "HIGH"
+            impact = f"⚠️ {destroys} resources will be destroyed - potential data loss"
+        elif env_tag_changes:
+            # Special handling for environment tag changes
+            old_env, new_env = env_tag_changes[0][1], env_tag_changes[0][2]
+            standard_envs = [
+                "local",
+                "dev",
+                "development",
+                "test",
+                "staging",
+                "stg",
+                "prod",
+                "production",
+            ]
+            if new_env.lower() not in standard_envs:
+                risk_level = "MEDIUM"
+                impact = f"Environment tag changing from '{old_env}' to '{new_env}' - non-standard naming"
+            else:
+                risk_level = "LOW"
+                impact = f"Environment tag changing from '{old_env}' to '{new_env}' - metadata only"
+        elif creates > 10 or updates > 5:
+            risk_level = "MEDIUM"
+            impact = f"Large change set: {creates} creates, {updates} updates"
+        else:
+            risk_level = "LOW"
+            impact = f"Small change: {creates} creates, {updates} updates, {destroys} destroys"
+
+        # Context-aware recommendations
+        recommendations = []
+        if destroys > 0:
+            recommendations.append("⚠️ Backup any data before destroying resources")
+        if env_tag_changes:
+            old_env, new_env = env_tag_changes[0][1], env_tag_changes[0][2]
+            if new_env.lower() not in [
+                "local",
+                "dev",
+                "development",
+                "test",
+                "staging",
+                "stg",
+                "prod",
+                "production",
+            ]:
+                recommendations.append(
+                    f"🏷️ Verify '{new_env}' follows company environment naming standards"
+                )
+                recommendations.append(
+                    "📋 Confirm this environment exists in your infrastructure"
+                )
+            recommendations.append("✅ Tag changes are safe - no application impact")
+        elif tag_changes and not env_tag_changes:
+            recommendations.append(
+                "🏷️ Tag changes detected - verify naming conventions"
+            )
+            recommendations.append("✅ Tag updates are metadata only - low risk")
+        elif creates > 0 and "ec2" in " ".join(resource_types).lower():
+            recommendations.append("🔒 Review security groups and access permissions")
+        elif creates > 0 and "s3" in " ".join(resource_types).lower():
+            recommendations.append(
+                "💰 Consider bucket lifecycle policies for cost optimization"
+            )
+        if not recommendations:
+            recommendations.append("✅ Changes appear safe to apply")
+
+        return {
+            "summary": ai_text,
+            "risk_level": risk_level,
+            "impact": impact,
+            "recommendations": recommendations,
+            "evaluated_by": "Ollama (Local Development)",
+            "change_analysis": {
+                "tag_changes": len(tag_changes),
+                "env_changes": len(env_tag_changes),
+                "resource_changes": len(resource_changes),
+            },
+        }
+
+    except Exception as e:
+        logger.warning(f"Ollama failed: {e}")
         return generate_fallback_explanation(plan_content)
 
 

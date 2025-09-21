@@ -4,7 +4,7 @@
 > That's what I'm building in 30 days: an open-source CloudOps Assistant.
 > Day by day, feature by feature. Follow along for a front-row seat as we go from zero → full platform.
 
-[![Day](https://img.shields.io/badge/Day-13%2F30-blue)](https://github.com/rmnicholson0612/cloudops-assistant)
+[![Day](https://img.shields.io/badge/Day-15%2F30-blue)](https://github.com/rmnicholson0612/cloudops-assistant)
 [![Status](https://img.shields.io/badge/Status-Building-green)](https://github.com/rmnicholson0612/cloudops-assistant)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
@@ -54,10 +54,10 @@ In a world where "vibe coding" is taking over, code quality suffers and security
 - [x] **Day 11**: Smart Resource Discovery ✅ COMPLETE
 - [x] **Day 12**: Slack Bot Integration with OAuth ✅ COMPLETE
 - [x] **Day 13**: AI-Powered PR Reviews ✅ COMPLETE
-- [ ] **Day 14**: Intelligent Search & Discovery
+- [x] **Day 14**: Local Development & AWS-Free Setup ✅ COMPLETE
 
 ### Week 3: Observability 📊
-- [ ] **Day 15**: AWS Compliance Scanning (Prowler Integration)
+- [x] **Day 15**: Ollama Local AI Integration ✅ COMPLETE
 - [ ] **Day 16**: Uptime Monitoring
 - [ ] **Day 17**: Latency Tracking Dashboard
 - [ ] **Day 18**: Feature Flag Management
@@ -97,7 +97,7 @@ Built for **maximum functionality at minimum cost**:
 
 **Estimated monthly cost for moderate usage: $5-15**
 
-## 🚀 Quick Start (Day 12)
+## 🚀 Quick Start (Day 15)
 
 ### For Users
 ```bash
@@ -121,6 +121,35 @@ make deploy-guided
 # Register/login required to access all features
 ```
 
+### 🔑 GitHub Token Setup (Required for Private Repositories)
+
+To scan private repositories and avoid rate limits, you'll need a GitHub Personal Access Token:
+
+**Classic Personal Access Token (Recommended):**
+1. Go to [GitHub Settings → Developer settings → Personal access tokens → Tokens (classic)](https://github.com/settings/tokens)
+2. Click "Generate new token (classic)"
+3. Select these scopes:
+   - ✅ `repo` - Full control of private repositories
+   - ✅ `read:org` - Read org and team membership (for organization repos)
+   - ✅ `read:user` - Read user profile data
+4. Copy the generated token
+5. In the CloudOps Assistant web interface, paste the token in the "GitHub token" field when scanning repositories
+
+**Fine-grained Personal Access Token (Alternative):**
+1. Go to [GitHub Settings → Developer settings → Personal access tokens → Fine-grained tokens](https://github.com/settings/personal-access-tokens/new)
+2. Select resource owner (your account)
+3. Repository access: "All repositories" or "Selected repositories"
+4. Repository permissions:
+   - ✅ `Contents: Read`
+   - ✅ `Metadata: Read`
+   - ✅ `Pull requests: Read`
+
+**Rate Limits:**
+- Without token: 60 requests/hour (public repos only)
+- With token: 5,000 requests/hour (public + private repos)
+
+**Security Note:** The token is only used for API calls and is not stored permanently.
+
 ### For Developers
 ```bash
 # Clone the repo
@@ -141,9 +170,9 @@ flake8 backend/lambda/
 # See CONTRIBUTING.md for full development guide
 ```
 
-## 📈 Current Features (Day 12)
+## 📈 Current Features (Day 15)
 
-✅ **GitHub Repository Scanning**: Discovers terraform repos automatically
+✅ **GitHub Repository Scanning**: Discovers terraform repos automatically (public + private with token)
 ✅ **Real Terraform Plan Processing**: Upload and analyze actual terraform plans
 ✅ **Drift Detection**: Parse plan output for infrastructure changes
 ✅ **Plan History Tracking**: Store and retrieve historical terraform plans
@@ -206,6 +235,15 @@ flake8 backend/lambda/
 ✅ **Automated Comments**: AI-generated review comments posted directly to GitHub PRs
 ✅ **Centralized Dashboard**: Multi-repository PR review tracking and analytics
 ✅ **Repository Management**: Configure which repositories receive automated reviews
+✅ **Local Development Environment**: 100% AWS-free development using LocalStack
+✅ **Docker Integration**: Complete local setup with Docker Compose
+✅ **Mock Services**: Local DynamoDB, S3, Cognito, and API Gateway simulation
+✅ **Development Workflow**: Hot-reload development server with mock data
+✅ **Ollama Local AI Integration**: Completely offline AI analysis using local Ollama models
+✅ **Privacy-First AI**: Sensitive infrastructure data never leaves your machine
+✅ **Cost-Free AI**: Unlimited AI queries without per-token charges or cloud costs
+✅ **Offline Analysis**: Analyze terraform plans without internet connectivity
+✅ **Hybrid AI Support**: Seamlessly switch between AWS Bedrock and local Ollama models
 
 ## 🎪 What Makes This Different?
 
@@ -229,12 +267,12 @@ Unlike other DevOps tools that cost $$$$ per month:
 ## 📊 Progress Tracker
 
 ```
-Foundation:    ██████████████████████████████████████████████████ 100% (7/7 days)
-AI Layer:      ██████████████████████████████████████████████████ 100% (7/7 days)
+Foundation:    ██████████████████████████████████████████████████ 100.0% (7/7 days)
+AI Layer:      ░░░░░░░░░░  0% (0/7 days)
 Observability: ░░░░░░░░░░  0% (0/7 days)
 Advanced:      ░░░░░░░░░░  0% (0/9 days)
 
-Overall:       ██████████████████████ 43% (13/30 days)
+Overall:       █████░░░░░ 50.0% (15/30 days)
 ```
 
 ## 🎯 The End Goal

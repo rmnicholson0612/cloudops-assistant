@@ -35,10 +35,10 @@ def get_cors_headers():
     }
 
 
-def create_error_response(message):
+def create_error_response(message, status_code=400):
     """Create standardized error response with CORS headers"""
     return {
-        "statusCode": 400,
+        "statusCode": status_code,
         "headers": get_cors_headers(),
         "body": json.dumps({"error": message}),
     }
@@ -98,6 +98,16 @@ def _authenticated_handler(event, context):
                     "target": github_target,
                     "total_repos": len(repos),
                     "terraform_repos": len(terraform_repos),
+                    "debug_repo_names": [
+                        f"{r.get('name')} ({'private' if r.get('private') else 'public'})"
+                        for r in repos[:10]
+                    ],
+                    "debug_info": {
+                        "token_provided": bool(github_token),
+                        "repo_type_used": "all" if github_token else "public",
+                        "user_url": f"https://api.github.com/users/{github_target}/repos?per_page=100&type={'all' if github_token else 'public'}",
+                        "org_url": f"https://api.github.com/orgs/{github_target}/repos?per_page=100&type={'all' if github_token else 'public'}",
+                    },
                     "results": results,
                 }
             ),
@@ -107,46 +117,137 @@ def _authenticated_handler(event, context):
         logger.error("JSON parsing error: %s", sanitize_log_input(str(e)))
         return create_error_response("Invalid JSON in request body")
     except Exception as e:
-        logger.error("Error scanning repos: %s", sanitize_log_input(str(e)))
-        return create_error_response("Failed to scan repositories")
+        error_msg = str(e)
+        logger.error("Error scanning repos: %s", sanitize_log_input(error_msg))
+
+        # Handle rate limiting specifically
+        if "rate limit" in error_msg.lower():
+            return {
+                "statusCode": 429,
+                "headers": get_cors_headers(),
+                "body": json.dumps(
+                    {
+                        "error": "GitHub API rate limit exceeded",
+                        "message": "Please provide a GitHub token for higher rate limits (5000/hour vs 60/hour)",
+                        "suggestion": "Add a GitHub personal access token to increase your rate limit",
+                    }
+                ),
+            }
+
+        return create_error_response(f"Failed to scan repositories: {error_msg}")
 
 
 def discover_repos(github_target, token=None):
     """Discover repos for user or org"""
+    logger.info(f"Discovering repos for target: {github_target}")
+    logger.info(f"Token provided: {'Yes' if token else 'No'}")
+    logger.info(f"Using repo type: {'all' if token else 'public'}")
+
     headers = {"Accept": "application/vnd.github.v3+json"}
     if token:
         headers["Authorization"] = f"token {token}"
-
-    # Try both endpoints in parallel
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        user_future = executor.submit(
-            _fetch_repos,
-            f"https://api.github.com/users/{github_target}/repos?per_page=100",
-            headers,
-        )
-        org_future = executor.submit(
-            _fetch_repos,
-            f"https://api.github.com/orgs/{github_target}/repos?per_page=100",
-            headers,
+        logger.info("Using GitHub token for authentication")
+    else:
+        logger.info(
+            "No GitHub token provided - using public API (60 requests/hour limit)"
         )
 
-        # Return first successful result
-        for future in as_completed([user_future, org_future]):
-            result = future.result()
+    # Try authenticated user endpoint first if token provided, then public endpoints
+    repo_type = "all" if token else "public"
+    auth_user_url = (
+        f"https://api.github.com/user/repos?per_page=100&type={repo_type}"
+        if token
+        else None
+    )
+    user_url = f"https://api.github.com/users/{github_target}/repos?per_page=100&type={repo_type}"
+    org_url = f"https://api.github.com/orgs/{github_target}/repos?per_page=100&type={repo_type}"
+
+    try:
+        # If token provided, try authenticated user endpoint first (gets private repos)
+        if auth_user_url:
+            logger.info(f"Trying authenticated user endpoint: {auth_user_url}")
+            result = _fetch_repos(auth_user_url, headers)
             if result:
-                return result
+                # Filter repos by owner to match target
+                filtered_result = [
+                    repo
+                    for repo in result
+                    if repo.get("owner", {}).get("login") == github_target
+                ]
+                if filtered_result:
+                    logger.info(
+                        f"Successfully found {len(filtered_result)} repos from authenticated endpoint"
+                    )
+                    return filtered_result
 
+        # Try public user endpoint
+        logger.info(f"Trying user endpoint: {user_url}")
+        result = _fetch_repos(user_url, headers)
+        if result:
+            logger.info(f"Successfully found {len(result)} repos from user endpoint")
+            return result
+
+        # If user endpoint fails, try org endpoint
+        logger.info(f"Trying org endpoint: {org_url}")
+        result = _fetch_repos(org_url, headers)
+        if result:
+            logger.info(f"Successfully found {len(result)} repos from org endpoint")
+            return result
+
+    except Exception as e:
+        if "rate limit" in str(e):
+            logger.error("Rate limit exceeded. Please wait or provide a GitHub token.")
+            raise Exception(
+                "GitHub API rate limit exceeded. Please provide a GitHub token for higher limits (5000/hour vs 60/hour)."
+            )
+        raise e
+
+    logger.warning("No repositories found for target")
     return []
 
 
 def _fetch_repos(url, headers):
     """Fetch repositories from a single endpoint"""
     try:
-        response = http.request("GET", url, headers=headers)
+        logger.info(f"Fetching repos from: {url}")
+        logger.info(f"Headers: {dict(headers)}")
+        response = http.request("GET", url, headers=headers, timeout=10)
+        logger.info(f"Response status: {response.status}")
+        logger.info(f"Response headers: {dict(response.headers)}")
+
         if response.status == 200:
-            return json.loads(response.data.decode("utf-8"))
-    except (urllib3.exceptions.HTTPError, json.JSONDecodeError):
-        pass
+            repos = json.loads(response.data.decode("utf-8"))
+            logger.info(f"Found {len(repos)} repositories")
+            # Debug: Log first few repo names and visibility
+            for i, repo in enumerate(repos[:5]):
+                logger.info(
+                    f"Repo {i+1}: {repo.get('name')} (private: {repo.get('private', False)})"
+                )
+            return repos
+        elif response.status == 403:
+            error_data = response.data.decode("utf-8")
+            logger.warning(f"403 Response body: {error_data[:500]}")
+            if "rate limit" in error_data.lower():
+                logger.error(
+                    "GitHub API rate limit exceeded. Please add a GitHub token for higher limits."
+                )
+                raise Exception(
+                    "GitHub API rate limit exceeded. Please provide a GitHub token."
+                )
+            else:
+                logger.warning(f"GitHub API access denied: {error_data[:200]}")
+        elif response.status == 404:
+            logger.info(f"GitHub user/org not found at {url}")
+        else:
+            error_data = response.data.decode("utf-8")
+            logger.warning(
+                f"API request failed with status {response.status}: {error_data[:500]}"
+            )
+            logger.warning(f"Full response headers: {dict(response.headers)}")
+    except Exception as e:
+        if "rate limit" in str(e):
+            raise  # Re-raise rate limit errors
+        logger.error(f"Error fetching repos from {url}: {str(e)}")
     return None
 
 

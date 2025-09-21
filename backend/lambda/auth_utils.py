@@ -22,6 +22,14 @@ def verify_jwt_token(event):
 
         token = auth_header.replace("Bearer ", "")
 
+        # Local development bypass
+        if token == "mock-jwt-token-local-dev":
+            return {
+                "user_id": "local-user",
+                "email": "test@local.dev",
+                "username": "local-user",
+            }, None
+
         # Verify token with Cognito
         response = cognito_client.get_user(AccessToken=token)
 
