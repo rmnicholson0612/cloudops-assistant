@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * Build script to generate config.js from .env file
+ * Build script to generate config.js from template and .env file
+ * Preserves custom configurations while updating auto-generated values
  * Usage: node build-config.js [--local]
  */
 
@@ -11,18 +12,17 @@ const path = require('path');
 // Check if --local flag is provided
 const isLocal = process.argv.includes('--local');
 const envFile = isLocal ? '.env.local' : '.env';
-const configTemplate = isLocal ? 'config.local.js' : 'config.js.example';
+const templateFile = 'config.template.js';
 const outputFile = 'config.js';
 
-console.log(`Building ${outputFile} from ${envFile}...`);
+console.log(`Building ${outputFile} from ${templateFile} and ${envFile}...`);
 
 // Read environment file
 let envContent = '';
 try {
     envContent = fs.readFileSync(path.join(__dirname, envFile), 'utf8');
 } catch (error) {
-    console.error(`Error reading ${envFile}:`, error.message);
-    process.exit(1);
+    console.warn(`Warning: Could not read ${envFile}, using defaults`);
 }
 
 // Parse environment variables
@@ -32,52 +32,66 @@ envContent.split('\n').forEach(line => {
     if (line && !line.startsWith('#')) {
         const [key, ...valueParts] = line.split('=');
         if (key && key.startsWith('VITE_')) {
-            envVars[key] = valueParts.join('=');
+            envVars[key] = valueParts.join('=').replace(/^["']|["']$/g, ''); // Remove quotes
         }
     }
 });
 
-// Generate config.js content
-const configContent = `// CloudOps Assistant Frontend Configuration
-// Generated automatically - DO NOT EDIT MANUALLY
-// Update frontend/${envFile} to change these values
+// Read template file
+let templateContent = '';
+try {
+    templateContent = fs.readFileSync(path.join(__dirname, templateFile), 'utf8');
+} catch (error) {
+    console.error(`Error reading ${templateFile}:`, error.message);
+    process.exit(1);
+}
 
-window.CONFIG = {
-    // API Configuration
-    API_BASE_URL: '${envVars.VITE_API_BASE_URL || 'http://localhost:8080'}',
-    AWS_REGION: '${envVars.VITE_AWS_REGION || 'us-east-1'}',
+// Extract custom configuration from existing config.js if it exists
+let customConfig = '';
+try {
+    const existingConfig = fs.readFileSync(path.join(__dirname, outputFile), 'utf8');
+    const startMarker = '// {{CUSTOM_CONFIG_START}}';
+    const endMarker = '// {{CUSTOM_CONFIG_END}}';
+    const startIndex = existingConfig.indexOf(startMarker);
+    const endIndex = existingConfig.indexOf(endMarker);
 
-    // App Configuration
-    APP_NAME: '${envVars.VITE_APP_NAME || 'CloudOps Assistant'}',
-    VERSION: '${envVars.VITE_VERSION || '1.0.0'}',
-    ENVIRONMENT: '${envVars.VITE_ENVIRONMENT || 'development'}',
-    CURRENT_DAY: ${envVars.VITE_CURRENT_DAY || 14},
-    TOTAL_DAYS: ${envVars.VITE_TOTAL_DAYS || 30},
-
-    // Feature Flags
-    FEATURES: {
-        DRIFT_DETECTION: ${envVars.VITE_ENABLE_DRIFT_DETECTION === 'true'},
-        COST_DASHBOARD: ${envVars.VITE_ENABLE_COST_DASHBOARD === 'true'},
-        AI_FEATURES: ${envVars.VITE_ENABLE_AI_FEATURES === 'true'}
-    },
-
-    // Security
-    MAX_FILE_SIZE: ${envVars.VITE_MAX_FILE_SIZE || 10485760},
-    ALLOWED_FILE_TYPES: ['.txt', '.log', '.out', '.plan'],
-
-    // GitHub Configuration
-    GITHUB_DEFAULT_TARGET: '${envVars.VITE_GITHUB_DEFAULT_TARGET || ''}',
-    GITHUB_DEFAULT_TOKEN: '${envVars.VITE_GITHUB_DEFAULT_TOKEN || ''}',
-
-    // Utility Functions
-    sanitizeInput: function(input) {
-        if (typeof input !== 'string') return input;
-        return input.replace(/[<>"'&]/g, '').substring(0, 1000);
+    if (startIndex !== -1 && endIndex !== -1) {
+        customConfig = existingConfig.substring(startIndex + startMarker.length, endIndex).trim();
+        console.log('✅ Preserved custom configuration');
     }
-};
+} catch (error) {
+    console.log('ℹ️  No existing config.js found, using template defaults');
+}
 
-console.log('CloudOps Assistant Config Loaded:', window.CONFIG.ENVIRONMENT);
-`;
+// Replace template variables
+let configContent = templateContent
+    .replace('{{API_BASE_URL}}', envVars.VITE_API_BASE_URL || 'http://localhost:8080')
+    .replace('{{AWS_REGION}}', envVars.VITE_AWS_REGION || 'us-east-1')
+    .replace('{{APP_NAME}}', envVars.VITE_APP_NAME || 'CloudOps Assistant')
+    .replace('{{VERSION}}', envVars.VITE_VERSION || '1.0.0')
+    .replace('{{ENVIRONMENT}}', envVars.VITE_ENVIRONMENT || 'development')
+    .replace('{{CURRENT_DAY}}', envVars.VITE_CURRENT_DAY || '15')
+    .replace('{{TOTAL_DAYS}}', envVars.VITE_TOTAL_DAYS || '30')
+    .replace('{{DRIFT_DETECTION}}', (envVars.VITE_ENABLE_DRIFT_DETECTION === 'true').toString())
+    .replace('{{COST_DASHBOARD}}', (envVars.VITE_ENABLE_COST_DASHBOARD === 'true').toString())
+    .replace('{{AI_FEATURES}}', (envVars.VITE_ENABLE_AI_FEATURES === 'true').toString())
+    .replace('{{MAX_FILE_SIZE}}', envVars.VITE_MAX_FILE_SIZE || '10485760')
+    .replace('{{GITHUB_DEFAULT_TARGET}}', envVars.VITE_GITHUB_DEFAULT_TARGET || '')
+    .replace('{{GITHUB_DEFAULT_TOKEN}}', envVars.VITE_GITHUB_DEFAULT_TOKEN || '');
+
+// Insert custom configuration
+if (customConfig) {
+    const customMarkerStart = '// {{CUSTOM_CONFIG_START}}';
+    const customMarkerEnd = '// {{CUSTOM_CONFIG_END}}';
+    const startIndex = configContent.indexOf(customMarkerStart);
+    const endIndex = configContent.indexOf(customMarkerEnd);
+
+    if (startIndex !== -1 && endIndex !== -1) {
+        configContent = configContent.substring(0, startIndex + customMarkerStart.length) +
+                      '\n\n' + customConfig + '\n\n    ' +
+                      configContent.substring(endIndex);
+    }
+}
 
 // Write config.js
 try {
@@ -85,6 +99,9 @@ try {
     console.log(`✅ ${outputFile} generated successfully`);
     console.log(`   Environment: ${envVars.VITE_ENVIRONMENT || 'development'}`);
     console.log(`   API URL: ${envVars.VITE_API_BASE_URL || 'http://localhost:8080'}`);
+    if (customConfig) {
+        console.log(`   Custom config: Preserved`);
+    }
 } catch (error) {
     console.error(`Error writing ${outputFile}:`, error.message);
     process.exit(1);

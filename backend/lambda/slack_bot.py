@@ -8,6 +8,15 @@ from datetime import datetime, timedelta
 
 import boto3
 
+# Constants
+DOC_SEARCH_LIMIT = 3
+DOC_CONTENT_PREVIEW = 500
+AI_MAX_TOKENS = 300
+COST_CACHE_HOURS = 24
+DEFAULT_COST_DATA = {"amount": "0.00", "period": "Current month"}
+NO_DOCS_MESSAGE = "I couldn't find documentation matching your query. Try uploading service docs in the CloudOps dashboard."
+DOCS_ERROR_MESSAGE = "Error searching documentation. Please try again."
+
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
@@ -40,41 +49,55 @@ SLACK_BOT_TOKEN = os.environ.get("SLACK_BOT_TOKEN")
 def lambda_handler(event, context):
     """Main Slack bot handler"""
     try:
-        logger.info(f"Received event: {json.dumps(event, default=str)[:1000]}")
+        # Sanitize event data for logging (remove sensitive info)
+        safe_event = {k: v for k, v in event.items() if k not in ["headers", "body"]}
+        logger.info(f"Received event type: {safe_event.get('httpMethod', 'unknown')}")
 
         # Handle Slack URL verification
         if event.get("body"):
             try:
                 body = json.loads(event["body"])
                 if body.get("type") == "url_verification":
-                    return {"statusCode": 200, "body": body["challenge"]}
-            except json.JSONDecodeError:
-                # Not JSON, probably form data
-                logger.info("Body is not JSON, treating as form data")
+                    challenge = body.get("challenge", "")
+                    if not challenge or len(challenge) > 1000:
+                        logger.warning("Invalid challenge in URL verification")
+                        return {
+                            "statusCode": 400,
+                            "body": json.dumps({"error": "Invalid challenge"}),
+                        }
+                    return {"statusCode": 200, "body": challenge}
+            except (json.JSONDecodeError, TypeError) as e:
+                logger.info(f"Body parsing failed: {type(e).__name__}")
 
         # Parse Slack request
         if event.get("httpMethod") == "POST":
             content_type = event.get("headers", {}).get("Content-Type", "")
-            logger.info(f"Content-Type: {content_type}")
 
             if "application/x-www-form-urlencoded" in content_type:
-                # Slash command
-                logger.info("Handling as slash command")
+                logger.info("Processing slash command")
                 return handle_slash_command(event)
             elif "application/json" in content_type and event.get("body"):
-                # Event API
-                logger.info("Handling as event API")
+                logger.info("Processing event API")
                 return handle_event(event)
             else:
-                # Unknown or empty - return success
-                logger.info("Unknown content type or empty body")
+                logger.info("Unknown content type, returning OK")
                 return {"statusCode": 200, "body": "OK"}
 
+        logger.warning(f"Unsupported method: {event.get('httpMethod', 'unknown')}")
         return {"statusCode": 404, "body": json.dumps({"error": "Not found"})}
 
+    except (ValueError, TypeError) as e:
+        logger.error(f"Input validation error: {type(e).__name__}")
+        return {
+            "statusCode": 400,
+            "body": json.dumps({"error": "Invalid request format"}),
+        }
     except Exception as e:
-        logger.error(f"Error: {str(e)}")
-        return {"statusCode": 500, "body": json.dumps({"error": str(e)})}
+        logger.error(f"Unexpected error: {type(e).__name__}")
+        return {
+            "statusCode": 500,
+            "body": json.dumps({"error": "Internal server error"}),
+        }
 
 
 def handle_slash_command(event):
@@ -108,92 +131,107 @@ def handle_slash_command(event):
         }
 
     except Exception as e:
-        logger.error(f"Slash command error: {str(e)}")
+        logger.error(f"Slash command error: {type(e).__name__}")
         return {
             "statusCode": 200,
             "headers": {"Content-Type": "application/json"},
             "body": json.dumps(
-                {"response_type": "ephemeral", "text": f"Error: {str(e)}"}
+                {
+                    "response_type": "ephemeral",
+                    "text": "Command processing failed. Please try again.",
+                }
             ),
         }
 
 
 def handle_cloudops_command(text, user_id, channel_id):
     """Handle /cloudops commands"""
-    parts = text.split() if text else []
-    command = parts[0] if parts else "help"
+    try:
+        parts = text.split() if text else []
+        command = parts[0] if parts else "help"
 
-    if command == "help":
-        return slack_response(
-            {
-                "response_type": "ephemeral",
-                "blocks": [
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": "*🤖 CloudOps Assistant Commands*",
-                        },
-                    },
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": (
-                                "• `/cloudops register` - Link your CloudOps account\n"
-                                "• `/cloudops status` - Infrastructure status\n"
-                                "• `/cloudops drift [repo]` - Check drift\n"
-                                "• `/cloudops costs [service]` - Cost analysis\n"
-                                "• `/cloudops incident [title]` - Start incident\n"
-                                "• `/cloudops explain [plan-id]` - Explain terraform\n"
-                                "• `/cloudops help` - Show this help"
-                            ),
-                        },
-                    },
-                ],
-            }
-        )
-
-    elif command == "register":
-        return handle_register_command(user_id)
-
-    elif command == "status":
-        return require_auth_or_execute(
-            user_id, lambda uid: get_infrastructure_status(uid)
-        )
-
-    elif command == "drift":
-        repo = parts[1] if len(parts) > 1 else None
-        return require_auth_or_execute(user_id, lambda uid: get_drift_status(uid, repo))
-
-    elif command == "costs":
-        service = parts[1] if len(parts) > 1 else None
-        return require_auth_or_execute(
-            user_id, lambda uid: get_cost_status(uid, service)
-        )
-
-    elif command == "incident":
-        title = " ".join(parts[1:]) if len(parts) > 1 else "New Incident"
-        return require_auth_or_execute(user_id, lambda uid: start_incident(uid, title))
-
-    elif command == "explain":
-        plan_id = parts[1] if len(parts) > 1 else None
-        if not plan_id:
+        if command == "help":
             return slack_response(
                 {
                     "response_type": "ephemeral",
-                    "text": "Please provide a plan ID: `/cloudops explain plan-123`",
+                    "blocks": [
+                        {
+                            "type": "section",
+                            "text": {
+                                "type": "mrkdwn",
+                                "text": "*🤖 CloudOps Assistant Commands*",
+                            },
+                        },
+                        {
+                            "type": "section",
+                            "text": {
+                                "type": "mrkdwn",
+                                "text": (
+                                    "• `/cloudops register` - Link your CloudOps account\n"
+                                    "• `/cloudops status` - Infrastructure status\n"
+                                    "• `/cloudops drift [repo]` - Check drift\n"
+                                    "• `/cloudops costs [service]` - Cost analysis\n"
+                                    "• `/cloudops incident [title]` - Start incident\n"
+                                    "• `/cloudops explain [plan-id]` - Explain terraform\n"
+                                    "• `/cloudops help` - Show this help"
+                                ),
+                            },
+                        },
+                    ],
                 }
             )
-        return require_auth_or_execute(
-            user_id, lambda uid: explain_terraform_plan(uid, plan_id)
-        )
 
-    else:
+        elif command == "register":
+            return handle_register_command(user_id)
+
+        elif command == "status":
+            return require_auth_or_execute(user_id, get_infrastructure_status)
+
+        elif command == "drift":
+            repo = parts[1] if len(parts) > 1 else None
+            return require_auth_or_execute(
+                user_id, lambda uid: get_drift_status(uid, repo)
+            )
+
+        elif command == "costs":
+            service = parts[1] if len(parts) > 1 else None
+            return require_auth_or_execute(
+                user_id, lambda uid: get_cost_status(uid, service)
+            )
+
+        elif command == "incident":
+            title = " ".join(parts[1:]) if len(parts) > 1 else "New Incident"
+            return require_auth_or_execute(
+                user_id, lambda uid: start_incident(uid, title)
+            )
+
+        elif command == "explain":
+            plan_id = parts[1] if len(parts) > 1 else None
+            if not plan_id:
+                return slack_response(
+                    {
+                        "response_type": "ephemeral",
+                        "text": "Please provide a plan ID: `/cloudops explain plan-123`",
+                    }
+                )
+            return require_auth_or_execute(
+                user_id, lambda uid: explain_terraform_plan(uid, plan_id)
+            )
+
+        else:
+            return slack_response(
+                {
+                    "response_type": "ephemeral",
+                    "text": f"Unknown command: {command}. Try `/cloudops help`",
+                }
+            )
+
+    except Exception as e:
+        logger.error(f"CloudOps command error: {type(e).__name__}")
         return slack_response(
             {
                 "response_type": "ephemeral",
-                "text": f"Unknown command: {command}. Try `/cloudops help`",
+                "text": "Command processing failed. Please try again.",
             }
         )
 
@@ -211,7 +249,7 @@ def handle_event(event):
         return {"statusCode": 200, "body": ""}
 
     except Exception as e:
-        logger.error(f"Event error: {str(e)}")
+        logger.error(f"Event processing error: {type(e).__name__}")
         return {"statusCode": 200, "body": ""}
 
 
@@ -236,7 +274,7 @@ def handle_mention(event_data):
         return {"statusCode": 200, "body": ""}
 
     except Exception as e:
-        logger.error(f"Mention error: {str(e)}")
+        logger.error(f"Mention processing error: {type(e).__name__}")
         return {"statusCode": 200, "body": ""}
 
 
@@ -289,7 +327,16 @@ def require_auth_or_execute(slack_user_id, command_func):
             }
         )
 
-    return command_func(cloudops_user_id)
+    try:
+        return command_func(cloudops_user_id)
+    except Exception as e:
+        logger.error(f"Command execution error: {type(e).__name__}")
+        return slack_response(
+            {
+                "response_type": "ephemeral",
+                "text": "Command failed to execute. Please try again later.",
+            }
+        )
 
 
 def handle_register_command(slack_user_id):
@@ -320,10 +367,16 @@ def handle_register_command(slack_user_id):
                 }
             )
         except Exception as e:
-            logger.error(f"Error storing token: {str(e)}")
+            logger.error(f"Error storing token: {type(e).__name__}")
+            return slack_response(
+                {
+                    "response_type": "ephemeral",
+                    "text": "Error generating registration link. Please try again.",
+                }
+            )
 
         # Point to local frontend for development
-        link_url = "http://localhost:3000/slack-link.html?token={}".format(token)
+        link_url = f"http://localhost:3000/slack-link.html?token={token}"
 
         return slack_response(
             {
@@ -340,9 +393,7 @@ def handle_register_command(slack_user_id):
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": "<{}|🔗 Click Here to Link Account>\n\n⏰ This secure link expires in 10 minutes.".format(
-                                link_url
-                            ),
+                            "text": f"<{link_url}|🔗 Click Here to Link Account>\n\n⏰ This secure link expires in 10 minutes.",
                         },
                     },
                     {
@@ -362,11 +413,11 @@ def handle_register_command(slack_user_id):
         )
 
     except Exception as e:
-        logger.error(f"Register command error: {str(e)}")
+        logger.error(f"Register command error: {type(e).__name__}")
         return slack_response(
             {
                 "response_type": "ephemeral",
-                "text": f"Error generating registration link: {str(e)}",
+                "text": "Error generating registration link. Please try again.",
             }
         )
 
@@ -429,9 +480,12 @@ def get_infrastructure_status(cloudops_user_id):
         return slack_response({"response_type": "in_channel", "blocks": blocks})
 
     except Exception as e:
-        logger.error(f"Status error: {str(e)}")
+        logger.error(f"Status retrieval error: {type(e).__name__}")
         return slack_response(
-            {"response_type": "ephemeral", "text": f"Error getting status: {str(e)}"}
+            {
+                "response_type": "ephemeral",
+                "text": "Unable to retrieve status. Please try again later.",
+            }
         )
 
 
@@ -499,7 +553,7 @@ def get_drift_status(user_id, repo=None):
         return slack_response(
             {
                 "response_type": "ephemeral",
-                "text": f"Error getting drift status: {str(e)}",
+                "text": "Unable to retrieve drift status. Please try again later.",
             }
         )
 
@@ -539,7 +593,7 @@ def get_cost_status(user_id, service=None):
         return slack_response(
             {
                 "response_type": "ephemeral",
-                "text": f"Error getting cost status: {str(e)}",
+                "text": "Unable to retrieve cost status. Please try again later.",
             }
         )
 
@@ -588,7 +642,10 @@ def start_incident(user_id, title):
     except Exception as e:
         logger.error(f"Incident creation error: {str(e)}")
         return slack_response(
-            {"response_type": "ephemeral", "text": f"Error creating incident: {str(e)}"}
+            {
+                "response_type": "ephemeral",
+                "text": "Unable to create incident. Please try again later.",
+            }
         )
 
 
@@ -679,120 +736,156 @@ def explain_terraform_plan(user_id, plan_id):
     except Exception as e:
         logger.error(f"Plan explanation error: {str(e)}")
         return slack_response(
-            {"response_type": "ephemeral", "text": f"Error explaining plan: {str(e)}"}
+            {
+                "response_type": "ephemeral",
+                "text": "Unable to explain plan. Please try again later.",
+            }
         )
 
 
 def search_documentation(query, user_id):
     """Search service documentation for answers"""
     try:
-        # Simple keyword search in service docs
+        docs = _search_docs_by_query(query)
+        return _generate_ai_response(query, docs) if docs else NO_DOCS_MESSAGE
+    except Exception as e:
+        logger.error(f"Documentation search error: {str(e)}")
+        return DOCS_ERROR_MESSAGE
+
+
+def _search_docs_by_query(query):
+    """Search documentation by query"""
+    try:
         response = service_docs_table.scan(
             FilterExpression="contains(#content, :query)",
             ExpressionAttributeNames={"#content": "content"},
             ExpressionAttributeValues={":query": query.lower()},
-            Limit=3,
+            Limit=DOC_SEARCH_LIMIT,
         )
-
-        docs = response.get("Items", [])
-
-        if not docs:
-            return "I couldn't find documentation matching your query. Try uploading service docs in the CloudOps dashboard."
-
-        # Use AI to generate response
-        try:
-            context = "\n".join([doc.get("content", "")[:500] for doc in docs])
-
-            prompt = f"""Based on this documentation, answer the user's question: "{query}"
-
-Documentation:
-{context}
-
-Provide a helpful, step-by-step answer. If you can't answer from the docs, say so."""
-
-            response = bedrock.invoke_model(
-                modelId="amazon.nova-lite-v1:0",
-                body=json.dumps(
-                    {
-                        "messages": [{"role": "user", "content": [{"text": prompt}]}],
-                        "inferenceConfig": {"maxTokens": 300},
-                    }
-                ),
-            )
-
-            result = json.loads(response["body"].read())
-            return result["output"]["message"]["content"][0]["text"]
-
-        except Exception:
-            # Fallback to simple doc excerpt
-            return f"Found in documentation: {docs[0].get('content', '')[:200]}..."
-
+        return response.get("Items", [])
     except Exception as e:
-        logger.error(f"Documentation search error: {str(e)}")
-        return "Error searching documentation. Please try again."
+        logger.error(f"Error searching documentation: {str(e)}")
+        return []
+
+
+def _generate_ai_response(query, docs):
+    """Generate AI response from documentation"""
+    try:
+        context = _build_context_from_docs(docs)
+        prompt = _build_ai_prompt(query, context)
+        return _invoke_bedrock_model(prompt)
+    except Exception:
+        return _fallback_response(docs)
+
+
+def _build_context_from_docs(docs):
+    """Build context string from documentation"""
+    return "\n".join([doc.get("content", "")[:DOC_CONTENT_PREVIEW] for doc in docs])
+
+
+def _build_ai_prompt(query, context):
+    """Build AI prompt for documentation query"""
+    return (
+        f'Based on this documentation, answer the user\'s question: "{query}"'
+        f"\n\nDocumentation:\n{context}\n\nProvide a helpful, "
+        "step-by-step answer. If you can't answer from the docs, say so."
+    )
+
+
+def _invoke_bedrock_model(prompt):
+    """Invoke Bedrock model with prompt"""
+    try:
+        response = bedrock.invoke_model(
+            modelId="amazon.nova-lite-v1:0",
+            body=json.dumps(
+                {
+                    "messages": [{"role": "user", "content": [{"text": prompt}]}],
+                    "inferenceConfig": {"maxTokens": AI_MAX_TOKENS},
+                }
+            ),
+        )
+        result = json.loads(response["body"].read())
+        return result["output"]["message"]["content"][0]["text"]
+    except (json.JSONDecodeError, KeyError, IndexError) as e:
+        logger.error(f"Error parsing Bedrock response: {str(e)}")
+        raise
+    except Exception as e:
+        logger.error(f"Error invoking Bedrock model: {str(e)}")
+        raise
+
+
+def _fallback_response(docs):
+    """Generate fallback response when AI fails"""
+    if docs:
+        return f"Found in documentation: {docs[0].get('content', '')[:200]}..."
+    return NO_DOCS_MESSAGE
 
 
 def get_current_costs():
     """Get current AWS costs"""
     try:
-        # Cost cache keys are formatted like: current_costs_2025-09_14
-        from datetime import datetime
-
-        now = datetime.now()
-
-        # Try current hour first, then previous hours
-        for hour_offset in range(0, 24):
-            hour = (now.hour - hour_offset) % 24
-            cache_key = f"current_costs_{now.strftime('%Y-%m')}_{hour:02d}"
-            logger.info(f"Trying cost cache key: {cache_key}")
-
-            try:
-                response = cost_cache_table.get_item(Key={"cache_key": cache_key})
-
-                if "Item" in response:
-                    cost_item = response["Item"]
-                    logger.info(f"Found cost data with key {cache_key}: {cost_item}")
-
-                    # Parse the JSON data
-                    if "data" in cost_item:
-                        import json
-
-                        cost_data = json.loads(cost_item["data"])
-                        return {
-                            "amount": f"{cost_data.get('total_cost', 0.00):.2f}",
-                            "period": cost_data.get("period", "Current month"),
-                        }
-                    return cost_item
-            except Exception as e:
-                logger.info(f"Cache key {cache_key} not found: {str(e)}")
-                continue
-
-        logger.info("No cost data found in cache")
-        return {"amount": "0.00", "period": "Current month"}
-
+        return _get_cached_cost_data() or DEFAULT_COST_DATA
     except Exception as e:
         logger.error(f"Cost retrieval error: {str(e)}")
         return {"amount": "0.00", "period": "Error"}
 
 
+def _get_cached_cost_data():
+    """Get cost data from cache, trying recent hours first"""
+    now = datetime.now()
+    for hour_offset in range(COST_CACHE_HOURS):
+        cache_key = _build_cache_key(now, hour_offset)
+        cached_item = _get_cache_item(cache_key)
+        if cached_item:
+            return _format_cost_data(cached_item)
+    return None
+
+
+def _build_cache_key(now, hour_offset):
+    """Build cache key for cost data"""
+    hour = (now.hour - hour_offset) % 24
+    return f"current_costs_{now.strftime('%Y-%m')}_{hour:02d}"
+
+
+def _get_cache_item(cache_key):
+    """Get single cache item, return None on error"""
+    try:
+        response = cost_cache_table.get_item(Key={"cache_key": cache_key})
+        return response.get("Item")
+    except Exception as e:
+        logger.warning(f"Cache lookup failed for {cache_key}: {str(e)}")
+        return None
+
+
+def _format_cost_data(cost_item):
+    """Format cost data from cache item"""
+    if "data" not in cost_item:
+        return cost_item
+
+    try:
+        cost_data = json.loads(cost_item["data"])
+        return {
+            "amount": f"{cost_data.get('total_cost', 0.00):.2f}",
+            "period": cost_data.get("period", "Current month"),
+        }
+    except (json.JSONDecodeError, KeyError) as e:
+        logger.error(f"Error formatting cost data: {str(e)}")
+        return DEFAULT_COST_DATA
+
+
 def get_drift_count(user_id):
     """Get count of repos with drift"""
     try:
-        logger.info(f"Getting drift count for user: {user_id}")
         response = drift_configs_table.scan(
             FilterExpression="user_id = :user_id",
             ExpressionAttributeValues={":user_id": user_id},
         )
 
-        logger.info(f"Drift configs response: {response}")
-
-        drift_count = 0
-        for config in response.get("Items", []):
-            if config.get("last_scan", {}).get("drift_detected"):
-                drift_count += 1
-
-        logger.info(f"Found {drift_count} repos with drift")
-        return drift_count
+        return sum(
+            1
+            for config in response.get("Items", [])
+            if config.get("last_scan", {}).get("drift_detected")
+        )
 
     except Exception as e:
         logger.error(f"Error getting drift count: {str(e)}")

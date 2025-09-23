@@ -11,7 +11,23 @@ from pathlib import Path
 
 def get_stack_output(stack_name: str) -> str:
     """Get API URL from CloudFormation stack output."""
+    # Validate and sanitize stack name to prevent command injection
+    if not stack_name or not isinstance(stack_name, str):
+        raise ValueError("Stack name must be a non-empty string")
+
+    # Allow only alphanumeric characters, hyphens, and underscores
+    import re
+    if not re.match(r'^[a-zA-Z0-9-_]+$', stack_name):
+        raise ValueError("Stack name contains invalid characters")
+
+    if len(stack_name) > 128:  # AWS CloudFormation stack name limit
+        raise ValueError("Stack name too long")
+
     try:
+        # Additional validation - only allow specific characters and length
+        if not re.match(r'^[a-zA-Z0-9][a-zA-Z0-9-]{0,126}[a-zA-Z0-9]$', stack_name) and len(stack_name) > 2:
+            raise ValueError("Invalid stack name format")
+
         result = subprocess.run(
             [
                 "aws", "cloudformation", "describe-stacks",
@@ -21,7 +37,10 @@ def get_stack_output(stack_name: str) -> str:
             ],
             capture_output=True,
             text=True,
-            check=True
+            check=True,
+            shell=False,
+            timeout=30,
+            env={"PATH": os.environ.get("PATH", "")}
         )
         api_url = result.stdout.strip()
         if api_url and api_url != "None":
@@ -81,6 +100,13 @@ def update_frontend_env(api_url: str) -> None:
     print(f"[OK] Updated frontend/.env with API URL: {api_url}")
 
 
+def sanitize_js_string(value: str) -> str:
+    """Sanitize string for safe JavaScript injection."""
+    if not isinstance(value, str):
+        return str(value)
+    # Escape single quotes, backslashes, and newlines for JavaScript
+    return value.replace("\\", "\\\\").replace("'", "\\'").replace("\n", "\\n").replace("\r", "\\r")
+
 def generate_config(stack_name: str, environment: str) -> None:
     """Generate frontend config.js file."""
     print("[INFO] Generating frontend configuration...")
@@ -99,12 +125,12 @@ def generate_config(stack_name: str, environment: str) -> None:
 
 window.CONFIG = {{
     // API Configuration
-    API_BASE_URL: '{api_url}',
+    API_BASE_URL: '{sanitize_js_string(api_url)}',
 
     // App Configuration
-    APP_NAME: '{env_vars.get("APP_NAME", "CloudOps Assistant")}',
-    VERSION: '{env_vars.get("VERSION", "1.0.0")}',
-    ENVIRONMENT: '{environment}',
+    APP_NAME: '{sanitize_js_string(env_vars.get("APP_NAME", "CloudOps Assistant"))}',
+    VERSION: '{sanitize_js_string(env_vars.get("VERSION", "1.0.0"))}',
+    ENVIRONMENT: '{sanitize_js_string(environment)}',
 
     // Feature Flags
     FEATURES: {{
@@ -118,7 +144,7 @@ window.CONFIG = {{
     ALLOWED_FILE_TYPES: ['.txt', '.log', '.out', '.plan'],
 
     // GitHub Configuration
-    GITHUB_TARGETS: '{env_vars.get("GITHUB_TARGETS", "your-github-username")}',
+    GITHUB_TARGETS: '{sanitize_js_string(env_vars.get("GITHUB_TARGETS", "your-github-username"))}',
 
     // Utility Functions
     sanitizeInput: function(input) {{
@@ -169,8 +195,8 @@ window.CONFIG = {{
     API_BASE_URL: 'http://localhost:8080',  // Local development server
 
     // App Configuration
-    APP_NAME: '{env_vars.get("APP_NAME", "CloudOps Assistant")}',
-    VERSION: '{env_vars.get("VERSION", "1.0.0")}',
+    APP_NAME: '{sanitize_js_string(env_vars.get("APP_NAME", "CloudOps Assistant"))}',
+    VERSION: '{sanitize_js_string(env_vars.get("VERSION", "1.0.0"))}',
     ENVIRONMENT: 'development',
 
     // Feature Flags
@@ -185,7 +211,7 @@ window.CONFIG = {{
     ALLOWED_FILE_TYPES: ['.txt', '.log', '.out', '.plan'],
 
     // GitHub Configuration
-    GITHUB_TARGETS: '{env_vars.get("GITHUB_TARGETS", "your-github-username")}',
+    GITHUB_TARGETS: '{sanitize_js_string(env_vars.get("GITHUB_TARGETS", "your-github-username"))}',
 
     // Utility Functions
     sanitizeInput: function(input) {{

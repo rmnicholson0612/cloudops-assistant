@@ -346,6 +346,73 @@ Resources:
         - Key: Feature
           Value: pr-reviews
 
+  # EOL Tracker Tables
+  EOLDatabaseTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: cloudops-assistant-eol-database
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: eol_id
+          AttributeType: S
+        - AttributeName: technology_type
+          AttributeType: S
+      KeySchema:
+        - AttributeName: eol_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: technology-type-index
+          KeySchema:
+            - AttributeName: technology_type
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Service
+          Value: cloudops-assistant
+        - Key: Feature
+          Value: eol-tracker
+
+  EOLScansTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: cloudops-assistant-eol-scans
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: scan_id
+          AttributeType: S
+        - AttributeName: user_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: scan_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: user-id-index
+          KeySchema:
+            - AttributeName: user_id
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Service
+          Value: cloudops-assistant
+        - Key: Feature
+          Value: eol-tracker
+
   # Service Documentation Resources
   ServiceDocsTable:
     Type: AWS::DynamoDB::Table
@@ -596,7 +663,7 @@ Resources:
           DRIFT_CONFIG_TABLE: !Ref DriftConfigTable
           TERRAFORM_PLANS_TABLE: !Ref TerraformPlansTable
       Layers:
-        - arn:aws:lambda:us-east-1:553035198032:layer:git-lambda2:8
+        - !Sub 'arn:aws:lambda:${AWS::Region}:553035198032:layer:git-lambda2:8'
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref DriftConfigTable
@@ -646,7 +713,7 @@ Resources:
       MemorySize: 1024
       Timeout: 900
       Layers:
-        - arn:aws:lambda:us-east-1:553035198032:layer:git-lambda2:8
+        - !Sub 'arn:aws:lambda:${AWS::Region}:553035198032:layer:git-lambda2:8'
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref DriftConfigTable
@@ -675,7 +742,7 @@ Resources:
       MemorySize: 512
       Timeout: 300
       Layers:
-        - arn:aws:lambda:us-east-1:553035198032:layer:git-lambda2:8
+        - !Sub 'arn:aws:lambda:${AWS::Region}:553035198032:layer:git-lambda2:8'
       Policies:
         - Version: '2012-10-17'
           Statement:
@@ -1049,6 +1116,66 @@ Resources:
                 - bedrock:InvokeModel
               Resource: '*'
 
+  # EOL Tracker Function
+  EOLTrackerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/lambda/
+      Handler: eol_tracker.lambda_handler
+      MemorySize: 512
+      Timeout: 300
+      Environment:
+        Variables:
+          EOL_DATABASE_TABLE: !Ref EOLDatabaseTable
+          EOL_SCANS_TABLE: !Ref EOLScansTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref EOLDatabaseTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref EOLScansTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:GetUser
+              Resource: !GetAtt CloudOpsUserPool.Arn
+      Events:
+        EOLProxy:
+          Type: Api
+          Properties:
+            Path: /eol/{proxy+}
+            Method: ANY
+
+  # EOL Scheduler Function
+  EOLSchedulerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/lambda/
+      Handler: eol_scheduler.lambda_handler
+      MemorySize: 256
+      Timeout: 900
+      Environment:
+        Variables:
+          EOL_DATABASE_TABLE: !Ref EOLDatabaseTable
+          EOL_SCANS_TABLE: !Ref EOLScansTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref EOLDatabaseTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref EOLScansTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - lambda:InvokeFunction
+              Resource: !GetAtt EOLTrackerFunction.Arn
+      Events:
+        DailySchedule:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 6 * * ? *)  # Daily at 6 AM UTC
+            Description: Daily EOL database updates and scans
+
   # PR Reviews API Function
   PRReviewsAPIFunction:
     Type: AWS::Serverless::Function
@@ -1145,3 +1272,15 @@ Outputs:
     Value: !Sub 'https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/pr-webhook'
     Export:
       Name: CloudOpsPRWebhookURL
+
+  EOLDatabaseTableName:
+    Description: DynamoDB table for EOL database
+    Value: !Ref EOLDatabaseTable
+    Export:
+      Name: CloudOpsEOLDatabaseTable
+
+  EOLScansTableName:
+    Description: DynamoDB table for EOL scans
+    Value: !Ref EOLScansTable
+    Export:
+      Name: CloudOpsEOLScansTable

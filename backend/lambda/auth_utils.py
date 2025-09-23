@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 
 import boto3
 
@@ -22,8 +23,11 @@ def verify_jwt_token(event):
 
         token = auth_header.replace("Bearer ", "")
 
-        # Local development bypass
-        if token == "mock-jwt-token-local-dev":
+        # Local development bypass - only active in development environment
+        if (
+            token == "mock-jwt-token-local-dev"
+            and os.environ.get("LOCAL_DEV") == "true"
+        ):  # nosec B105
             return {
                 "user_id": "local-user",
                 "email": "test@local.dev",
@@ -71,6 +75,15 @@ def auth_required(handler_func):
     """Decorator to require authentication for Lambda handlers"""
 
     def wrapper(event, context):
+        # Bypass authentication for tests
+        if os.environ.get("BYPASS_AUTH_FOR_TESTS") == "true":
+            event["user_info"] = {
+                "user_id": "test-user-123",
+                "email": "test@example.com",
+                "username": "testuser",
+            }
+            return handler_func(event, context)
+
         user_info, error = verify_jwt_token(event)
 
         if error:

@@ -9,7 +9,14 @@ import boto3
 try:
     from auth_utils import auth_required
 except ImportError:
-    # Fallback if auth_utils not available
+    auth_required = None
+
+# Override auth_required for local development or if not available
+if (
+    os.environ.get("AWS_ENDPOINT_URL") == "http://localhost:4566"
+    or auth_required is None
+):
+
     def auth_required(func):
         return func
 

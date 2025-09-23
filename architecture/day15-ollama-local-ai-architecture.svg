@@ -1,0 +1,212 @@
+<svg width="1200" height="900" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ollamaGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8BC34A;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#689F38;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="aiGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#9C27B0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7B1FA2;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="localGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4CAF50;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2E7D32;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="frontendGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF5722;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#D84315;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="2" dy="4" stdDeviation="3" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#4a5568"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="900" fill="#f8fafc"/>
+
+  <!-- Title -->
+  <text x="600" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#1a202c">CloudOps Assistant - Day 15 Architecture</text>
+  <text x="600" y="55" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#4a5568">Ollama Local AI Integration - Privacy-First Analysis</text>
+
+  <!-- Ollama AI Layer -->
+  <rect x="50" y="80" width="1100" height="100" rx="10" fill="url(#ollamaGradient)" filter="url(#shadow)" stroke="#FFD700" stroke-width="4"/>
+  <text x="70" y="105" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white">OLLAMA LOCAL AI - Privacy-First Terraform Analysis</text>
+  <rect x="1050" y="85" width="40" height="20" rx="5" fill="#FFD700"/>
+  <text x="1070" y="98" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#000">NEW</text>
+  <text x="70" y="125" font-family="Arial, sans-serif" font-size="12" fill="white">Local LLM Models - Zero cloud costs - Unlimited AI queries</text>
+  <text x="70" y="145" font-family="Arial, sans-serif" font-size="12" fill="white">Offline analysis - Data never leaves machine - Hybrid AI support</text>
+  <text x="70" y="165" font-family="Arial, sans-serif" font-size="12" fill="white">Commands: make dev-start-ai - make dev-setup-ai - make dev-test-ai</text>
+
+  <!-- Local Machine Container -->
+  <rect x="50" y="200" width="1100" height="400" fill="none" stroke="#666" stroke-width="2" stroke-dasharray="5,5"/>
+  <text x="60" y="220" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#666">
+    Local Machine (Privacy-First AI Processing)
+  </text>
+
+  <!-- Ollama Container -->
+  <rect x="80" y="240" width="350" height="280" fill="url(#ollamaGradient)" rx="10" filter="url(#shadow)" stroke="#FFD700" stroke-width="3"/>
+  <text x="255" y="265" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white">
+    Ollama AI Container
+  </text>
+  <rect x="350" y="245" width="30" height="15" rx="3" fill="#FFD700"/>
+  <text x="365" y="255" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="#000">NEW</text>
+
+  <!-- Ollama Service -->
+  <rect x="100" y="285" width="140" height="100" fill="#689F38" rx="5"/>
+  <text x="170" y="310" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">
+    Ollama Service
+  </text>
+  <text x="170" y="330" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    :11434
+  </text>
+  <text x="170" y="345" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">
+    REST API
+  </text>
+  <text x="170" y="360" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">
+    Model Management
+  </text>
+  <text x="170" y="375" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">
+    GPU Acceleration
+  </text>
+
+  <!-- AI Models -->
+  <rect x="260" y="285" width="140" height="100" fill="#4CAF50" rx="5"/>
+  <text x="330" y="310" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">
+    AI Models
+  </text>
+  <text x="330" y="330" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    Gemma 2B
+  </text>
+  <text x="330" y="345" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">
+    Llama 3.2 3B
+  </text>
+  <text x="330" y="360" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">
+    Code Llama 7B
+  </text>
+  <text x="330" y="375" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">
+    Auto-downloaded
+  </text>
+
+  <!-- AI Processing -->
+  <rect x="100" y="405" width="300" height="80" fill="url(#aiGradient)" rx="5"/>
+  <text x="250" y="425" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">
+    AI Processing Engine
+  </text>
+  <text x="250" y="445" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    Terraform Analysis &#8226; Risk Assessment &#8226; Explanations
+  </text>
+  <text x="250" y="465" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    Structured Prompts &#8226; Context-aware responses
+  </text>
+
+  <!-- Local API Server -->
+  <rect x="480" y="240" width="320" height="140" fill="url(#localGradient)" rx="10" filter="url(#shadow)" stroke="#FFD700" stroke-width="3"/>
+  <text x="640" y="265" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white">
+    Local API Server
+  </text>
+  <rect x="720" y="245" width="30" height="15" rx="3" fill="#FFD700"/>
+  <text x="735" y="255" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="#000">NEW</text>
+  <text x="640" y="285" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="white">
+    Flask + Python :8080
+  </text>
+  <text x="640" y="305" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    &#8226; Ollama Integration
+  </text>
+  <text x="640" y="320" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    &#8226; AI Provider Switching
+  </text>
+  <text x="640" y="335" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    &#8226; Terraform Analysis
+  </text>
+  <text x="640" y="350" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    &#8226; Privacy Protection
+  </text>
+  <text x="640" y="365" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    &#8226; Fallback to Bedrock
+  </text>
+
+  <!-- Frontend -->
+  <rect x="850" y="240" width="280" height="140" fill="url(#frontendGradient)" rx="10" filter="url(#shadow)" stroke="#FFD700" stroke-width="3"/>
+  <text x="990" y="265" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white">
+    Frontend Interface
+  </text>
+  <rect x="1060" y="245" width="30" height="15" rx="3" fill="#FFD700"/>
+  <text x="1075" y="255" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="#000">NEW</text>
+  <text x="990" y="285" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="white">
+    AI Analysis UI
+  </text>
+  <text x="990" y="305" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    &#8226; AI Provider Toggle
+  </text>
+  <text x="990" y="320" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    &#8226; Privacy Indicators
+  </text>
+  <text x="990" y="335" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    &#8226; Offline Mode Status
+  </text>
+  <text x="990" y="350" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    &#8226; Cost Savings Display
+  </text>
+  <text x="990" y="365" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">
+    &#8226; Model Selection
+  </text>
+
+  <!-- AI Features Layer -->
+  <rect x="50" y="620" width="1100" height="120" rx="10" fill="url(#aiGradient)" filter="url(#shadow)" stroke="#FFD700" stroke-width="4"/>
+  <text x="70" y="645" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white">AI FEATURES - Powered by Local Ollama Models</text>
+  <rect x="1050" y="625" width="40" height="20" rx="5" fill="#FFD700"/>
+  <text x="1070" y="638" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#000">NEW</text>
+  <text x="70" y="665" font-family="Arial, sans-serif" font-size="12" fill="white">Terraform Plan Analysis - Risk Assessment - Plain English Explanations</text>
+  <text x="70" y="685" font-family="Arial, sans-serif" font-size="12" fill="white">Security Analysis - Best Practices - Cost-free unlimited queries</text>
+  <text x="70" y="705" font-family="Arial, sans-serif" font-size="12" fill="white">Privacy-first processing - No data transmission - Hybrid cloud/local support</text>
+  <text x="70" y="725" font-family="Arial, sans-serif" font-size="12" fill="white">Setup: setup_local_ai.py - Models: Auto-download - Memory: 4GB+ recommended</text>
+
+
+  <!-- Connection Lines -->
+  <line x1="600" y1="180" x2="600" y2="200" stroke="#4a5568" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="600" y1="600" x2="600" y2="620" stroke="#4a5568" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+  <!-- Ollama to API Server -->
+  <line x1="430" y1="325" x2="480" y2="325" stroke="#8BC34A" stroke-width="3" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+  <text x="455" y="315" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#8BC34A" font-weight="bold">AI API</text>
+
+  <!-- API Server to Frontend -->
+  <line x1="800" y1="310" x2="850" y2="310" stroke="#4a5568" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+
+  <!-- Day 15 Badge -->
+  <circle cx="1100" cy="130" r="30" fill="#8BC34A" filter="url(#shadow)"/>
+  <text x="1100" y="125" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">DAY</text>
+  <text x="1100" y="140" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white">15/30</text>
+
+  <!-- Ollama AI Features -->
+  <rect x="50" y="760" width="1100" height="60" rx="8" fill="url(#ollamaGradient)" filter="url(#shadow)" stroke="#689F38" stroke-width="2"/>
+  <text x="70" y="780" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">OLLAMA LOCAL AI FEATURES</text>
+  <rect x="1050" y="765" width="40" height="15" rx="3" fill="#FFD700"/>
+  <text x="1070" y="775" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="#000">NEW</text>
+  <text x="70" y="795" font-family="Arial, sans-serif" font-size="11" fill="white">Privacy-first AI - Zero cloud costs - Unlimited queries - Offline analysis</text>
+  <text x="70" y="810" font-family="Arial, sans-serif" font-size="11" fill="white">Local LLM models - Hybrid AI support - Data never leaves machine - GPU acceleration</text>
+
+  <!-- Feature Status -->
+  <text x="50" y="840" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#8BC34A">🤖 Local AI</text>
+  <text x="180" y="840" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#8BC34A">🔒 Privacy First</text>
+  <text x="320" y="840" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#8BC34A">💰 Zero Costs</text>
+  <text x="450" y="840" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#8BC34A">🌐 Offline Mode</text>
+  <text x="580" y="840" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#8BC34A">🔄 Hybrid Support</text>
+  <text x="720" y="840" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#8BC34A">⚡ GPU Accel</text>
+
+  <text x="50" y="860" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#dc2626">🔮 Uptime Monitoring (Day 16)</text>
+  <text x="280" y="860" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#dc2626">🔮 Latency Tracking (Day 17)</text>
+  <text x="520" y="860" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#dc2626">🔮 Feature Flags (Day 18)</text>
+
+  <!-- Footer -->
+  <text x="600" y="880" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#6B7280">
+    Ollama Local AI: Privacy-first analysis + Zero cloud costs + Unlimited queries + Offline processing
+  </text>
+
+  <!-- Social Handles -->
+  <text x="600" y="895" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" font-weight="bold" fill="#667eea">GitHub: @rmnicholson0612 | LinkedIn: @onevoicerandy | Instagram: @onevoicecoding</text>
+</svg>

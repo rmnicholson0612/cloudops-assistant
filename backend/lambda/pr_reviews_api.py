@@ -1,8 +1,12 @@
 import json
+import logging
 import os
 
 import boto3
 from botocore.exceptions import ClientError
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 # Initialize AWS clients
 dynamodb = boto3.resource("dynamodb")
@@ -50,7 +54,7 @@ def get_user_from_token(token):
         response = cognito.get_user(AccessToken=token)
         return response["Username"]
     except ClientError as e:
-        print(f"Error getting user: {e}")
+        logger.error(f"Error getting user: {e}")
         return None
 
 
@@ -132,7 +136,7 @@ def format_ai_review(ai_review):
 
 
 def lambda_handler(event, context):
-    print(f"Event: {json.dumps(event)}")
+    logger.info(f"Event: {json.dumps(event, default=str)[:1000]}")
 
     # Handle CORS preflight
     if event.get("httpMethod") == "OPTIONS":
@@ -161,9 +165,26 @@ def lambda_handler(event, context):
         ):
             # Get specific PR review details via query parameter
             review_id = event["queryStringParameters"]["review_id"]
-            print(f"Getting PR review details for: {review_id}")
 
-            response = table.get_item(Key={"review_id": review_id})
+            # Validate review_id to prevent injection - must be alphanumeric with hyphens/underscores
+            import re
+
+            if not review_id or not isinstance(review_id, str):
+                return error_response(400, "Invalid review ID")
+
+            # Only allow alphanumeric characters, hyphens, and underscores (typical for review IDs)
+            if not re.match(r"^[a-zA-Z0-9_-]+$", review_id) or len(review_id) > 100:
+                return error_response(400, "Invalid review ID format")
+
+            # Sanitize for logging to prevent log injection
+            safe_review_id = re.sub(r"[^a-zA-Z0-9_-]", "", review_id)
+            logger.info(f"Getting PR review details for: {safe_review_id}")
+
+            try:
+                response = table.get_item(Key={"review_id": review_id})
+            except ClientError as e:
+                logger.error(f"DynamoDB error getting review {safe_review_id}: {e}")
+                return error_response(500, "Database error")
 
             if "Item" not in response:
                 return error_response(404, "PR review not found")
@@ -171,10 +192,14 @@ def lambda_handler(event, context):
             review = response["Item"]
 
             # Format AI review for display
-            if "ai_review" in review and isinstance(review["ai_review"], dict):
-                ai_review = review["ai_review"]
-                formatted_review = format_ai_review(ai_review)
-                review["ai_review_formatted"] = formatted_review
+            try:
+                if "ai_review" in review and isinstance(review["ai_review"], dict):
+                    ai_review = review["ai_review"]
+                    formatted_review = format_ai_review(ai_review)
+                    review["ai_review_formatted"] = formatted_review
+            except Exception as e:
+                logger.error(f"Error formatting AI review: {e}")
+                # Continue without formatted review
 
             return success_response(review)
 
@@ -197,5 +222,5 @@ def lambda_handler(event, context):
             return error_response(404, "Endpoint not found")
 
     except Exception as e:
-        print(f"Error: {str(e)}")
+        logger.error(f"Error: {str(e)}")
         return error_response(500, f"Internal server error: {str(e)}")

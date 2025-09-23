@@ -58,6 +58,8 @@ __pycache__/
 env/
 venv/
 .venv/
+htmlcov/
+.coverage
 
 # Node.js
 node_modules/
@@ -76,6 +78,11 @@ frontend/config.js
 Makefile
 DAILY_TEMPLATE.md
 .amazonq/
+
+# Local AI Configuration
+local/ai_config.env
+local/server.log
+local/*.log
 
 # Environment Files
 backend/.env

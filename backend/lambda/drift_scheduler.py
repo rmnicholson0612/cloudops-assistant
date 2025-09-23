@@ -63,8 +63,15 @@ def get_monitored_repos():
         dynamodb = boto3.resource("dynamodb")
         table = dynamodb.Table("cloudops-assistant-drift-config")
 
-        response = table.scan(Limit=100)
-        return response.get("Items", [])
+        items = []
+        response = table.scan()
+        items.extend(response.get("Items", []))
+
+        while "LastEvaluatedKey" in response:
+            response = table.scan(ExclusiveStartKey=response["LastEvaluatedKey"])
+            items.extend(response.get("Items", []))
+
+        return items
 
     except Exception as e:
         logger.error(f"Failed to get monitored repos: {str(e)}")

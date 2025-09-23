@@ -4,7 +4,10 @@
 function formatAIAnalysisText(text) {
     if (!text) return '';
 
-    return text
+    // First sanitize the input to prevent XSS
+    const sanitizedText = sanitizeHTML(text);
+
+    return sanitizedText
         .replace(/&amp;#39;/g, "'")
         .replace(/&quot;/g, '"')
         .replace(/&amp;/g, '&')
@@ -17,16 +20,24 @@ function formatAIAnalysisText(text) {
         .replace(/\n/g, '<br>');
 }
 
+// Sanitize HTML to prevent XSS
+function sanitizeHTML(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
 // Format structured analysis object
 function formatStructuredAnalysis(analysis) {
     let html = '<div class="structured-analysis">';
 
     // Risk Level
     if (analysis.risk_level) {
-        const riskColor = {'LOW': '#28a745', 'MEDIUM': '#ffc107', 'HIGH': '#dc3545'}[analysis.risk_level] || '#6c757d';
-        const riskEmoji = {'LOW': '✅', 'MEDIUM': '⚠️', 'HIGH': '🚨'}[analysis.risk_level] || '⚠️';
+        const riskLevel = sanitizeHTML(analysis.risk_level);
+        const riskColor = {'LOW': '#28a745', 'MEDIUM': '#ffc107', 'HIGH': '#dc3545'}[riskLevel] || '#6c757d';
+        const riskEmoji = {'LOW': '✅', 'MEDIUM': '⚠️', 'HIGH': '🚨'}[riskLevel] || '⚠️';
         html += `<div style="margin-bottom: 20px;"><h4>${riskEmoji} Risk Assessment</h4>`;
-        html += `<p><strong>Risk Level:</strong> <span style="color: ${riskColor}; font-weight: bold;">${analysis.risk_level}</span></p></div>`;
+        html += `<p><strong>Risk Level:</strong> <span style="color: ${riskColor}; font-weight: bold;">${riskLevel}</span></p></div>`;
     }
 
     // Security Issues
@@ -35,7 +46,7 @@ function formatStructuredAnalysis(analysis) {
         if (analysis.security_issues.length > 0) {
             html += '<ul>';
             analysis.security_issues.forEach(issue => {
-                html += `<li>${issue}</li>`;
+                html += `<li>${sanitizeHTML(issue)}</li>`;
             });
             html += '</ul>';
         } else {
@@ -50,7 +61,7 @@ function formatStructuredAnalysis(analysis) {
         if (analysis.violations.length > 0) {
             html += '<ul>';
             analysis.violations.forEach(violation => {
-                html += `<li>${violation}</li>`;
+                html += `<li>${sanitizeHTML(violation)}</li>`;
             });
             html += '</ul>';
         } else {
@@ -65,7 +76,7 @@ function formatStructuredAnalysis(analysis) {
         if (analysis.recommendations.length > 0) {
             html += '<ul>';
             analysis.recommendations.forEach(rec => {
-                html += `<li>${rec}</li>`;
+                html += `<li>${sanitizeHTML(rec)}</li>`;
             });
             html += '</ul>';
         } else {
@@ -76,7 +87,7 @@ function formatStructuredAnalysis(analysis) {
 
     // If no expected fields, show raw data
     if (!analysis.risk_level && !analysis.security_issues && !analysis.violations && !analysis.recommendations) {
-        html += '<h4>🔍 Analysis Data</h4><pre style="white-space: pre-wrap; word-wrap: break-word;">' + JSON.stringify(analysis, null, 2) + '</pre>';
+        html += '<h4>🔍 Analysis Data</h4><pre style="white-space: pre-wrap; word-wrap: break-word;">' + sanitizeHTML(JSON.stringify(analysis, null, 2)) + '</pre>';
     }
 
     html += '</div>';
@@ -93,7 +104,9 @@ async function loadPRReviews() {
     }
 
     try {
-        const response = await fetch(`${CONFIG.API_BASE_URL}/pr-reviews`, {
+        // Ensure HTTPS for secure connections
+        const secureApiUrl = CONFIG.API_BASE_URL.replace(/^http:/, 'https:');
+        const response = await fetch(`${secureApiUrl}/pr-reviews`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
@@ -148,15 +161,17 @@ async function loadPRReviews() {
 }
 
 async function showPRReviewDetails(reviewId) {
-    console.log('showPRReviewDetails called with:', reviewId);
     const token = localStorage.getItem('access_token');
     if (!token) {
-        alert('Please login to view PR review details');
+        const displayElement = document.getElementById('pr-reviews-display');
+        displayElement.innerHTML = '<div class="pr-error"><i class="fas fa-lock"></i> Please login to view PR review details</div>';
         return;
     }
 
     try {
-        const response = await fetch(`${CONFIG.API_BASE_URL}pr-reviews?review_id=${encodeURIComponent(reviewId)}`, {
+        // Ensure HTTPS for secure connections
+        const secureApiUrl = CONFIG.API_BASE_URL.replace(/^http:/, 'https:');
+        const response = await fetch(`${secureApiUrl}/pr-reviews?review_id=${encodeURIComponent(reviewId)}`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
@@ -167,10 +182,12 @@ async function showPRReviewDetails(reviewId) {
         if (response.ok) {
             showPRReviewModal(data);
         } else {
-            alert(`Error loading PR review: ${data.error}`);
+            const displayElement = document.getElementById('pr-reviews-display');
+            displayElement.innerHTML = `<div class="pr-error"><i class="fas fa-exclamation-triangle"></i> Error loading PR review: ${data.error}</div>`;
         }
     } catch (error) {
-        alert('Failed to load PR review details');
+        const displayElement = document.getElementById('pr-reviews-display');
+        displayElement.innerHTML = '<div class="pr-error"><i class="fas fa-times-circle"></i> Failed to load PR review details</div>';
     }
 }
 
@@ -224,14 +241,14 @@ function showPRReviewModal(reviewData) {
                 <div class="pr-review-metadata" style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                         <div>
-                            <p><strong>Repository:</strong> ${reviewData.repo_name}</p>
-                            <p><strong>PR:</strong> <a href="${reviewData.pr_url}" target="_blank">#${reviewData.pr_number} - ${reviewData.pr_title}</a></p>
-                            <p><strong>Author:</strong> ${reviewData.author}</p>
+                            <p><strong>Repository:</strong> ${sanitizeHTML(reviewData.repo_name)}</p>
+                            <p><strong>PR:</strong> <a href="${sanitizeHTML(reviewData.pr_url)}" target="_blank">#${sanitizeHTML(reviewData.pr_number)} - ${sanitizeHTML(reviewData.pr_title)}</a></p>
+                            <p><strong>Author:</strong> ${sanitizeHTML(reviewData.author)}</p>
                         </div>
                         <div>
-                            <p><strong>Status:</strong> ${reviewData.status}</p>
-                            <p><strong>Risk Level:</strong> <span style="color: ${riskColor}; font-weight: bold;">${reviewData.risk_level}</span></p>
-                            <p><strong>Analyzed:</strong> ${date}</p>
+                            <p><strong>Status:</strong> ${sanitizeHTML(reviewData.status)}</p>
+                            <p><strong>Risk Level:</strong> <span style="color: ${riskColor}; font-weight: bold;">${sanitizeHTML(reviewData.risk_level)}</span></p>
+                            <p><strong>Analyzed:</strong> ${sanitizeHTML(date)}</p>
                         </div>
                     </div>
                     ${reviewData.comment_posted ?
@@ -241,11 +258,11 @@ function showPRReviewModal(reviewData) {
                 </div>
 
                 <div class="ai-analysis-content" style="line-height: 1.6; font-size: 14px; padding: 15px; background: #f8f9fa; border-radius: 6px;">
-                    ${analysisHtml}
+                    <!-- Analysis content will be safely inserted via textContent -->
                 </div>
 
                 <div class="pr-actions" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #dee2e6;">
-                    <a href="${reviewData.pr_url}" target="_blank" class="btn btn-primary">
+                    <a href="${sanitizeHTML(reviewData.pr_url)}" target="_blank" class="btn btn-primary">
                         <i class="fab fa-github"></i> View on GitHub
                     </a>
                     <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">
@@ -256,12 +273,21 @@ function showPRReviewModal(reviewData) {
         </div>`;
 
     document.body.appendChild(modal);
+
+    // Safely insert the analysis content after modal is created
+    const analysisContainer = modal.querySelector('.ai-analysis-content');
+    if (analysisContainer && analysisHtml) {
+        // Always use textContent for safety - no HTML execution
+        analysisContainer.textContent = analysisHtml.replace(/<[^>]*>/g, '');
+    }
 }
 
 function setupWebhookURL() {
     const webhookUrlInput = document.getElementById('webhook-url');
     if (webhookUrlInput && CONFIG.API_BASE_URL) {
-        webhookUrlInput.value = `${CONFIG.API_BASE_URL}/pr-webhook`;
+        // Ensure HTTPS for secure connections - force HTTPS protocol
+        const secureUrl = CONFIG.API_BASE_URL.replace(/^https?:/, 'https:');
+        webhookUrlInput.value = `${secureUrl}/pr-webhook`;
     }
 }
 
@@ -309,7 +335,15 @@ async function savePRConfig() {
     }
 
     try {
-        const response = await fetch(`${CONFIG.API_BASE_URL}/pr-config`, {
+        // Ensure HTTPS for secure connections - validate and force HTTPS protocol
+        let secureApiUrl = CONFIG.API_BASE_URL;
+        if (!secureApiUrl.startsWith('https://')) {
+            secureApiUrl = secureApiUrl.replace(/^https?:\/\//, 'https://');
+            if (!secureApiUrl.startsWith('https://')) {
+                secureApiUrl = 'https://' + secureApiUrl;
+            }
+        }
+        const response = await fetch(`${secureApiUrl}/pr-config`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

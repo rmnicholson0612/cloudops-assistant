@@ -35,6 +35,8 @@ def init_localstack_from_template():
         script_path = os.path.join(os.path.dirname(__file__), 'deploy-to-localstack.py')
         subprocess.run(['python', script_path], check=True)
     except Exception as e:
+        import logging
+        logging.error(f"LocalStack initialization failed: {e}")
         print(f"LocalStack initialization failed: {e}")
 
 # Initialize LocalStack on startup
@@ -53,6 +55,17 @@ class MockContext:
     def __init__(self):
         self.function_name = 'local-dev'
         self.aws_request_id = 'local-request-id'
+
+# Consistent mock token for local development
+LOCAL_DEV_TOKEN = os.environ.get('LOCAL_DEV_TOKEN', 'mock-jwt-token-local-dev-12345')
+
+def validate_local_auth(headers):
+    """Validate authorization for local development"""
+    auth_header = headers.get('Authorization', '')
+    if not auth_header.startswith('Bearer '):
+        return False
+    token = auth_header.replace('Bearer ', '')
+    return token == LOCAL_DEV_TOKEN
 
 def create_api_event(method, path, body=None, headers=None):
     """Create API Gateway event structure"""
@@ -92,12 +105,10 @@ def auth_handler(subpath):
             'user': {'id': 'local-user', 'email': 'test@local.dev'}
         })
     elif subpath == 'login':
-        import secrets
-        token = f'mock-jwt-token-{secrets.token_hex(8)}'
         return jsonify({
-            'access_token': token,
-            'id_token': token,
-            'refresh_token': f'mock-refresh-token-{secrets.token_hex(8)}',
+            'access_token': LOCAL_DEV_TOKEN,
+            'id_token': LOCAL_DEV_TOKEN,
+            'refresh_token': f'{LOCAL_DEV_TOKEN}-refresh',
             'user': {'id': 'local-user', 'email': 'test@local.dev'},
             'message': 'Login successful'
         })
@@ -120,8 +131,8 @@ def upload_plan():
 
         # Add mock authorization for local development
         headers = dict(request.headers)
-        import secrets
-        headers['Authorization'] = f'Bearer mock-jwt-token-{secrets.token_hex(8)}'
+        if not validate_local_auth(headers):
+            headers['Authorization'] = f'Bearer {LOCAL_DEV_TOKEN}'
 
         event = create_api_event('POST', '/upload-plan', request.get_json(), headers)
 
@@ -129,7 +140,9 @@ def upload_plan():
         return jsonify(json.loads(result['body'])), result['statusCode']
     except Exception as e:
         print(f"Plan processor error: {e}")
-        return jsonify({'error': f'Plan processing failed: {str(e)}'}), 500
+        import html
+        safe_error = html.escape(str(e))[:200]
+        return jsonify({'error': f'Plan processing failed: {safe_error}'}), 500
 
 @app.route('/costs/<path:subpath>', methods=['GET', 'OPTIONS'])
 def costs(subpath):
@@ -184,7 +197,8 @@ def plan_history(repo):
         os.environ['TERRAFORM_PLANS_TABLE'] = 'cloudops-assistant-terraform-plans'
 
         headers = dict(request.headers)
-        headers['Authorization'] = 'Bearer mock-jwt-token-local-dev'
+        if not validate_local_auth(headers):
+            headers['Authorization'] = f'Bearer {LOCAL_DEV_TOKEN}'
 
         event = create_api_event('GET', f'/plan-history/{repo}', None, headers)
         event['pathParameters'] = {'repo': repo}
@@ -205,7 +219,8 @@ def plan_details(plan_id):
         os.environ['TERRAFORM_PLANS_TABLE'] = 'cloudops-assistant-terraform-plans'
 
         headers = dict(request.headers)
-        headers['Authorization'] = 'Bearer mock-jwt-token-local-dev'
+        if not validate_local_auth(headers):
+            headers['Authorization'] = f'Bearer {LOCAL_DEV_TOKEN}'
 
         event = create_api_event('GET', f'/plan-details/{plan_id}', None, headers)
         event['pathParameters'] = {'plan_id': plan_id}
@@ -249,7 +264,8 @@ def drift(subpath):
         os.environ['TERRAFORM_PLANS_TABLE'] = 'cloudops-assistant-terraform-plans'
 
         headers = dict(request.headers)
-        headers['Authorization'] = 'Bearer mock-jwt-token-local-dev'
+        if not validate_local_auth(headers):
+            headers['Authorization'] = f'Bearer {LOCAL_DEV_TOKEN}'
 
         # Only parse JSON for POST/PUT requests
         body = None
@@ -278,7 +294,9 @@ def drift(subpath):
         print(f"Drift config error: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({'error': f'Drift endpoint failed: {str(e)}'}), 500
+        import html
+        safe_error = html.escape(str(e))[:200]
+        return jsonify({'error': f'Drift endpoint failed: {safe_error}'}), 500
 
 @app.route('/scan-repos', methods=['POST', 'OPTIONS'])
 def scan_repos():
@@ -289,7 +307,8 @@ def scan_repos():
         from repo_scanner import lambda_handler
 
         headers = dict(request.headers)
-        headers['Authorization'] = 'Bearer mock-jwt-token-local-dev'
+        if not validate_local_auth(headers):
+            headers['Authorization'] = f'Bearer {LOCAL_DEV_TOKEN}'
 
         event = create_api_event('POST', '/scan-repos', request.get_json(), headers)
         result = lambda_handler(event, MockContext())
@@ -315,7 +334,8 @@ def ai_endpoints(subpath):
         os.environ['TERRAFORM_PLANS_TABLE'] = 'cloudops-assistant-terraform-plans'
 
         headers = dict(request.headers)
-        headers['Authorization'] = 'Bearer mock-jwt-token-local-dev'
+        if not validate_local_auth(headers):
+            headers['Authorization'] = f'Bearer {LOCAL_DEV_TOKEN}'
 
         # Only parse JSON for POST requests
         body = None
@@ -329,7 +349,9 @@ def ai_endpoints(subpath):
         print(f"AI handler error: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({'error': f'AI endpoint failed: {str(e)}'}), 500
+        import html
+        safe_error = html.escape(str(e))[:200]
+        return jsonify({'error': f'AI endpoint failed: {safe_error}'}), 500
 
 
 
@@ -349,7 +371,8 @@ def postmortems(subpath=None):
         os.environ['TERRAFORM_PLANS_TABLE'] = 'cloudops-assistant-terraform-plans'
 
         headers = dict(request.headers)
-        headers['Authorization'] = 'Bearer mock-jwt-token-local-dev'
+        if not validate_local_auth(headers):
+            headers['Authorization'] = f'Bearer {LOCAL_DEV_TOKEN}'
 
         path = f'/postmortems/{subpath}' if subpath else '/postmortems'
         event = create_api_event(request.method, path, request.get_json(), headers)
@@ -360,7 +383,9 @@ def postmortems(subpath=None):
         return jsonify(json.loads(result['body'])), result['statusCode']
     except Exception as e:
         print(f"Postmortem handler error: {e}")
-        return jsonify({'postmortems': [], 'message': f'Postmortem endpoint: {subpath}'})
+        import html
+        safe_subpath = html.escape(str(subpath)) if subpath else 'None'
+        return jsonify({'postmortems': [], 'message': f'Postmortem endpoint: {safe_subpath}'})
 
 def handle_local_postmortem_chat():
     """Handle postmortem chat using local AI"""
@@ -411,7 +436,8 @@ def discovery(subpath):
         os.environ['RESOURCE_DISCOVERY_TABLE'] = 'cloudops-assistant-resource-discovery'
 
         headers = dict(request.headers)
-        headers['Authorization'] = 'Bearer mock-jwt-token-local-dev'
+        if not validate_local_auth(headers):
+            headers['Authorization'] = f'Bearer {LOCAL_DEV_TOKEN}'
 
         # Only parse JSON for POST requests
         body = None
@@ -437,19 +463,25 @@ def discovery(subpath):
         print(f"Discovery handler error: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({'error': f'Discovery endpoint failed: {str(e)}'}), 500
+        import html
+        safe_error = html.escape(str(e))[:200]
+        return jsonify({'error': f'Discovery endpoint failed: {safe_error}'}), 500
 
 @app.route('/docs/<path:subpath>', methods=['GET', 'POST', 'DELETE', 'OPTIONS'])
 def docs(subpath):
     if request.method == 'OPTIONS':
         return '', 200
-    return jsonify({'services': [], 'message': f'Docs endpoint: {subpath}'})
+    import html
+    safe_subpath = html.escape(str(subpath))
+    return jsonify({'services': [], 'message': f'Docs endpoint: {safe_subpath}'})
 
 @app.route('/slack/<path:subpath>', methods=['GET', 'POST', 'OPTIONS'])
 def slack(subpath):
     if request.method == 'OPTIONS':
         return '', 200
-    return jsonify({'message': f'Slack endpoint: {subpath}'})
+    import html
+    safe_subpath = html.escape(str(subpath))
+    return jsonify({'message': f'Slack endpoint: {safe_subpath}'})
 
 @app.route('/pr-webhook', methods=['POST', 'OPTIONS'])
 def pr_webhook():
@@ -468,7 +500,8 @@ def pr_reviews(subpath=None):
         os.environ['PR_REVIEWS_TABLE'] = 'cloudops-assistant-pr-reviews'
 
         headers = dict(request.headers)
-        headers['Authorization'] = 'Bearer mock-jwt-token-local-dev'
+        if not validate_local_auth(headers):
+            headers['Authorization'] = f'Bearer {LOCAL_DEV_TOKEN}'
 
         path = f'/pr-reviews/{subpath}' if subpath else '/pr-reviews'
         event = create_api_event(request.method, path, request.get_json(), headers)
@@ -479,7 +512,9 @@ def pr_reviews(subpath=None):
         return jsonify(json.loads(result['body'])), result['statusCode']
     except Exception as e:
         print(f"PR reviews handler error: {e}")
-        return jsonify({'reviews': [], 'message': f'PR reviews endpoint: {subpath}'})
+        import html
+        safe_subpath = html.escape(str(subpath)) if subpath else 'None'
+        return jsonify({'reviews': [], 'message': f'PR reviews endpoint: {safe_subpath}'})
 
 @app.route('/users', methods=['GET', 'OPTIONS'])
 def users():
@@ -490,7 +525,8 @@ def users():
         from postmortem_generator import lambda_handler
 
         headers = dict(request.headers)
-        headers['Authorization'] = 'Bearer mock-jwt-token-local-dev'
+        if not validate_local_auth(headers):
+            headers['Authorization'] = f'Bearer {LOCAL_DEV_TOKEN}'
 
         event = create_api_event('GET', '/users', None, headers)
         result = lambda_handler(event, MockContext())
@@ -498,6 +534,36 @@ def users():
     except Exception as e:
         print(f"Users handler error: {e}")
         return jsonify({'users': [{'id': 'local-user', 'email': 'test@local.dev'}]})
+
+@app.route('/eol/<path:subpath>', methods=['GET', 'POST', 'DELETE', 'OPTIONS'])
+def eol_tracker(subpath):
+    if request.method == 'OPTIONS':
+        return '', 200
+
+    try:
+        from eol_tracker import lambda_handler
+        os.environ['EOL_DATABASE_TABLE'] = 'cloudops-assistant-eol-database'
+        os.environ['EOL_SCANS_TABLE'] = 'cloudops-assistant-eol-scans'
+
+        headers = dict(request.headers)
+        if not validate_local_auth(headers):
+            headers['Authorization'] = f'Bearer {LOCAL_DEV_TOKEN}'
+
+        # Only parse JSON for POST requests
+        body = None
+        if request.method == 'POST' and request.content_length:
+            body = request.get_json()
+
+        event = create_api_event(request.method, f'/eol/{subpath}', body, headers)
+        result = lambda_handler(event, MockContext())
+        return jsonify(json.loads(result['body'])), result['statusCode']
+    except Exception as e:
+        print(f"EOL tracker handler error: {e}")
+        import traceback
+        traceback.print_exc()
+        import html
+        safe_error = html.escape(str(e))[:200]
+        return jsonify({'error': f'EOL tracker endpoint failed: {safe_error}'}), 500
 
 @app.route('/compare-plans/<plan1>/<plan2>', methods=['GET', 'OPTIONS'])
 def compare_plans(plan1, plan2):
@@ -509,7 +575,8 @@ def compare_plans(plan1, plan2):
         os.environ['TERRAFORM_PLANS_TABLE'] = 'cloudops-assistant-terraform-plans'
 
         headers = dict(request.headers)
-        headers['Authorization'] = 'Bearer mock-jwt-token-local-dev'
+        if not validate_local_auth(headers):
+            headers['Authorization'] = f'Bearer {LOCAL_DEV_TOKEN}'
 
         event = create_api_event('GET', f'/compare-plans/{plan1}/{plan2}', None, headers)
         event['pathParameters'] = {'plan1': plan1, 'plan2': plan2}
@@ -518,7 +585,13 @@ def compare_plans(plan1, plan2):
         return jsonify(json.loads(result['body'])), result['statusCode']
     except Exception as e:
         print(f"Plan comparison error: {e}")
-        return jsonify({'diff': [f'Comparison failed: {str(e)}'], 'plan1': {'timestamp': '2024-01-01'}, 'plan2': {'timestamp': '2024-01-02'}}), 500
+        # Properly escape error message to prevent XSS
+        import html
+        safe_error = html.escape(str(e))[:200]
+        # Also escape plan IDs to prevent XSS through URL parameters
+        safe_plan1 = html.escape(str(plan1))[:50]
+        safe_plan2 = html.escape(str(plan2))[:50]
+        return jsonify({'diff': [f'Comparison failed: {safe_error}'], 'plan1': {'id': safe_plan1, 'timestamp': '2024-01-01'}, 'plan2': {'id': safe_plan2, 'timestamp': '2024-01-02'}}), 500
 
 @app.route('/health', methods=['GET'])
 def health():
@@ -526,7 +599,7 @@ def health():
         'status': 'healthy',
         'mode': 'local-development',
         'localstack': 'http://localhost:4566',
-        'endpoints': ['/auth', '/upload-plan', '/costs', '/plan-history', '/budgets', '/drift', '/ai', '/postmortems', '/discovery', '/docs', '/slack', '/pr-reviews']
+        'endpoints': ['/auth', '/upload-plan', '/costs', '/plan-history', '/budgets', '/drift', '/ai', '/postmortems', '/discovery', '/docs', '/slack', '/pr-reviews', '/eol']
     })
 
 @app.route('/debug/drift', methods=['GET'])
@@ -603,9 +676,15 @@ def get_budget_status_with_mock_costs():
                 if percentage_used >= threshold:
                     exceeded_thresholds.append(threshold)
 
+            import html
+            # Sanitize all user-controlled fields to prevent XSS
+            safe_budget_id = html.escape(str(item.get('budget_id', '')))[:50]
+            safe_budget_name = html.escape(str(item.get('budget_name', '')))[:100]
+            safe_service_filter = html.escape(str(item.get('service_filter', 'all')))[:50]
+
             budgets.append({
-                'budget_id': item['budget_id'],
-                'budget_name': item['budget_name'],
+                'budget_id': safe_budget_id,
+                'budget_name': safe_budget_name,
                 'monthly_limit': monthly_limit,
                 'current_spending': mock_current_spending,
                 'percentage_used': round(percentage_used, 1),
@@ -613,7 +692,7 @@ def get_budget_status_with_mock_costs():
                 'days_remaining': 12,
                 'burn_rate_daily': 2.25,
                 'exceeded_thresholds': exceeded_thresholds,
-                'service_filter': item.get('service_filter', 'all'),
+                'service_filter': safe_service_filter,
                 'status': 'over_budget' if percentage_used > 100 else 'warning' if exceeded_thresholds else 'on_track'
             })
 
@@ -670,7 +749,8 @@ def handle_budget_configure():
         os.environ['COST_CACHE_TABLE'] = 'cloudops-assistant-cost-cache'
 
         headers = dict(request.headers)
-        headers['Authorization'] = 'Bearer mock-jwt-token-local-dev'
+        if not validate_local_auth(headers):
+            headers['Authorization'] = f'Bearer {LOCAL_DEV_TOKEN}'
 
         event = create_api_event('POST', '/budgets/configure', request.get_json(), headers)
 
@@ -689,7 +769,8 @@ def handle_budget_delete(subpath):
         os.environ['BUDGET_CONFIG_TABLE'] = 'cloudops-assistant-budget-config'
 
         headers = dict(request.headers)
-        headers['Authorization'] = 'Bearer mock-jwt-token-local-dev'
+        if not validate_local_auth(headers):
+            headers['Authorization'] = f'Bearer {LOCAL_DEV_TOKEN}'
 
         budget_id = subpath.replace('delete/', '')
         event = create_api_event('DELETE', f'/budgets/{subpath}', None, headers)
@@ -711,7 +792,8 @@ def handle_budget_update(subpath):
         os.environ['COST_CACHE_TABLE'] = 'cloudops-assistant-cost-cache'
 
         headers = dict(request.headers)
-        headers['Authorization'] = 'Bearer mock-jwt-token-local-dev'
+        if not validate_local_auth(headers):
+            headers['Authorization'] = f'Bearer {LOCAL_DEV_TOKEN}'
 
         budget_id = subpath.replace('update/', '')
         event = create_api_event('PUT', f'/budgets/{subpath}', request.get_json(), headers)

@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="config.js"></script>
+    <script src="eol-functions.js"></script>
 </head>
 <body>
     <div class="dashboard">
@@ -58,6 +59,10 @@
             <button class="tab-btn" data-tab="monitoring">
                 <i class="fas fa-chart-line"></i>
                 Monitoring
+            </button>
+            <button class="tab-btn" data-tab="eol-tracker">
+                <i class="fas fa-clock"></i>
+                EOL Tracker
             </button>
             <button class="tab-btn" data-tab="automation">
                 <i class="fas fa-cogs"></i>
@@ -470,6 +475,131 @@
                         <i class="fas fa-globe"></i>
                         <h4>Status Page</h4>
                         <p>Day 21 - Public status</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- EOL Tracker Tab -->
+            <div class="tab-content" id="eol-tracker">
+                <div class="feature-header">
+                    <h2><i class="fas fa-clock"></i> End-of-Life Tracker</h2>
+                    <p>Monitor EOL dates for your technology stack - languages, dependencies, and infrastructure</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-chart-pie"></i> Risk Overview</h3>
+                    </div>
+                    <div class="card-body">
+                        <div id="eol-risk-summary" class="eol-risk-summary">
+                            <div class="risk-item critical">
+                                <span class="risk-count" id="eol-critical-count">0</span>
+                                <span class="risk-label">Critical</span>
+                            </div>
+                            <div class="risk-item high">
+                                <span class="risk-count" id="eol-high-count">0</span>
+                                <span class="risk-label">High</span>
+                            </div>
+                            <div class="risk-item medium">
+                                <span class="risk-count" id="eol-medium-count">0</span>
+                                <span class="risk-label">Medium</span>
+                            </div>
+                            <div class="risk-item low">
+                                <span class="risk-count" id="eol-low-count">0</span>
+                                <span class="risk-label">Low</span>
+                            </div>
+                            <div class="risk-item unknown">
+                                <span class="risk-count" id="eol-unknown-count">0</span>
+                                <span class="risk-label">Unknown</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-search"></i> Scan Repositories</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="eol-scan-form">
+                            <div class="form-group">
+                                <label for="eol-github-target">GitHub User/Org/Repo:</label>
+                                <input type="text" id="eol-github-target" placeholder="username or username/repo">
+                            </div>
+                            <div class="form-group">
+                                <label for="eol-github-token">GitHub Token (optional):</label>
+                                <input type="password" id="eol-github-token" placeholder="ghp_xxxxxxxxxxxx">
+                                <small>Required for private repos and higher rate limits</small>
+                            </div>
+                            <button class="btn btn-primary" onclick="scanForEOL()">
+                                <i class="fas fa-search"></i> Scan for EOL Issues
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-exclamation-triangle"></i> Recent High-Risk Findings</h3>
+                    </div>
+                    <div class="card-body">
+                        <div id="eol-recent-findings">
+                            <p class="loading">Loading recent findings...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-table"></i> Technology Inventory</h3>
+                        <div class="table-controls">
+                            <input type="text" id="eol-search-filter" placeholder="Search technologies..." class="search-input">
+                            <select id="eol-risk-filter" class="filter-select">
+                                <option value="all">All Risk Levels</option>
+                                <option value="critical">Critical</option>
+                                <option value="high">High</option>
+                                <option value="medium">Medium</option>
+                                <option value="low">Low</option>
+                                <option value="unknown">Unknown</option>
+                            </select>
+                            <select id="eol-repo-filter" class="filter-select">
+                                <option value="all">All Repositories</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="eol-technology-table-container">
+                            <table id="eol-technology-table" class="technology-inventory-table">
+                                <thead>
+                                    <tr>
+                                        <th>Technology</th>
+                                        <th>Version</th>
+                                        <th>Type</th>
+                                        <th>Repository</th>
+                                        <th>Risk Level</th>
+                                        <th>EOL Date</th>
+                                        <th>Source</th>
+                                        <th>Last Seen</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="eol-technology-table-body">
+                                    <tr>
+                                        <td colspan="8" class="loading">Loading technology inventory...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-history"></i> Repository Summary</h3>
+                    </div>
+                    <div class="card-body">
+                        <div id="eol-scan-history">
+                            <p class="loading">Loading repository summary...</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1964,6 +2094,15 @@ terraform plan > plan.txt</code>
                         console.error('setupWebhookURL function not found');
                     }
                 }
+
+                // Load EOL data when EOL tracker tab is activated
+                if (tabId === 'eol-tracker') {
+                    loadEOLDashboard();
+                    loadEOLScanHistory();
+                    loadEOLTechnologyInventory();
+                    setupEOLTableFilters();
+                    autoPopulateEOLForm();
+                }
             });
         });
 
@@ -1985,6 +2124,7 @@ terraform plan > plan.txt</code>
 
             // Auto-populate GitHub form fields from config
             autoPopulateGitHubForm();
+            autoPopulateEOLForm();
 
             // Load cost data if costs tab is initially active
             if (document.querySelector('.tab-btn[data-tab="costs"]').classList.contains('active')) {
@@ -2004,6 +2144,16 @@ terraform plan > plan.txt</code>
                             scanRepos();
                         }
                     }, 2000);
+                }
+
+                // Auto-scan EOL on page load if configured and logged in
+                if (CONFIG.GITHUB_DEFAULT_TARGET && CONFIG.GITHUB_DEFAULT_TARGET.trim() !== '') {
+                    setTimeout(() => {
+                        if (document.querySelector('.tab-btn[data-tab="eol-tracker"]').classList.contains('active')) {
+                            console.log('Auto-scanning EOL on page load...');
+                            scanForEOL();
+                        }
+                    }, 3000);
                 }
             } else {
                 // Show login message immediately if not logged in
@@ -3627,6 +3777,26 @@ terraform plan > plan.txt</code>
             }
         }
 
+        // Auto-populate EOL form fields from config
+        function autoPopulateEOLForm() {
+            const eolTargetInput = document.getElementById('eol-github-target');
+            const eolTokenInput = document.getElementById('eol-github-token');
+
+            if (!eolTargetInput || !eolTokenInput) return; // Elements might not exist yet
+
+            // Auto-populate target if configured
+            if (CONFIG.GITHUB_DEFAULT_TARGET && CONFIG.GITHUB_DEFAULT_TARGET.trim() !== '') {
+                eolTargetInput.value = CONFIG.GITHUB_DEFAULT_TARGET;
+                eolTargetInput.style.backgroundColor = '#e8f5e8'; // Light green to show it's pre-filled
+            }
+
+            // Auto-populate token if configured
+            if (CONFIG.GITHUB_DEFAULT_TOKEN && CONFIG.GITHUB_DEFAULT_TOKEN.trim() !== '') {
+                eolTokenInput.value = CONFIG.GITHUB_DEFAULT_TOKEN;
+                eolTokenInput.style.backgroundColor = '#e8f5e8'; // Light green to show it's pre-filled
+            }
+        }
+
         // Clear GitHub form fields
         function clearGitHubForm() {
             const githubTargetInput = document.getElementById('github-target');
@@ -3639,6 +3809,30 @@ terraform plan > plan.txt</code>
 
             // Clear scan results
             document.getElementById('scan-results').innerHTML = 'Enter a GitHub username or organization to scan for terraform repositories...';
+        }
+
+        // Helper functions for EOL formatting
+        function formatTechType(techType) {
+            if (!techType) return 'Unknown';
+            return techType.replace('-', ' ').replace('_', ' ');
+        }
+
+        function formatEOLDate(eolDate) {
+            if (!eolDate) return 'N/A';
+            return formatDate(eolDate);
+        }
+
+        function isEOLSoon(eolDate) {
+            if (!eolDate) return false;
+            const eol = new Date(eolDate);
+            const now = new Date();
+            const sixMonths = 6 * 30 * 24 * 60 * 60 * 1000;
+            return eol - now < sixMonths && eol > now;
+        }
+
+        function isEOLExpired(eolDate) {
+            if (!eolDate) return false;
+            return new Date(eolDate) < new Date();
         }
 
         // Auto-populate GitHub targets
@@ -3658,6 +3852,540 @@ terraform plan > plan.txt</code>
                 githubInput.setAttribute('list', 'github-targets');
                 githubInput.parentNode.appendChild(datalist);
             }
+        }
+
+        // EOL Tracker Functions
+        async function loadEOLDashboard() {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                updateEOLRiskSummary({critical: 0, high: 0, medium: 0, low: 0, unknown: 0});
+                document.getElementById('eol-recent-findings').innerHTML = '<div class="eol-error"><i class="fas fa-lock"></i> Please login to view EOL data</div>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/eol/dashboard`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    updateEOLRiskSummary(data.risk_summary);
+                    displayEOLRecentFindings(data.recent_findings);
+                } else {
+                    console.error('Failed to load EOL dashboard:', data.error);
+                    document.getElementById('eol-recent-findings').innerHTML = `<div class="eol-error">Error: ${data.error}</div>`;
+                }
+            } catch (error) {
+                console.error('EOL dashboard error:', error);
+                document.getElementById('eol-recent-findings').innerHTML = '<div class="eol-error">Failed to load EOL data</div>';
+            }
+        }
+
+        function updateEOLRiskSummary(riskSummary) {
+            document.getElementById('eol-critical-count').textContent = riskSummary.critical || 0;
+            document.getElementById('eol-high-count').textContent = riskSummary.high || 0;
+            document.getElementById('eol-medium-count').textContent = riskSummary.medium || 0;
+            document.getElementById('eol-low-count').textContent = riskSummary.low || 0;
+            document.getElementById('eol-unknown-count').textContent = riskSummary.unknown || 0;
+        }
+
+        function displayEOLRecentFindings(findings) {
+            const container = document.getElementById('eol-recent-findings');
+
+            if (!findings || findings.length === 0) {
+                container.innerHTML = '<p>No high-risk EOL findings found. Great job!</p>';
+                return;
+            }
+
+            const html = findings.map(finding => `
+                <div class="eol-finding-item ${finding.risk_level}">
+                    <div class="eol-finding-header">
+                        <span class="technology">${finding.technology}</span>
+                        <span class="version">v${finding.version}</span>
+                        <span class="risk-badge ${finding.risk_level}">${finding.risk_level.toUpperCase()}</span>
+                    </div>
+                    <div class="eol-finding-details">
+                        <span class="repo">📁 ${finding.repo_name}</span>
+                        <span class="eol-date">⏰ EOL: ${formatDate(finding.eol_date)}</span>
+                    </div>
+                </div>
+            `).join('');
+
+            container.innerHTML = html;
+        }
+
+        async function scanForEOL() {
+            const githubTarget = document.getElementById('eol-github-target').value.trim();
+            const githubToken = document.getElementById('eol-github-token').value.trim();
+
+            if (!githubTarget) {
+                alert('Please enter a GitHub username, organization, or repository');
+                return;
+            }
+
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                alert('Please login to scan for EOL issues');
+                return;
+            }
+
+            const scanBtn = document.querySelector('button[onclick="scanForEOL()"]');
+            const originalText = scanBtn.innerHTML;
+            scanBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scanning...';
+            scanBtn.disabled = true;
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/eol/scan`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        github_target: githubTarget,
+                        github_token: githubToken || null
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert(`Scan completed! Scanned ${data.scanned_repos} repositories, found ${data.total_technologies || 0} technologies.`);
+                    loadEOLDashboard();
+                    loadEOLScanHistory();
+                    loadEOLTechnologyInventory();
+                } else {
+                    alert(`Scan failed: ${data.error}`);
+                }
+            } catch (error) {
+                console.error('EOL scan error:', error);
+                alert('Scan failed. Please try again.');
+            } finally {
+                scanBtn.innerHTML = originalText;
+                scanBtn.disabled = false;
+            }
+        }
+
+        async function loadEOLScanHistory() {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                document.getElementById('eol-scan-history').innerHTML = '<div class="eol-error"><i class="fas fa-lock"></i> Please login to view scan history</div>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/eol/scans`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    displayEOLScanHistory(data.scans);
+                } else {
+                    console.error('Failed to load EOL scan history:', data.error);
+                    document.getElementById('eol-scan-history').innerHTML = `<div class="eol-error">Error: ${data.error}</div>`;
+                }
+            } catch (error) {
+                console.error('EOL scan history error:', error);
+                document.getElementById('eol-scan-history').innerHTML = '<div class="eol-error">Failed to load scan history</div>';
+            }
+        }
+
+        function displayEOLScanHistory(scans) {
+            const container = document.getElementById('eol-scan-history');
+
+            if (!scans || scans.length === 0) {
+                container.innerHTML = '<p>No scans yet. Run your first scan above!</p>';
+                return;
+            }
+
+            // Group scans by repo and get the latest scan for each
+            const repoMap = new Map();
+            scans.forEach(scan => {
+                const existing = repoMap.get(scan.repo_name);
+                if (!existing || scan.scan_date > existing.scan_date) {
+                    repoMap.set(scan.repo_name, scan);
+                }
+            });
+
+            const uniqueRepos = Array.from(repoMap.values());
+
+            const html = uniqueRepos.map(scan => {
+                const totalFindings = scan.findings ? scan.findings.length : 0;
+
+                return `
+                    <div class="eol-scan-item">
+                        <div class="eol-scan-header">
+                            <span class="repo-name">📁 ${scan.repo_name}</span>
+                            <span class="scan-date">${formatDate(scan.scan_date)}</span>
+                        </div>
+                        <div class="eol-scan-stats">
+                            <span class="findings-count">${totalFindings} findings</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = html;
+        }
+
+        async function loadEOLTechnologyInventory() {
+            try {
+                const token = localStorage.getItem('access_token');
+                if (!token) {
+                    document.getElementById('eol-technology-table-body').innerHTML =
+                        '<tr><td colspan="8">Please login to view technology inventory</td></tr>';
+                    return;
+                }
+
+                const response = await fetch(`${CONFIG.API_BASE_URL}/eol/scans`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    displayEOLTechnologyTable(data.scans);
+                } else {
+                    document.getElementById('eol-technology-table-body').innerHTML =
+                        `<tr><td colspan="8">Error loading data: ${data.error}</td></tr>`;
+                }
+            } catch (error) {
+                document.getElementById('eol-technology-table-body').innerHTML =
+                    '<tr><td colspan="8">Error loading technology inventory</td></tr>';
+            }
+        }
+
+        function displayEOLTechnologyTable(scans) {
+            const tbody = document.getElementById('eol-technology-table-body');
+
+            if (!scans || scans.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="technology-inventory-empty">No technology data available. Run a scan to populate the inventory.</td></tr>';
+                return;
+            }
+
+            // Flatten all findings from all scans and deduplicate
+            const findingsMap = new Map();
+            scans.forEach(scan => {
+                if (scan.findings) {
+                    scan.findings.forEach(finding => {
+                        const key = `${finding.technology}-${finding.version}-${scan.repo_name}-${finding.tech_type}-${finding.file_path || ''}-${finding.line_number || ''}`;
+                        const existingFinding = findingsMap.get(key);
+
+                        const currentFinding = {
+                            ...finding,
+                            repo_name: scan.repo_name,
+                            scan_date: scan.scan_date
+                        };
+
+                        // Keep the most recent finding
+                        if (!existingFinding || scan.scan_date > existingFinding.scan_date) {
+                            findingsMap.set(key, currentFinding);
+                        }
+                    });
+                }
+            });
+
+            const allFindings = Array.from(findingsMap.values());
+
+            // Sort by risk level (critical first) then by technology name
+            const riskOrder = { 'critical': 0, 'high': 1, 'medium': 2, 'low': 3, 'unknown': 4 };
+            allFindings.sort((a, b) => {
+                const riskDiff = (riskOrder[a.risk_level] || 4) - (riskOrder[b.risk_level] || 4);
+                if (riskDiff !== 0) return riskDiff;
+                return (a.technology || '').localeCompare(b.technology || '');
+            });
+
+            const html = allFindings.map(finding => `
+                <tr data-risk="${finding.risk_level}" data-tech="${finding.technology?.toLowerCase()}">
+                    <td class="tech-name">${finding.technology || 'Unknown'}</td>
+                    <td><span class="version">${finding.version || 'Unknown'}</span></td>
+                    <td><span class="tech-type">${formatTechType(finding.tech_type)}</span></td>
+                    <td>📁 ${finding.repo_name || 'Unknown'}</td>
+                    <td class="risk-level">
+                        <span class="risk-badge ${finding.risk_level || 'info'}">${(finding.risk_level || 'unknown').toUpperCase()}</span>
+                    </td>
+                    <td class="eol-date ${isEOLSoon(finding.eol_date) ? 'soon' : ''} ${isEOLExpired(finding.eol_date) ? 'expired' : ''}">${formatEOLDate(finding.eol_date)}</td>
+                    <td class="source-link">${finding.github_url ? `<a href="${finding.github_url}" target="_blank" title="View in GitHub"><i class="fab fa-github"></i> ${finding.file_path || 'View'}</a>` : (finding.file_path || 'N/A')}</td>
+                    <td class="last-seen">${formatDate(finding.last_seen || finding.scan_date)}</td>
+                </tr>
+            `).join('');
+
+            tbody.innerHTML = html;
+        }
+
+        function displayEOLTechnologyTable(scans) {
+            const tbody = document.getElementById('eol-technology-table-body');
+
+            if (!scans || scans.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7">No technology data available. Run a scan to populate the inventory.</td></tr>';
+                return;
+            }
+
+            // Flatten all findings from all scans
+            const allFindings = [];
+            scans.forEach(scan => {
+                if (scan.findings) {
+                    scan.findings.forEach(finding => {
+                        allFindings.push({
+                            ...finding,
+                            repo_name: scan.repo_name,
+                            scan_date: scan.scan_date
+                        });
+                    });
+                }
+            });
+
+            // Sort by risk level (critical first) then by technology name
+            const riskOrder = { 'critical': 0, 'high': 1, 'medium': 2, 'low': 3, 'unknown': 4 };
+            allFindings.sort((a, b) => {
+                const riskDiff = (riskOrder[a.risk_level] || 4) - (riskOrder[b.risk_level] || 4);
+                if (riskDiff !== 0) return riskDiff;
+                return (a.technology || '').localeCompare(b.technology || '');
+            });
+
+            const html = allFindings.map(finding => `
+                <tr class="eol-finding-row" data-risk="${finding.risk_level}" data-tech="${finding.technology?.toLowerCase()}">
+                    <td class="tech-name">${finding.technology || 'Unknown'}</td>
+                    <td class="version">${finding.version || 'Unknown'}</td>
+                    <td class="tech-type">${formatTechType(finding.tech_type)}</td>
+                    <td class="repo-name">📁 ${finding.repo_name || 'Unknown'}</td>
+                    <td class="risk-level">
+                        <span class="risk-badge ${finding.risk_level}">${(finding.risk_level || 'unknown').toUpperCase()}</span>
+                    </td>
+                    <td class="eol-date">${formatEOLDate(finding.eol_date)}</td>
+                    <td class="last-seen">${formatDate(finding.last_seen || finding.scan_date)}</td>
+                </tr>
+            `).join('');
+
+            tbody.innerHTML = html;
+        }
+
+        function setupEOLTableFilters() {
+            const searchFilter = document.getElementById('eol-search-filter');
+            const riskFilter = document.getElementById('eol-risk-filter');
+
+            if (!searchFilter || !riskFilter) return;
+
+            function applyEOLFilters() {
+                const searchTerm = searchFilter.value.toLowerCase();
+                const riskLevel = riskFilter.value;
+                const rows = document.querySelectorAll('.eol-finding-row');
+
+                rows.forEach(row => {
+                    const techName = row.dataset.tech || '';
+                    const rowRisk = row.dataset.risk || 'unknown';
+
+                    const matchesSearch = !searchTerm || techName.includes(searchTerm);
+                    const matchesRisk = riskLevel === 'all' || rowRisk === riskLevel;
+
+                    row.style.display = (matchesSearch && matchesRisk) ? '' : 'none';
+                });
+            }
+
+            searchFilter.addEventListener('input', applyEOLFilters);
+            riskFilter.addEventListener('change', applyEOLFilters);
+        }
+
+        function formatTechType(techType) {
+            if (!techType) return 'Unknown';
+            return techType.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
+
+        function formatEOLDate(eolDate) {
+            if (!eolDate) return 'No EOL Date';
+            try {
+                const date = new Date(eolDate);
+                const now = new Date();
+                const diffTime = date - now;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                if (diffDays < 0) {
+                    return `⚠️ ${date.toLocaleDateString()} (${Math.abs(diffDays)} days ago)`;
+                } else if (diffDays < 90) {
+                    return `🔥 ${date.toLocaleDateString()} (${diffDays} days)`;
+                } else if (diffDays < 365) {
+                    return `⚡ ${date.toLocaleDateString()} (${diffDays} days)`;
+                } else {
+                    return `✅ ${date.toLocaleDateString()}`;
+                }
+            } catch {
+                return eolDate;
+            }
+        }
+
+        async function loadEOLTechnologyInventory() {
+            try {
+                const token = localStorage.getItem('access_token');
+                if (!token) {
+                    document.getElementById('eol-technology-table-body').innerHTML =
+                        '<tr><td colspan="7">Please login to view technology inventory</td></tr>';
+                    return;
+                }
+
+                const response = await fetch(`${CONFIG.API_BASE_URL}/eol/scans`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    displayEOLTechnologyTable(data.scans);
+                } else {
+                    document.getElementById('eol-technology-table-body').innerHTML =
+                        `<tr><td colspan="7">Error loading data: ${data.error}</td></tr>`;
+                }
+            } catch (error) {
+                document.getElementById('eol-technology-table-body').innerHTML =
+                    '<tr><td colspan="7">Error loading technology inventory</td></tr>';
+            }
+        }
+
+        function displayEOLTechnologyTable(scans) {
+            const tbody = document.getElementById('eol-technology-table-body');
+
+            if (!scans || scans.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7">No technology data available. Run a scan to populate the inventory.</td></tr>';
+                return;
+            }
+
+            // Flatten all findings from all scans
+            const allFindings = [];
+            scans.forEach(scan => {
+                if (scan.findings) {
+                    scan.findings.forEach(finding => {
+                        allFindings.push({
+                            ...finding,
+                            repo_name: scan.repo_name,
+                            scan_date: scan.scan_date
+                        });
+                    });
+                }
+            });
+
+            // Sort by risk level (critical first) then by technology name
+            const riskOrder = { 'critical': 0, 'high': 1, 'medium': 2, 'low': 3, 'unknown': 4 };
+            allFindings.sort((a, b) => {
+                const riskDiff = (riskOrder[a.risk_level] || 4) - (riskOrder[b.risk_level] || 4);
+                if (riskDiff !== 0) return riskDiff;
+                return (a.technology || '').localeCompare(b.technology || '');
+            });
+
+            const html = allFindings.map(finding => `
+                <tr class="eol-finding-row" data-risk="${finding.risk_level}" data-tech="${finding.technology?.toLowerCase()}">
+                    <td class="tech-name">${finding.technology || 'Unknown'}</td>
+                    <td class="version">${finding.version || 'Unknown'}</td>
+                    <td class="tech-type">${formatTechType(finding.tech_type)}</td>
+                    <td class="repo-name">📁 ${finding.repo_name || 'Unknown'}</td>
+                    <td class="risk-level">
+                        <span class="risk-badge ${finding.risk_level}">${(finding.risk_level || 'unknown').toUpperCase()}</span>
+                    </td>
+                    <td class="eol-date">${formatEOLDate(finding.eol_date)}</td>
+                    <td class="last-seen">${formatDate(finding.last_seen || finding.scan_date)}</td>
+                </tr>
+            `).join('');
+
+            tbody.innerHTML = html;
+        }
+
+        function setupEOLTableFilters() {
+            const searchFilter = document.getElementById('eol-search-filter');
+            const riskFilter = document.getElementById('eol-risk-filter');
+
+            if (!searchFilter || !riskFilter) return;
+
+            function applyEOLFilters() {
+                const searchTerm = searchFilter.value.toLowerCase();
+                const riskLevel = riskFilter.value;
+                const rows = document.querySelectorAll('.eol-finding-row');
+
+                rows.forEach(row => {
+                    const techName = row.dataset.tech || '';
+                    const rowRisk = row.dataset.risk || 'unknown';
+
+                    const matchesSearch = !searchTerm || techName.includes(searchTerm);
+                    const matchesRisk = riskLevel === 'all' || rowRisk === riskLevel;
+
+                    row.style.display = (matchesSearch && matchesRisk) ? '' : 'none';
+                });
+            }
+
+            searchFilter.addEventListener('input', applyEOLFilters);
+            riskFilter.addEventListener('change', applyEOLFilters);
+        }
+
+        function formatTechType(techType) {
+            if (!techType) return 'Unknown';
+            return techType.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
+
+        function formatEOLDate(eolDate) {
+            if (!eolDate) return 'No EOL Date';
+            try {
+                const date = new Date(eolDate);
+                const now = new Date();
+                const diffTime = date - now;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                if (diffDays < 0) {
+                    return `⚠️ ${date.toLocaleDateString()} (${Math.abs(diffDays)} days ago)`;
+                } else if (diffDays < 90) {
+                    return `🔥 ${date.toLocaleDateString()} (${diffDays} days)`;
+                } else if (diffDays < 365) {
+                    return `⚡ ${date.toLocaleDateString()} (${diffDays} days)`;
+                } else {
+                    return `✅ ${date.toLocaleDateString()}`;
+                }
+            } catch {
+                return eolDate;
+            }
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return 'Unknown';
+            try {
+                return new Date(dateString).toLocaleDateString();
+            } catch {
+                return dateString;
+            }
+        }
+
+        function formatSource(source) {
+            console.log('formatSource v3.0 called with:', source);
+
+            if (!source || source === 'N/A') {
+                console.log('Returning N/A for source:', source);
+                return 'N/A';
+            }
+
+            // If it's a GitHub URL, create a clickable link
+            if (source.includes('github.com')) {
+                console.log('Processing GitHub URL:', source);
+                const urlParts = source.split('/');
+                const fileWithLine = urlParts[urlParts.length - 1] || 'View';
+                const fileName = fileWithLine.split('#')[0];
+                const lineNumber = source.includes('#L') ? source.split('#L')[1] : '';
+
+                const displayName = lineNumber ? `${fileName}#L${lineNumber}` : fileName;
+                console.log('Generated display name:', displayName);
+                const result = `<a href="${source}" target="_blank" class="source-link">🔗 ${displayName}</a>`;
+                console.log('Final formatted result:', result);
+                return result;
+            }
+
+            console.log('Returning source as-is:', source);
+            return source;
         }
 
         // Service Documentation Functions
@@ -5034,6 +5762,116 @@ terraform plan > plan.txt</code>
             } catch (error) {
                 alert('Failed to save configuration');
             }
+        }
+
+        function displayEOLTechnologyTable(scans) {
+            const tbody = document.getElementById('eol-technology-table-body');
+
+            if (!scans || scans.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="technology-inventory-empty">No technology data available. Run a scan to populate the inventory.</td></tr>';
+                return;
+            }
+
+            // Collect repository names for dropdown
+            const repoNames = new Set();
+
+            // Flatten all findings from all scans and deduplicate
+            const findingsMap = new Map();
+            scans.forEach(scan => {
+                if (scan.findings) {
+                    scan.findings.forEach(finding => {
+                        const key = `${finding.technology}-${finding.version}-${scan.repo_name}-${finding.tech_type}-${finding.file_path || ''}-${finding.line_number || ''}`;
+                        const existingFinding = findingsMap.get(key);
+
+                        const currentFinding = {
+                            ...finding,
+                            repo_name: scan.repo_name,
+                            scan_date: scan.scan_date
+                        };
+
+                        // Collect repository name
+                        repoNames.add(scan.repo_name);
+
+                        // Keep the most recent finding
+                        if (!existingFinding || scan.scan_date > existingFinding.scan_date) {
+                            findingsMap.set(key, currentFinding);
+                        }
+                    });
+                }
+            });
+
+            // Populate repository dropdown
+            populateEOLRepoFilter(repoNames);
+
+            const allFindings = Array.from(findingsMap.values());
+
+            if (allFindings.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="technology-inventory-empty">No technologies found in scanned repositories.</td></tr>';
+                return;
+            }
+
+            // Sort by risk level and technology name
+            const riskOrder = { 'critical': 0, 'high': 1, 'medium': 2, 'low': 3, 'unknown': 4 };
+            allFindings.sort((a, b) => {
+                const riskDiff = (riskOrder[a.risk_level] || 4) - (riskOrder[b.risk_level] || 4);
+                if (riskDiff !== 0) return riskDiff;
+                return a.technology.localeCompare(b.technology);
+            });
+
+            const rows = allFindings.map(finding => {
+                const riskClass = finding.risk_level || 'unknown';
+                const eolDate = finding.eol_date ? formatDate(finding.eol_date) : 'N/A';
+                const techType = formatTechType(finding.tech_type);
+                const lastSeen = formatDate(finding.last_seen || finding.scan_date);
+
+                return `
+                    <tr class="technology-row ${riskClass}" data-risk="${riskClass}" data-technology="${finding.technology.toLowerCase()}">
+                        <td class="technology">${finding.technology}</td>
+                        <td class="version">${finding.version}</td>
+                        <td class="tech-type">${techType}</td>
+                        <td class="repository">${finding.repo_name}</td>
+                        <td class="risk-level">
+                            <span class="risk-badge ${riskClass}">${(finding.risk_level || 'unknown').toUpperCase()}</span>
+                        </td>
+                        <td class="eol-date">${eolDate}</td>
+                        <td class="source">${formatSource(finding.source || finding.github_url)}</td>
+                        <td class="last-seen">${lastSeen}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            tbody.innerHTML = rows;
+        }
+
+        function setupEOLTableFilters() {
+            const searchInput = document.getElementById('eol-search-filter');
+            const riskFilter = document.getElementById('eol-risk-filter');
+            const repoFilter = document.getElementById('eol-repo-filter');
+
+            if (!searchInput || !riskFilter || !repoFilter) return;
+
+            function filterTable() {
+                const searchTerm = searchInput.value.toLowerCase();
+                const selectedRisk = riskFilter.value;
+                const selectedRepo = repoFilter.value;
+                const rows = document.querySelectorAll('.technology-row');
+
+                rows.forEach(row => {
+                    const technology = row.dataset.technology || '';
+                    const risk = row.dataset.risk || 'unknown';
+                    const repository = row.cells[3].textContent;
+
+                    const matchesSearch = !searchTerm || technology.includes(searchTerm);
+                    const matchesRisk = selectedRisk === 'all' || risk === selectedRisk;
+                    const matchesRepo = selectedRepo === 'all' || repository === selectedRepo;
+
+                    row.style.display = matchesSearch && matchesRisk && matchesRepo ? '' : 'none';
+                });
+            }
+
+            searchInput.addEventListener('input', filterTable);
+            riskFilter.addEventListener('change', filterTable);
+            repoFilter.addEventListener('change', filterTable);
         }
 
         function showPostmortemModal(postmortemData) {

@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1200" height="800" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="awsGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF9900;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FF6600;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="githubGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#24292e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#586069;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="eolGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#dc3545;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#c82333;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Title -->
+  <text x="600" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#333">
+    Day 16: EOL Tracker Architecture
+  </text>
+  <text x="600" y="55" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#666">
+    End-of-Life Tracking for Languages, Dependencies and Infrastructure
+  </text>
+
+  <!-- User/Frontend -->
+  <rect x="50" y="100" width="150" height="80" rx="10" fill="#4CAF50" stroke="#45a049" stroke-width="2"/>
+  <text x="125" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">Frontend</text>
+  <text x="125" y="150" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="white">EOL Dashboard</text>
+  <text x="125" y="165" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="white">Risk Assessment</text>
+
+  <!-- API Gateway -->
+  <rect x="300" y="100" width="150" height="80" rx="10" fill="url(#awsGradient)" stroke="#FF6600" stroke-width="2"/>
+  <text x="375" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">API Gateway</text>
+  <text x="375" y="150" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="white">/eol endpoints</text>
+
+  <!-- EOL Tracker Lambda -->
+  <rect x="550" y="80" width="180" height="120" rx="10" fill="url(#awsGradient)" stroke="#FF6600" stroke-width="2"/>
+  <text x="640" y="110" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">EOL Tracker Lambda</text>
+  <text x="640" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="white">• Dashboard data</text>
+  <text x="640" y="145" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="white">• Repository scanning</text>
+  <text x="640" y="160" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="white">• Dependency parsing</text>
+  <text x="640" y="175" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="white">• Risk assessment</text>
+
+  <!-- EOL Scheduler Lambda -->
+  <rect x="550" y="250" width="180" height="100" rx="10" fill="url(#awsGradient)" stroke="#FF6600" stroke-width="2"/>
+  <text x="640" y="280" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">EOL Scheduler</text>
+  <text x="640" y="300" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="white">Daily updates</text>
+  <text x="640" y="315" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="white">EventBridge trigger</text>
+  <text x="640" y="330" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="white">20+ technologies</text>
+
+  <!-- DynamoDB Tables -->
+  <rect x="850" y="80" width="150" height="80" rx="10" fill="url(#awsGradient)" stroke="#FF6600" stroke-width="2"/>
+  <text x="925" y="110" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">EOL Data Table</text>
+  <text x="925" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="white">Technology EOL</text>
+  <text x="925" y="145" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="white">dates &amp; versions</text>
+
+  <rect x="850" y="200" width="150" height="80" rx="10" fill="url(#awsGradient)" stroke="#FF6600" stroke-width="2"/>
+  <text x="925" y="230" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">Scan History</text>
+  <text x="925" y="250" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="white">Repository scans</text>
+  <text x="925" y="265" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="white">and findings</text>
+
+  <!-- GitHub API -->
+  <rect x="300" y="400" width="150" height="80" rx="10" fill="url(#githubGradient)" stroke="#24292e" stroke-width="2"/>
+  <text x="375" y="430" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">GitHub API</text>
+  <text x="375" y="450" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="white">Repository files</text>
+  <text x="375" y="465" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="white">Dependencies</text>
+
+  <!-- EndOfLife.date API -->
+  <rect x="550" y="400" width="180" height="80" rx="10" fill="url(#eolGradient)" stroke="#c82333" stroke-width="2"/>
+  <text x="640" y="430" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">EndOfLife.date API</text>
+  <text x="640" y="450" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="white">Official EOL data</text>
+  <text x="640" y="465" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="white">20+ technologies</text>
+
+  <!-- EventBridge -->
+  <rect x="300" y="250" width="150" height="80" rx="10" fill="url(#awsGradient)" stroke="#FF6600" stroke-width="2"/>
+  <text x="375" y="280" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">EventBridge</text>
+  <text x="375" y="300" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="white">Daily schedule</text>
+  <text x="375" y="315" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="white">cron(0 6 * * ? *)</text>
+
+  <!-- Arrows -->
+  <!-- Frontend to API Gateway -->
+  <path d="M 200 140 L 300 140" stroke="#333" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="250" y="135" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#333">HTTPS</text>
+
+  <!-- API Gateway to EOL Tracker -->
+  <path d="M 450 140 L 550 140" stroke="#333" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="500" y="135" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#333">Invoke</text>
+
+  <!-- EOL Tracker to DynamoDB -->
+  <path d="M 730 120 L 850 120" stroke="#333" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <path d="M 730 160 L 850 240" stroke="#333" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+
+  <!-- EventBridge to Scheduler -->
+  <path d="M 450 290 L 550 300" stroke="#333" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="500" y="285" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#333">Trigger</text>
+
+  <!-- Scheduler to EndOfLife API -->
+  <path d="M 640 350 L 640 400" stroke="#333" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="680" y="375" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#333">Fetch EOL data</text>
+
+  <!-- Scheduler to DynamoDB -->
+  <path d="M 730 300 L 850 140" stroke="#333" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+
+  <!-- EOL Tracker to GitHub -->
+  <path d="M 600 200 L 420 400" stroke="#333" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="480" y="300" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#333">Scan repos</text>
+
+  <!-- Risk Assessment Box -->
+  <rect x="50" y="550" width="300" height="200" rx="10" fill="#f8f9fa" stroke="#dee2e6" stroke-width="2"/>
+  <text x="200" y="580" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#333">Risk Assessment Levels</text>
+
+  <rect x="70" y="600" width="20" height="15" fill="#dc3545"/>
+  <text x="100" y="612" font-family="Arial, sans-serif" font-size="12" fill="#333">Critical: EOL less than 30 days</text>
+
+  <rect x="70" y="625" width="20" height="15" fill="#fd7e14"/>
+  <text x="100" y="637" font-family="Arial, sans-serif" font-size="12" fill="#333">High: EOL less than 90 days</text>
+
+  <rect x="70" y="650" width="20" height="15" fill="#ffc107"/>
+  <text x="100" y="662" font-family="Arial, sans-serif" font-size="12" fill="#333">Medium: EOL less than 180 days</text>
+
+  <rect x="70" y="675" width="20" height="15" fill="#28a745"/>
+  <text x="100" y="687" font-family="Arial, sans-serif" font-size="12" fill="#333">Low: EOL greater than 180 days</text>
+
+  <text x="200" y="720" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#666">Tracks: Python, Node.js, Java, Docker,</text>
+  <text x="200" y="735" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#666">npm packages, pip packages, databases</text>
+
+  <!-- Supported Technologies -->
+  <rect x="400" y="550" width="350" height="200" rx="10" fill="#f8f9fa" stroke="#dee2e6" stroke-width="2"/>
+  <text x="575" y="580" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#333">Supported Technologies</text>
+
+  <text x="420" y="610" font-family="Arial, sans-serif" font-size="12" fill="#333">Languages: Python, Node.js, Java, Go, PHP, Ruby</text>
+  <text x="420" y="630" font-family="Arial, sans-serif" font-size="12" fill="#333">Dependencies: npm (package.json), pip (requirements.txt)</text>
+  <text x="420" y="650" font-family="Arial, sans-serif" font-size="12" fill="#333">Infrastructure: Docker, PostgreSQL, MySQL, Redis</text>
+  <text x="420" y="670" font-family="Arial, sans-serif" font-size="12" fill="#333">Frameworks: Django, React, Angular, Vue.js</text>
+  <text x="420" y="690" font-family="Arial, sans-serif" font-size="12" fill="#333">Tools: Kubernetes, Elasticsearch, MongoDB</text>
+
+  <text x="575" y="720" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">Daily automated updates</text>
+  <text x="575" y="735" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#666">Cost: ~$0.10/month (Lambda + DynamoDB)</text>
+
+  <!-- Key Features -->
+  <rect x="800" y="550" width="350" height="200" rx="10" fill="#f8f9fa" stroke="#dee2e6" stroke-width="2"/>
+  <text x="975" y="580" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#333">Key Features</text>
+
+  <text x="820" y="610" font-family="Arial, sans-serif" font-size="12" fill="#333">✓ Automatic GitHub repository scanning</text>
+  <text x="820" y="630" font-family="Arial, sans-serif" font-size="12" fill="#333">✓ Dependency file parsing (package.json, requirements.txt)</text>
+  <text x="820" y="650" font-family="Arial, sans-serif" font-size="12" fill="#333">✓ Real-time risk assessment with color coding</text>
+  <text x="820" y="670" font-family="Arial, sans-serif" font-size="12" fill="#333">✓ Historical tracking and trend analysis</text>
+  <text x="820" y="690" font-family="Arial, sans-serif" font-size="12" fill="#333">✓ Integration with official EndOfLife.date API</text>
+  <text x="820" y="710" font-family="Arial, sans-serif" font-size="12" fill="#333">✓ Serverless architecture with smart caching</text>
+
+  <!-- Arrow marker definition -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#333"/>
+    </marker>
+  </defs>
+</svg>

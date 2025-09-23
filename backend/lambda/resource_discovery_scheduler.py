@@ -21,22 +21,12 @@ def lambda_handler(event, context):
         # Get all users who have enabled daily scans
         users_with_daily_scans = get_users_with_daily_scans()
 
-        scan_results = []
-        for user_config in users_with_daily_scans:
-            try:
-                result = trigger_user_scan(user_config)
-                scan_results.append(result)
-            except Exception as e:
-                logger.error(
-                    f"Failed to trigger scan for user {user_config['user_id']}: {str(e)}"
-                )
-                scan_results.append(
-                    {
-                        "user_id": user_config["user_id"],
-                        "status": "failed",
-                        "error": str(e),
-                    }
-                )
+        # Use batch processing for better performance
+        if users_with_daily_scans:
+            scan_results = trigger_batch_scans(users_with_daily_scans)
+        else:
+            scan_results = []
+            logger.info("No users configured for daily scans")
 
         logger.info(f"Completed scheduled scans for {len(scan_results)} users")
 
@@ -74,10 +64,51 @@ def get_users_with_daily_scans():
         return []
 
 
+def trigger_batch_scans(user_configs):
+    """Trigger multiple scans concurrently for better performance"""
+    import concurrent.futures
+
+    results = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        future_to_user = {
+            executor.submit(trigger_user_scan, config): config
+            for config in user_configs
+        }
+
+        for future in concurrent.futures.as_completed(future_to_user):
+            user_config = future_to_user[future]
+            try:
+                result = future.result()
+                results.append(result)
+            except Exception as e:
+                logger.error(
+                    f"Batch scan failed for user {user_config.get('user_id', 'unknown')}: {str(e)}"
+                )
+                results.append(
+                    {
+                        "user_id": user_config.get("user_id", "unknown"),
+                        "status": "failed",
+                        "error": str(e),
+                    }
+                )
+
+    return results
+
+
 def trigger_user_scan(user_config):
     """Trigger a resource discovery scan for a specific user"""
     try:
-        user_id = user_config["user_id"]
+        # Validate and sanitize user_id to prevent NoSQL injection
+        import re
+
+        raw_user_id = user_config.get("user_id")
+        if not raw_user_id or not isinstance(raw_user_id, str):
+            raise ValueError("Invalid user_id in config")
+
+        # Only allow alphanumeric characters, hyphens, and underscores
+        user_id = re.sub(r"[^a-zA-Z0-9_-]", "", str(raw_user_id)[:50])
+        if not user_id:
+            raise ValueError("Invalid user_id format")
 
         # Create a scan request payload
         scan_payload = {
@@ -94,10 +125,10 @@ def trigger_user_scan(user_config):
             "user_info": {"user_id": user_id},
         }
 
-        # Invoke the resource discovery function
+        # Invoke the resource discovery function asynchronously
         response = lambda_client.invoke(
             FunctionName="cloudops-assistant-ResourceDiscoveryFunction",
-            InvocationType="Event",  # Async invocation
+            InvocationType="Event",
             Payload=json.dumps(scan_payload),
         )
 
@@ -109,7 +140,7 @@ def trigger_user_scan(user_config):
 
     except Exception as e:
         logger.error(
-            f"Error triggering scan for user {user_config['user_id']}: {str(e)}"
+            f"Error triggering scan for user {user_config.get('user_id', 'unknown')}: {str(e)}"
         )
         raise
 
@@ -117,22 +148,32 @@ def trigger_user_scan(user_config):
 def store_scheduled_scan_result(user_id, scan_result):
     """Store the result of a scheduled scan"""
     try:
-        scan_id = f"scheduled-{user_id}-{datetime.now(timezone.utc).strftime('%Y%m%d')}"
+        # Validate and sanitize user_id to prevent NoSQL injection
+        import re
+
+        if not user_id or not isinstance(user_id, str):
+            raise ValueError("Invalid user_id")
+
+        # Only allow alphanumeric characters, hyphens, and underscores
+        safe_user_id = re.sub(r"[^a-zA-Z0-9_-]", "", str(user_id)[:50])
+        if not safe_user_id:
+            raise ValueError("Invalid user_id format")
+
+        now = datetime.now(timezone.utc)
+        scan_id = f"scheduled-{safe_user_id}-{now.strftime('%Y%m%d')}"
 
         discovery_table.put_item(
             Item={
                 "scan_id": scan_id,
-                "user_id": user_id,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "user_id": safe_user_id,
+                "timestamp": now.isoformat(),
                 "scan_type": "scheduled",
                 "results": scan_result,
-                "ttl": int(
-                    (datetime.now(timezone.utc).timestamp()) + (30 * 24 * 60 * 60)
-                ),  # 30 days
+                "ttl": int(now.timestamp() + (30 * 24 * 60 * 60)),  # 30 days
             }
         )
 
-        logger.info(f"Stored scheduled scan result for user {user_id}")
+        logger.info(f"Stored scheduled scan result for user {safe_user_id[:20]}")
 
     except Exception as e:
         logger.error(f"Error storing scheduled scan result: {str(e)}")

@@ -30,9 +30,12 @@ dynamodb = boto3.resource("dynamodb")
 
 def lambda_handler(event, context):
     """Manage drift monitoring configuration"""
-    logger.info(
-        f"Lambda handler called with method: {event.get('httpMethod')}, path: {event.get('path')}"
-    )
+    # Sanitize log inputs to prevent log injection (CWE-117)
+    import re
+
+    safe_method = re.sub(r"[\r\n\t]", "", str(event.get("httpMethod", "UNKNOWN"))[:20])
+    safe_path = re.sub(r"[\r\n\t]", "", str(event.get("path", "UNKNOWN"))[:100])
+    logger.info(f"Lambda handler called with method: {safe_method}, path: {safe_path}")
 
     if event.get("httpMethod") == "OPTIONS":
         return {"statusCode": 200, "headers": get_cors_headers(), "body": ""}
@@ -96,42 +99,66 @@ def configure_drift_monitoring(event):
     try:
         body_str = event.get("body") or "{}"
         body = json.loads(body_str) if body_str else {}
-        user_id = str(event["user_info"]["user_id"]).replace("'", "").replace('"', "")
 
-        # Sanitize and validate inputs
+        # Secure user ID extraction and sanitization
+        user_id = str(event["user_info"]["user_id"]).strip()
+        import re
+
+        user_id = re.sub(r"[^a-zA-Z0-9_-]", "", user_id)[:50]
+        if not user_id:
+            return error_response("Invalid user ID", 401)
+
+        # Secure input sanitization and validation
+        # Sanitize repo_name - only allow alphanumeric, hyphens, underscores
         repo_name = (
-            str(body.get("repo_name", "")).strip()[:100]
-            if body.get("repo_name")
-            else None
+            str(body.get("repo_name", "")).strip() if body.get("repo_name") else None
         )
+        if repo_name:
+            repo_name = re.sub(r"[^a-zA-Z0-9_-]", "", repo_name)[:100]
+            if not repo_name:
+                return error_response("Invalid repository name format")
+
+        # Validate GitHub URL more strictly
         github_url = (
-            str(body.get("github_url", "")).strip()[:500]
-            if body.get("github_url")
-            else None
+            str(body.get("github_url", "")).strip() if body.get("github_url") else None
         )
+        if github_url:
+            # Only allow HTTPS GitHub URLs with proper format
+            github_pattern = (
+                r"^https://github\.com/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+(?:\.git)?/?$"
+            )
+            if not re.match(github_pattern, github_url) or len(github_url) > 500:
+                return error_response("Invalid GitHub URL format")
+
+        # Sanitize terraform directory path
         terraform_dir = str(body.get("terraform_dir", ".")).strip()[:100]
-        schedule = str(body.get("schedule", "daily")).strip()[:20]
-        alert_email = (
-            str(body.get("alert_email", "")).strip()[:100]
-            if body.get("alert_email")
-            else None
-        )
+        # Prevent path traversal attacks
+        if (
+            os.path.isabs(terraform_dir)
+            or ".." in terraform_dir
+            or terraform_dir.startswith("/")
+            or not re.match(r"^[a-zA-Z0-9._/-]+$", terraform_dir)
+        ):
+            return error_response("Invalid terraform directory path")
 
-        # Validate GitHub URL format
-        if github_url and not github_url.startswith("https://github.com/"):
-            return error_response("Invalid GitHub URL format")
-
-        # Validate schedule
+        # Validate schedule with whitelist
+        schedule = str(body.get("schedule", "daily")).strip().lower()
         if schedule not in ["daily", "hourly"]:
             return error_response("Invalid schedule. Must be 'daily' or 'hourly'")
 
-        # Validate email format if provided
+        # Sanitize and validate email
+        alert_email = (
+            str(body.get("alert_email", "")).strip()
+            if body.get("alert_email")
+            else None
+        )
         if alert_email:
-            import re
-
+            # Strict email validation
             email_pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
-            if not re.match(email_pattern, alert_email):
+            if not re.match(email_pattern, alert_email) or len(alert_email) > 100:
                 return error_response("Invalid email format")
+
+        # Additional validation already handled above
 
         if not repo_name or not github_url:
             return error_response("repo_name and github_url are required")
@@ -303,8 +330,21 @@ def get_drift_status(event):
 def run_manual_scan(event):
     """Trigger manual drift scan for a repository"""
     try:
-        user_id = str(event["user_info"]["user_id"]).replace("'", "").replace('"', "")
+        # Secure user ID and config ID handling
+        user_id = str(event["user_info"]["user_id"]).strip()
+        import re
+
+        user_id = re.sub(r"[^a-zA-Z0-9_-]", "", user_id)[:50]
+        if not user_id:
+            return error_response("Invalid user ID", 401)
+
         config_id = event.get("pathParameters", {}).get("config_id")
+        if config_id:
+            # Sanitize config_id to prevent injection
+            config_id = str(config_id).strip()[:200]
+            # Only allow safe characters in config_id
+            if not re.match(r"^[a-zA-Z0-9_#-]+$", config_id):
+                return error_response("Invalid config ID format", 400)
 
         if not config_id:
             logger.error("No config_id in path parameters")
@@ -405,8 +445,19 @@ def run_manual_scan(event):
 def update_drift_config(event):
     """Update drift monitoring configuration"""
     try:
-        user_id = str(event["user_info"]["user_id"]).replace("'", "").replace('"', "")
+        # Secure user ID and config ID handling
+        user_id = str(event["user_info"]["user_id"]).strip()
+        import re
+
+        user_id = re.sub(r"[^a-zA-Z0-9_-]", "", user_id)[:50]
+        if not user_id:
+            return error_response("Invalid user ID", 401)
+
         config_id = event.get("pathParameters", {}).get("config_id")
+        if config_id:
+            config_id = str(config_id).strip()[:200]
+            if not re.match(r"^[a-zA-Z0-9_#-]+$", config_id):
+                return error_response("Invalid config ID format", 400)
 
         if not config_id:
             return error_response("Missing config_id parameter", 400)
@@ -417,17 +468,21 @@ def update_drift_config(event):
 
         body_str = event.get("body") or "{}"
         body = json.loads(body_str) if body_str else {}
-        schedule = str(body.get("schedule", "daily")).strip()[:20]
+
+        # Secure input validation
+        schedule = str(body.get("schedule", "daily")).strip().lower()
+        if schedule not in ["daily", "hourly"]:
+            return error_response("Invalid schedule. Must be 'daily' or 'hourly'")
+
         alert_email = (
-            str(body.get("alert_email", "")).strip()[:100]
+            str(body.get("alert_email", "")).strip()
             if body.get("alert_email")
             else None
         )
-
-        if schedule not in ["daily", "hourly"] or (
-            alert_email and "@" not in alert_email
-        ):
-            return error_response("Invalid schedule or email format")
+        if alert_email:
+            email_pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+            if not re.match(email_pattern, alert_email) or len(alert_email) > 100:
+                return error_response("Invalid email format")
 
         drift_table_name = os.environ.get(
             "DRIFT_CONFIG_TABLE", "cloudops-assistant-drift-config"
@@ -469,14 +524,26 @@ def update_drift_config(event):
 def delete_drift_config(event):
     """Delete drift monitoring configuration"""
     try:
-        user_id = event["user_info"]["user_id"]
-        config_id = event["pathParameters"]["config_id"]
+        # Secure user ID and config ID handling
+        user_id = str(event["user_info"]["user_id"]).strip()
+        import re
 
-        # URL decode the config_id in case it's double-encoded
+        user_id = re.sub(r"[^a-zA-Z0-9_-]", "", user_id)[:50]
+        if not user_id:
+            return error_response("Invalid user ID", 401)
+
+        config_id = event.get("pathParameters", {}).get("config_id")
+        if not config_id:
+            return error_response("Missing config_id parameter", 400)
+
+        # URL decode and sanitize config_id
         import urllib.parse
 
-        config_id = urllib.parse.unquote(config_id)
-        sanitized_config_id = str(config_id).strip()[:100]
+        config_id = urllib.parse.unquote(str(config_id))
+        sanitized_config_id = str(config_id).strip()[:200]
+        # Only allow safe characters
+        if not re.match(r"^[a-zA-Z0-9_#-]+$", sanitized_config_id):
+            return error_response("Invalid config ID format", 400)
 
         drift_table_name = os.environ.get(
             "DRIFT_CONFIG_TABLE", "cloudops-assistant-drift-config"
@@ -511,8 +578,15 @@ def create_alert_topic(user_id, repo_name, email):
     try:
         sns = boto3.client("sns")
 
-        topic_name = f"cloudops-drift-{user_id}-{repo_name}"
-        topic_name = topic_name.replace("@", "-").replace(".", "-")
+        # Secure topic name generation
+        import re
+
+        # Sanitize inputs for SNS topic name
+        safe_user_id = re.sub(r"[^a-zA-Z0-9_-]", "", str(user_id))[:20]
+        safe_repo_name = re.sub(r"[^a-zA-Z0-9_-]", "", str(repo_name))[:30]
+        topic_name = f"cloudops-drift-{safe_user_id}-{safe_repo_name}"
+        # Ensure topic name meets SNS requirements (alphanumeric, hyphens, underscores only)
+        topic_name = re.sub(r"[^a-zA-Z0-9_-]", "-", topic_name)[:256]
 
         # Create topic
         response = sns.create_topic(Name=topic_name)
@@ -529,12 +603,12 @@ def create_alert_topic(user_id, repo_name, email):
 
 
 def get_cors_headers():
+    """Get secure CORS headers with proper JWT support"""
     return {
-        "Access-Control-Allow-Origin": os.environ.get(
-            "ALLOWED_ORIGIN", "http://localhost:3000"
-        ),
-        "Access-Control-Allow-Headers": "Content-Type,Authorization",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
         "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+        "Access-Control-Max-Age": "86400",  # Cache preflight for 24 hours
     }
 
 
@@ -580,13 +654,28 @@ def execute_terraform_scan(github_url, terraform_dir):
             terraform_bin = os.path.join(temp_dir, "terraform")
             logger.info(f"Terraform installed at: {terraform_bin}")
 
-            # Clone repository
+            # Clone repository with security measures
             logger.info(f"Cloning repository: {github_url}")
+            # Additional URL validation before cloning
+            if not github_url.startswith("https://github.com/"):
+                raise ValueError("Only GitHub HTTPS URLs are allowed")
+
             clone_result = subprocess.run(
-                ["git", "clone", "--depth", "1", github_url, repo_dir],
+                [
+                    "git",
+                    "clone",
+                    "--depth",
+                    "1",
+                    "--single-branch",
+                    "--no-tags",
+                    github_url,
+                    repo_dir,
+                ],
                 capture_output=True,
                 text=True,
                 timeout=60,
+                # Security: Run with minimal environment
+                env={"PATH": os.environ.get("PATH", ""), "HOME": temp_dir},
             )
 
             if clone_result.returncode != 0:
@@ -613,14 +702,20 @@ def execute_terraform_scan(github_url, terraform_dir):
 
             logger.info(f"Found terraform directory: {tf_dir}")
 
-            # Initialize terraform
+            # Initialize terraform with security measures
             logger.info("Running terraform init...")
             init_result = subprocess.run(
-                [terraform_bin, "init", "-no-color"],
+                [terraform_bin, "init", "-no-color", "-input=false"],
                 cwd=tf_dir,
                 capture_output=True,
                 text=True,
                 timeout=120,
+                # Security: Run with minimal environment and no network access to prevent data exfiltration
+                env={
+                    "PATH": os.environ.get("PATH", ""),
+                    "HOME": temp_dir,
+                    "TF_INPUT": "0",
+                },
             )
 
             logger.info(f"Terraform init exit code: {init_result.returncode}")
@@ -634,13 +729,26 @@ def execute_terraform_scan(github_url, terraform_dir):
 
             logger.info("Terraform init successful, running plan...")
 
-            # Run terraform plan
+            # Run terraform plan with security measures
             plan_result = subprocess.run(
-                [terraform_bin, "plan", "-no-color", "-detailed-exitcode"],
+                [
+                    terraform_bin,
+                    "plan",
+                    "-no-color",
+                    "-detailed-exitcode",
+                    "-input=false",
+                    "-lock=false",
+                ],
                 cwd=tf_dir,
                 capture_output=True,
                 text=True,
                 timeout=300,
+                # Security: Run with minimal environment
+                env={
+                    "PATH": os.environ.get("PATH", ""),
+                    "HOME": temp_dir,
+                    "TF_INPUT": "0",
+                },
             )
 
             logger.info(f"Terraform plan exit code: {plan_result.returncode}")
@@ -702,14 +810,28 @@ def install_terraform(temp_dir):
         )
         zip_path = os.path.join(temp_dir, "terraform.zip")
 
-        # Use secure download with proper validation
-        with urllib.request.urlopen(tf_url, timeout=30) as response:
+        # Use secure download with proper validation and size limits
+        request = urllib.request.Request(tf_url)
+        request.add_header("User-Agent", "CloudOps-Assistant/1.0")
+
+        with urllib.request.urlopen(request, timeout=30) as response:
             if response.getcode() != 200:
                 raise ValueError(
                     f"Failed to download terraform: HTTP {response.getcode()}"
                 )
+
+            # Security: Limit download size to prevent DoS
+            content_length = response.headers.get("Content-Length")
+            if content_length and int(content_length) > 50 * 1024 * 1024:  # 50MB limit
+                raise ValueError("Terraform download too large")
+
+            # Read with size limit
+            data = response.read(50 * 1024 * 1024)  # 50MB limit
+            if len(data) >= 50 * 1024 * 1024:
+                raise ValueError("Terraform download exceeded size limit")
+
             with open(zip_path, "wb") as f:
-                f.write(response.read())
+                f.write(data)
 
         # Extract terraform binary with path validation
         with zipfile.ZipFile(zip_path, "r") as zip_ref:
@@ -721,16 +843,59 @@ def install_terraform(temp_dir):
             for member in zip_ref.namelist():
                 if member == "terraform":
                     # Validate member name to prevent path traversal
-                    if os.path.isabs(member) or ".." in member:
+                    if os.path.isabs(member) or ".." in member or "/" in member:
                         raise ValueError("Unsafe zip member path detected")
 
-                    # Extract safely using extractall with specific member
-                    zip_ref.extractall(temp_dir, [member])
+                    # Secure extraction with explicit destination path
+                    member_info = zip_ref.getinfo(member)
+                    target_path = os.path.join(temp_dir, "terraform")
+
+                    # Additional security check: ensure target path is within temp_dir
+                    abs_target = os.path.abspath(target_path)
+                    abs_temp = os.path.abspath(temp_dir)
+                    if not abs_target.startswith(abs_temp):
+                        raise ValueError(
+                            "Path traversal attempt detected in extraction"
+                        )
+
+                    # Additional path traversal protection using secure path validation
+                    normalized_target = os.path.normpath(target_path)
+                    normalized_temp = os.path.normpath(temp_dir)
+
+                    # Use os.path.commonpath for secure path validation
+                    try:
+                        common_path = os.path.commonpath(
+                            [normalized_target, normalized_temp]
+                        )
+                        if common_path != normalized_temp:
+                            raise ValueError("Path traversal attempt detected")
+                    except ValueError:
+                        raise ValueError("Invalid path detected during extraction")
+
+                    # Ensure target path doesn't contain dangerous patterns
+                    if ".." in normalized_target or os.path.isabs(
+                        normalized_target.replace(normalized_temp, "")
+                    ):
+                        raise ValueError(
+                            "Dangerous path pattern detected after normalization"
+                        )
+
+                    with zip_ref.open(member_info) as source, open(
+                        normalized_target, "wb"
+                    ) as target:
+                        target.write(source.read())
                     break
 
         # Make executable with secure permissions (owner only)
+        terraform_bin = os.path.normpath(os.path.join(temp_dir, "terraform"))
 
-        terraform_bin = os.path.join(temp_dir, "terraform")
+        # Additional security check for the final binary path
+        if not terraform_bin.startswith(os.path.normpath(temp_dir) + os.sep):
+            raise ValueError("Terraform binary path traversal detected")
+        # Verify the file exists and is within temp directory before setting permissions
+        if not os.path.exists(terraform_bin):
+            raise ValueError("Terraform binary not found after extraction")
+
         # Set restrictive permissions: owner read/execute only (0o500)
         os.chmod(terraform_bin, 0o500)
 

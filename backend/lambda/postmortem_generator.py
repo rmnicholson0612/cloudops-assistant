@@ -18,12 +18,21 @@ cost_explorer = boto3.client("ce")
 
 
 def lambda_handler(event, context):
+    """Main Lambda handler for postmortem management operations
+
+    Args:
+        event (dict): Lambda event containing HTTP request data
+        context (object): Lambda context object
+
+    Returns:
+        dict: HTTP response with status code, headers, and body
+    """
     if event.get("httpMethod") == "OPTIONS":
         return {
             "statusCode": 200,
             "headers": {
                 "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Headers": "content-type,authorization",
+                "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
                 "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
             },
             "body": "",
@@ -78,7 +87,14 @@ def lambda_handler(event, context):
 
 
 def parse_postmortem_request(event):
-    """Parse and validate postmortem creation request"""
+    """Parse and validate postmortem creation request.
+
+    Args:
+        event (dict): Lambda event containing request body with JSON data
+
+    Returns:
+        dict or None: Parsed JSON data if valid, None if parsing fails
+    """
     try:
         body_str = event.get("body", "{}")
         return json.loads(body_str)
@@ -88,7 +104,14 @@ def parse_postmortem_request(event):
 
 
 def validate_postmortem_data(body):
-    """Validate and sanitize postmortem input data"""
+    """Validate and sanitize postmortem input data.
+
+    Args:
+        body (dict): Request body containing postmortem fields
+
+    Returns:
+        tuple: (validated_data, error_message) where error_message is None if valid
+    """
     title = sanitize_input(body.get("title", ""))
     service = sanitize_input(body.get("service", ""))
     severity = sanitize_input(body.get("severity", "medium"))
@@ -115,6 +138,14 @@ def validate_postmortem_data(body):
 
 
 def create_postmortem(event):
+    """Create a new postmortem with AI analysis
+
+    Args:
+        event (dict): Lambda event containing postmortem data
+
+    Returns:
+        dict: HTTP response with created postmortem ID
+    """
     user_id = get_user_id_from_token(event)
     if not user_id:
         return {
@@ -234,6 +265,14 @@ def create_postmortem(event):
 
 
 def get_postmortems(event):
+    """Retrieve all postmortems for authenticated user
+
+    Args:
+        event (dict): Lambda event with user authentication
+
+    Returns:
+        dict: HTTP response with list of postmortems
+    """
     user_id = get_user_id_from_token(event)
     if not user_id:
         return {
@@ -248,8 +287,13 @@ def get_postmortems(event):
     try:
         from boto3.dynamodb.conditions import Key
 
+        # Sanitize user_id to prevent injection
+        safe_user_id = str(user_id).strip()[:100] if user_id else ""
+        if not safe_user_id:
+            raise ValueError("Invalid user ID")
+
         response = postmortems_table.query(
-            KeyConditionExpression=Key("user_id").eq(user_id),
+            KeyConditionExpression=Key("user_id").eq(safe_user_id),
             Limit=50,  # Limit for performance
         )
 
@@ -292,6 +336,15 @@ def get_postmortems(event):
 
 
 def get_postmortem(postmortem_id, event):
+    """Retrieve specific postmortem by ID
+
+    Args:
+        postmortem_id (str): Unique postmortem identifier
+        event (dict): Lambda event with user authentication
+
+    Returns:
+        dict: HTTP response with postmortem details
+    """
     user_id = get_user_id_from_token(event)
     if not user_id:
         return {
@@ -350,6 +403,15 @@ def get_postmortem(postmortem_id, event):
 
 
 def update_postmortem(postmortem_id, event):
+    """Update existing postmortem fields
+
+    Args:
+        postmortem_id (str): Unique postmortem identifier
+        event (dict): Lambda event with update data
+
+    Returns:
+        dict: HTTP response confirming update
+    """
     user_id = get_user_id_from_token(event)
     if not user_id:
         return {
@@ -389,8 +451,9 @@ def update_postmortem(postmortem_id, event):
             }
 
         # Update fields
-        update_expression = "SET updated_at = :updated_at"
+        update_expression = "SET #updated_at = :updated_at"
         expression_values = {":updated_at": datetime.utcnow().isoformat()}
+        expression_names = {"#updated_at": "updated_at"}
 
         updatable_fields = [
             "title",
@@ -408,12 +471,16 @@ def update_postmortem(postmortem_id, event):
 
         for field in updatable_fields:
             if field in body and body[field]:
-                update_expression += f", {field} = :{field}"
-                expression_values[f":{field}"] = sanitize_input(body[field])
+                field_name_key = f"#{field}"
+                field_value_key = f":{field}"
+                update_expression += f", {field_name_key} = {field_value_key}"
+                expression_names[field_name_key] = field
+                expression_values[field_value_key] = sanitize_input(body[field])
 
         postmortems_table.update_item(
             Key={"user_id": user_id, "postmortem_id": postmortem_id},
             UpdateExpression=update_expression,
+            ExpressionAttributeNames=expression_names,
             ExpressionAttributeValues=expression_values,
         )
 
@@ -439,6 +506,15 @@ def update_postmortem(postmortem_id, event):
 
 
 def delete_postmortem(postmortem_id, event):
+    """Delete postmortem by ID
+
+    Args:
+        postmortem_id (str): Unique postmortem identifier
+        event (dict): Lambda event with user authentication
+
+    Returns:
+        dict: HTTP response confirming deletion
+    """
     user_id = get_user_id_from_token(event)
     if not user_id:
         return {
@@ -477,6 +553,14 @@ def delete_postmortem(postmortem_id, event):
 
 
 def get_users(event):
+    """Retrieve list of users from Cognito user pool
+
+    Args:
+        event (dict): Lambda event with user authentication
+
+    Returns:
+        dict: HTTP response with user list
+    """
     user_id = get_user_id_from_token(event)
     if not user_id:
         return {
@@ -534,13 +618,30 @@ def get_users(event):
 
 
 def get_terraform_plans_in_range(user_id, start_time, end_time):
-    """Get terraform plans within time range"""
+    """Get terraform plans within time range.
+
+    Args:
+        user_id (str): User identifier for data isolation
+        start_time (str): Start time in ISO format
+        end_time (str): End time in ISO format
+
+    Returns:
+        list: List of terraform plan items within the time range
+    """
     try:
         from boto3.dynamodb.conditions import Attr, Key
 
+        # Sanitize inputs to prevent injection
+        safe_user_id = str(user_id).strip()[:100] if user_id else ""
+        safe_start_time = str(start_time).strip()[:50] if start_time else ""
+        safe_end_time = str(end_time).strip()[:50] if end_time else ""
+
+        if not all([safe_user_id, safe_start_time, safe_end_time]):
+            raise ValueError("Invalid parameters")
+
         response = plans_table.query(
-            KeyConditionExpression=Key("user_id").eq(user_id),
-            FilterExpression=Attr("created_at").between(start_time, end_time),
+            KeyConditionExpression=Key("user_id").eq(safe_user_id),
+            FilterExpression=Attr("created_at").between(safe_start_time, safe_end_time),
             Limit=5,  # Optimized limit for better performance
         )
         return response["Items"]
@@ -550,8 +651,20 @@ def get_terraform_plans_in_range(user_id, start_time, end_time):
 
 
 def get_cost_data_in_range(start_time, end_time, service):
-    """Get cost data within time range for specific service"""
+    """Get cost data within time range for specific service.
+
+    Args:
+        start_time (str): Start time in ISO format
+        end_time (str): End time in ISO format
+        service (str): AWS service name to filter costs
+
+    Returns:
+        dict: Cost data with total_cost and daily_costs breakdown
+    """
     try:
+        # Sanitize service parameter immediately to prevent injection
+        safe_service = sanitize_input(service) if service else ""
+
         response = cost_explorer.get_cost_and_usage(
             TimePeriod={"Start": start_time[:10], "End": end_time[:10]},
             Granularity="DAILY",
@@ -562,7 +675,7 @@ def get_cost_data_in_range(start_time, end_time, service):
         cost_data = {"total_cost": 0, "daily_costs": []}
         for result in response["ResultsByTime"]:
             for group in result["Groups"]:
-                if service.lower() in group["Keys"][0].lower():
+                if safe_service.lower() in group["Keys"][0].lower():
                     cost = float(group["Metrics"]["BlendedCost"]["Amount"])
                     cost_data["total_cost"] += cost
                     cost_data["daily_costs"].append(
@@ -576,7 +689,11 @@ def get_cost_data_in_range(start_time, end_time, service):
 
 
 def is_local_environment():
-    """Detect if running in local development environment"""
+    """Detect if running in local development environment.
+
+    Returns:
+        bool: True if running in local development, False otherwise
+    """
     return (
         os.environ.get("AWS_ENDPOINT_URL") == "http://localhost:4566"
         or os.environ.get("LOCALSTACK_HOSTNAME")
@@ -585,7 +702,14 @@ def is_local_environment():
 
 
 def generate_local_ai_analysis(data):
-    """Generate AI analysis using local Ollama"""
+    """Generate AI analysis using local Ollama.
+
+    Args:
+        data (dict): Incident data for analysis
+
+    Returns:
+        dict: AI-generated analysis with fallback data if Ollama unavailable
+    """
     try:
         import requests
 
@@ -661,7 +785,14 @@ Be concise and practical:"""
 
 
 def generate_ai_analysis(data):
-    """Generate comprehensive AI analysis for postmortem report"""
+    """Generate comprehensive AI analysis for postmortem report
+
+    Args:
+        data (dict): Incident data including title, service, and context
+
+    Returns:
+        dict: AI-generated analysis with executive summary and recommendations
+    """
     logger.info(f"Starting AI analysis for: {data['title']}")
 
     # Use local AI for development
@@ -786,7 +917,14 @@ measurable outcomes.
 
 
 def get_ai_suggestions(event):
-    """Get AI suggestions for postmortem fields"""
+    """Get AI suggestions for postmortem fields.
+
+    Args:
+        event (dict): Lambda event with field and context data
+
+    Returns:
+        dict: HTTP response with AI-generated suggestions
+    """
     user_id = get_user_id_from_token(event)
     if not user_id:
         return {
@@ -859,7 +997,14 @@ Provide 3-5 specific, actionable suggestions for the '{field}' field. Return as 
 
 
 def get_previous_postmortems(event):
-    """Get previous postmortems for a service"""
+    """Get previous postmortems for a service.
+
+    Args:
+        event (dict): Lambda event with service parameter
+
+    Returns:
+        dict: HTTP response with list of previous postmortems
+    """
     user_id = get_user_id_from_token(event)
     if not user_id:
         return {
@@ -887,8 +1032,13 @@ def get_previous_postmortems(event):
     try:
         from boto3.dynamodb.conditions import Key
 
+        # Sanitize user_id to prevent injection
+        safe_user_id = str(user_id).strip()[:100] if user_id else ""
+        if not safe_user_id:
+            raise ValueError("Invalid user ID")
+
         response = postmortems_table.query(
-            KeyConditionExpression=Key("user_id").eq(user_id),
+            KeyConditionExpression=Key("user_id").eq(safe_user_id),
             Limit=10,  # Reduced limit for better performance
         )
 
@@ -934,18 +1084,46 @@ def get_previous_postmortems(event):
 
 
 def sanitize_input(text):
-    """Sanitize user input to prevent injection attacks"""
+    """Sanitize user input to prevent injection attacks.
+
+    Args:
+        text (str): User input text to sanitize
+
+    Returns:
+        str: Sanitized text with dangerous patterns removed
+    """
     if not text or not isinstance(text, str):
         return ""
-    # Remove potential injection patterns
-    sanitized = (
-        text.replace('"', "").replace("'", "").replace("\n", " ").replace("\r", " ")
-    )
+
+    import re
+
+    # Remove SQL injection patterns
+    sql_patterns = [
+        r"[';" "--]",  # SQL comment and quote chars
+        r"\b(union|select|insert|update|delete|drop|create|alter|exec|execute)\b",  # SQL keywords
+        r"[<>{}\[\]]",  # Bracket chars
+    ]
+
+    sanitized = text
+    for pattern in sql_patterns:
+        sanitized = re.sub(pattern, "", sanitized, flags=re.IGNORECASE)
+
+    # Replace newlines and normalize whitespace
+    sanitized = re.sub(r"[\n\r\t]", " ", sanitized)
+    sanitized = re.sub(r"\s+", " ", sanitized).strip()
+
     return sanitized[:500]  # Limit length
 
 
 def handle_conversation(event):
-    """Handle conversational Q&A for postmortem creation"""
+    """Handle conversational Q&A for postmortem creation
+
+    Args:
+        event (dict): Lambda event with conversation message and context
+
+    Returns:
+        dict: HTTP response with AI question or ready-to-generate signal
+    """
     user_id = get_user_id_from_token(event)
     if not user_id:
         return {
@@ -1078,7 +1256,14 @@ def handle_conversation(event):
 
 
 def generate_final_postmortem(event):
-    """Generate final postmortem from conversation"""
+    """Generate final postmortem from conversation data
+
+    Args:
+        event (dict): Lambda event with conversation summary and context
+
+    Returns:
+        dict: HTTP response with complete postmortem document
+    """
     user_id = get_user_id_from_token(event)
     if not user_id:
         return {
@@ -1304,25 +1489,111 @@ def generate_final_postmortem(event):
 
 
 def get_user_id_from_token(event):
-    """Extract user ID from JWT token"""
+    """Extract and verify user ID from JWT token with proper validation.
+
+    This function handles JWT token extraction and validation for user authentication.
+    It prioritizes secure Cognito validation in production and provides a development
+    fallback for local testing environments.
+
+    Args:
+        event (dict): Lambda event containing HTTP request data with headers.
+                     Expected to have 'headers' key with 'Authorization' header
+                     in format 'Bearer <jwt_token>'.
+
+    Returns:
+        str or None: User ID (sub claim) if token is valid and user exists,
+                    None if token is invalid, missing, or user verification fails.
+
+    Raises:
+        Exception: Logs errors but does not raise exceptions to maintain
+                  graceful degradation for authentication failures.
+
+    Security Notes:
+        - Uses AWS Cognito get_user API for proper JWT signature verification
+        - Validates token format and Bearer prefix before processing
+        - Development fallback only works when LOCAL_DEV environment variable is set
+        - All authentication errors are logged for security monitoring
+
+    Example:
+        >>> event = {
+        ...     'headers': {
+        ...         'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+        ...     }
+        ... }
+        >>> user_id = get_user_id_from_token(event)
+        >>> print(user_id)  # 'user-uuid-string' or None
+    """
     try:
+        # Extract Authorization header from event
         auth_header = event.get("headers", {}).get("Authorization", "")
         if not auth_header.startswith("Bearer "):
+            logger.warning("Missing or invalid Authorization header format")
             return None
 
-        token = auth_header[7:]  # Remove 'Bearer ' prefix
+        # Extract JWT token by removing 'Bearer ' prefix
+        token = auth_header[7:]
+        if not token:
+            logger.warning("Empty JWT token after Bearer prefix")
+            return None
 
-        # In a real implementation, you'd verify the JWT token
-        # For now, we'll extract the user ID from the token payload
-        import base64
+        # Primary authentication: Use AWS Cognito for production JWT verification
+        try:
+            cognito_client = boto3.client("cognito-idp")
+            response = cognito_client.get_user(AccessToken=token)
 
-        payload = token.split(".")[1]
-        # Add padding if needed
-        payload += "=" * (4 - len(payload) % 4)
-        decoded = json.loads(base64.b64decode(payload))
+            # Extract user attributes and return the user ID (sub claim)
+            user_attributes = {
+                attr["Name"]: attr["Value"]
+                for attr in response.get("UserAttributes", [])
+            }
+            user_id = user_attributes.get("sub")
 
-        return decoded.get("sub")  # 'sub' is the user ID in Cognito tokens
+            if user_id:
+                logger.info(f"Successfully authenticated user: {user_id[:8]}...")
+                return user_id
+            else:
+                logger.warning("No 'sub' claim found in user attributes")
+                return None
+
+        except Exception as cognito_error:
+            logger.warning(f"Cognito authentication failed: {str(cognito_error)}")
+
+            # Development fallback: Manual JWT parsing for local testing only
+            if os.environ.get("LOCAL_DEV") == "true":
+                logger.info("Using development JWT parsing fallback")
+                try:
+                    import base64
+
+                    # Parse JWT payload (second part after splitting by '.')
+                    token_parts = token.split(".")
+                    if len(token_parts) != 3:
+                        logger.warning("Invalid JWT format - expected 3 parts")
+                        return None
+
+                    payload = token_parts[1]
+                    # Add padding if needed for base64 decoding
+                    payload += "=" * (4 - len(payload) % 4)
+
+                    # Decode and parse JSON payload
+                    decoded = json.loads(base64.b64decode(payload))
+                    dev_user_id = decoded.get("sub")
+
+                    if dev_user_id:
+                        logger.info(
+                            f"Development auth successful: {dev_user_id[:8]}..."
+                        )
+                        return dev_user_id
+                    else:
+                        logger.warning("No 'sub' claim in development JWT")
+                        return None
+
+                except Exception as dev_error:
+                    logger.error(f"Development JWT parsing failed: {str(dev_error)}")
+                    return None
+            else:
+                logger.info("Production environment - Cognito authentication required")
+                return None
 
     except Exception as e:
-        logger.error(f"Error extracting user ID: {str(e)}")
+        logger.error(f"Unexpected error in user authentication: {str(e)}")
         return None
