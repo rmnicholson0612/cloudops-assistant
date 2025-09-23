@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test formatSource</title>
+</head>
+<body>
+    <h1>Testing formatSource Function</h1>
+    <div id="test-results"></div>
+
+    <script>
+        function formatSource(source) {
+            if (!source || source === 'N/A') return 'N/A';
+
+            // If it's a GitHub URL, create a clickable link
+            if (source.includes('github.com')) {
+                const urlParts = source.split('/');
+                const fileWithLine = urlParts[urlParts.length - 1] || 'View';
+                const fileName = fileWithLine.split('#')[0];
+                const lineNumber = source.includes('#L') ? source.split('#L')[1] : '';
+
+                const displayName = lineNumber ? `${fileName}#L${lineNumber}` : fileName;
+                return `<a href="${source}" target="_blank" class="source-link">🔗 ${displayName}</a>`;
+            }
+
+            return source;
+        }
+
+        // Test cases
+        const testUrls = [
+            "https://github.com/rmnicholson0612/FocusFlow/blob/main/backend/functions/preferences/package.json#L7",
+            "https://github.com/rmnicholson0612/cloudops-assistant/blob/main/backend/lambda/requirements.txt#L1",
+            "https://github.com/rmnicholson0612/test/blob/main/Dockerfile",
+            "N/A"
+        ];
+
+        const resultsDiv = document.getElementById('test-results');
+
+        testUrls.forEach((url, index) => {
+            const result = formatSource(url);
+            resultsDiv.innerHTML += `
+                <div style="margin: 10px 0; padding: 10px; border: 1px solid #ccc;">
+                    <strong>Test ${index + 1}:</strong><br>
+                    Input: <code>${url}</code><br>
+                    Output: ${result}
+                </div>
+            `;
+        });
+    </script>
+
+    <style>
+        .source-link {
+            color: #007bff;
+            text-decoration: none;
+            font-size: 12px;
+        }
+        .source-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</body>
+</html>

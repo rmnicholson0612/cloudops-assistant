@@ -76,6 +76,13 @@ def deploy_sam_to_localstack():
             props = resource['Properties']
             bucket_name = props['BucketName']
 
+            # Handle CloudFormation intrinsic functions for LocalStack
+            if isinstance(bucket_name, dict) and '!Sub' in str(bucket_name):
+                # Replace CloudFormation variables with LocalStack values
+                bucket_name = 'cloudops-assistant-service-docs-123456789012'
+            elif isinstance(bucket_name, str) and '${AWS::AccountId}' in bucket_name:
+                bucket_name = bucket_name.replace('${AWS::AccountId}', '123456789012')
+
             if bucket_name not in existing_buckets:
                 s3.create_bucket(Bucket=bucket_name)
                 print(f"✅ Created S3 bucket: {bucket_name}")

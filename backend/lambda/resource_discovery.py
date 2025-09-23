@@ -790,103 +790,79 @@ def reject_service(event):
 def get_discovered_services(event):
     """Get list of discovered/approved services"""
     try:
-        # Get latest scan results (organization-wide)
-        try:
-            response = discovery_table.scan(
-                FilterExpression="#status = :status",
-                ExpressionAttributeNames={"#status": "status"},
-                ExpressionAttributeValues={":status": "completed"},
-                Limit=10,
-            )
-
-            if response["Items"]:
-                # Sort by timestamp to get latest
-                items = sorted(
-                    response["Items"],
-                    key=lambda x: x.get("timestamp", ""),
-                    reverse=True,
-                )
-                latest_scan = items[0]
-                services = latest_scan.get("results", {}).get("service_suggestions", [])
-                return success_response({"services": services, "total": len(services)})
-        except Exception as e:
-            logger.error(f"Error querying scan results: {str(e)}")
-
-        return success_response({"services": [], "total": 0})
-
+        services = get_latest_scan_data("service_suggestions")
+        return success_response({"services": services, "total": len(services)})
     except Exception as e:
         logger.error(f"Error getting discovered services: {str(e)}")
         return error_response("Failed to get discovered services")
 
 
+def get_latest_scan_data(data_key):
+    """Get latest scan data by key"""
+    response = discovery_table.scan(
+        FilterExpression="#status = :status",
+        ExpressionAttributeNames={"#status": "status"},
+        ExpressionAttributeValues={":status": "completed"},
+        Limit=10,
+    )
+    if response["Items"]:
+        items = sorted(
+            response["Items"], key=lambda x: x.get("timestamp", ""), reverse=True
+        )
+        return items[0].get("results", {}).get(data_key, [])
+    return []
+
+
 def get_all_resources(event):
     """Get list of all discovered resources"""
     try:
-        # Get latest scan results (organization-wide)
-        try:
-            response = discovery_table.scan(
-                FilterExpression="#status = :status",
-                ExpressionAttributeNames={"#status": "status"},
-                ExpressionAttributeValues={":status": "completed"},
-                Limit=10,
-            )
-
-            if response["Items"]:
-                # Sort by timestamp to get latest
-                items = sorted(
-                    response["Items"],
-                    key=lambda x: x.get("timestamp", ""),
-                    reverse=True,
-                )
-                latest_scan = items[0]
-                resources = latest_scan.get("results", {}).get("resources", [])
-                return success_response(
-                    {"resources": resources, "total": len(resources)}
-                )
-        except Exception as e:
-            logger.error(f"Error querying scan results: {str(e)}")
-
-        return success_response({"resources": [], "total": 0})
-
+        resources = get_latest_scan_data("resources")
+        return success_response({"resources": resources, "total": len(resources)})
     except Exception as e:
         logger.error(f"Error getting all resources: {str(e)}")
         return error_response("Failed to get all resources")
 
 
+def get_cors_headers():
+    """Get standardized CORS headers"""
+    return {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
+        "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+    }
+
+
 def success_response(data):
+    headers = get_cors_headers()
+    headers["Content-Type"] = "application/json"
     return {
         "statusCode": 200,
-        "headers": {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
-            "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
-        },
+        "headers": headers,
         "body": json.dumps(data, default=str),
     }
 
 
 def error_response(message, status_code=400):
+    headers = get_cors_headers()
+    headers["Content-Type"] = "application/json"
     return {
         "statusCode": status_code,
-        "headers": {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
-            "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
-        },
+        "headers": headers,
         "body": json.dumps({"error": message}),
     }
 
 
 def cors_response():
+    """Return CORS preflight response"""
+    headers = get_cors_headers()
+    headers["Access-Control-Max-Age"] = "86400"
     return {
         "statusCode": 200,
-        "headers": {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
-            "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
-            "Access-Control-Max-Age": "86400",
-        },
+        "headers": headers,
+        "body": "",
+    }
+    return {
+        "statusCode": 200,
+        "headers": headers,
         "body": "",
     }

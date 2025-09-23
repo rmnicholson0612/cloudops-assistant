@@ -38,11 +38,11 @@ def lambda_handler(event, context):
         }
 
     except Exception as e:
-        logger.error(f"Error: {str(e)}")
+        logger.error(f"Unexpected error in lambda_handler: {str(e)}")
         return {
             "statusCode": 500,
             "headers": get_cors_headers(),
-            "body": json.dumps({"error": str(e)}),
+            "body": json.dumps({"error": "Internal server error"}),
         }
 
 
@@ -66,7 +66,14 @@ def handle_link_request(event):
 
         # Validate token in DynamoDB
         try:
-            response = mapping_table.get_item(Key={"slack_user_id": f"pending_{token}"})
+            # Sanitize token to prevent injection
+            safe_token = sanitize_input(token) if token else ""
+            if not safe_token:
+                raise ValueError("Invalid token")
+
+            response = mapping_table.get_item(
+                Key={"slack_user_id": f"pending_{safe_token}"}
+            )
 
             if "Item" not in response or response["Item"].get("status") != "pending":
                 return {
@@ -127,7 +134,9 @@ def handle_link_request(event):
                 "errorDiv.style.display = 'none'; try {{"
                 "const response = await fetch('/Prod/slack/confirm', {{"
                 "method: 'POST', headers: {{'Content-Type': 'application/json'}},"
-                f"body: JSON.stringify({{ token: '{token}', email: email, password: password }})}});"
+                "body: JSON.stringify({ token: "
+                + json.dumps(sanitize_input(token))
+                + ", email: email, password: password })}});"
                 "const result = await response.json(); if (response.ok) {{ "
                 'document.body.innerHTML = \'<div class="container"><div class="header">'
                 '<h2>✅ Successfully Linked!</h2><p class="subtitle">Your Slack account is now connected.</p></div>'
@@ -147,7 +156,7 @@ def handle_link_request(event):
         return {
             "statusCode": 500,
             "headers": {"Content-Type": "text/html"},
-            "body": f"<html><body><h2>Error</h2><p>{str(e)}</p></body></html>",
+            "body": f"<html><body><h2>Error</h2><p>{sanitize_input(str(e))}</p></body></html>",
         }
 
 
@@ -169,7 +178,14 @@ def handle_link_confirmation(event):
 
         # Validate token and get Slack user ID from DynamoDB
         try:
-            response = mapping_table.get_item(Key={"slack_user_id": f"pending_{token}"})
+            # Sanitize token to prevent injection
+            safe_token = sanitize_input(token) if token else ""
+            if not safe_token:
+                raise ValueError("Invalid token")
+
+            response = mapping_table.get_item(
+                Key={"slack_user_id": f"pending_{safe_token}"}
+            )
 
             if "Item" not in response or response["Item"].get("status") != "pending":
                 return {
@@ -191,16 +207,23 @@ def handle_link_confirmation(event):
 
         # Authenticate with Cognito
         try:
+            # Sanitize inputs before authentication
+            safe_email = sanitize_input(email)
+            safe_password = sanitize_input(password)
+
+            if not safe_email or not safe_password:
+                raise ValueError("Invalid credentials format")
+
             cognito.admin_initiate_auth(
                 UserPoolId=os.environ["USER_POOL_ID"],
                 ClientId=os.environ["USER_POOL_CLIENT_ID"],
                 AuthFlow="ADMIN_USER_PASSWORD_AUTH",
-                AuthParameters={"USERNAME": email, "PASSWORD": password},
+                AuthParameters={"USERNAME": safe_email, "PASSWORD": safe_password},
             )
 
             # Get user details
             user_response = cognito.admin_get_user(
-                UserPoolId=os.environ["USER_POOL_ID"], Username=email
+                UserPoolId=os.environ["USER_POOL_ID"], Username=safe_email
             )
 
             cognito_user_id = user_response["Username"]
@@ -213,27 +236,31 @@ def handle_link_confirmation(event):
                 "body": json.dumps({"error": "Invalid credentials"}),
             }
 
-        # Store mapping
+        # Store mapping with sanitized inputs
         mapping_table.put_item(
             Item={
-                "slack_user_id": slack_user_id,
-                "cognito_user_id": cognito_user_id,
-                "email": email,
+                "slack_user_id": sanitize_input(slack_user_id),
+                "cognito_user_id": sanitize_input(cognito_user_id),
+                "email": sanitize_input(email),
                 "linked_at": datetime.now().isoformat(),
                 "status": "active",
             }
         )
 
-        # Clean up pending token
+        # Clean up pending token with sanitized input
         try:
-            mapping_table.delete_item(Key={"slack_user_id": f"pending_{token}"})
+            safe_token = sanitize_input(token) if token else ""
+            if safe_token:
+                mapping_table.delete_item(
+                    Key={"slack_user_id": f"pending_{safe_token}"}
+                )
         except Exception as e:
             logger.error(f"Token cleanup error: {str(e)}")
 
         logger.info(
             "Successfully linked Slack user %s to Cognito user %s",
-            slack_user_id,
-            cognito_user_id,
+            sanitize_input(slack_user_id),
+            sanitize_input(cognito_user_id),
         )
 
         return {
@@ -249,24 +276,46 @@ def handle_link_confirmation(event):
         return {
             "statusCode": 500,
             "headers": get_cors_headers(),
-            "body": json.dumps({"error": str(e)}),
+            "body": json.dumps({"error": "Internal server error"}),
         }
 
 
 def generate_link_token(slack_user_id):
     """Generate a secure token for linking"""
+    if not slack_user_id:
+        raise ValueError("slack_user_id is required")
+
+    # Sanitize slack_user_id to prevent injection
+    safe_slack_user_id = sanitize_input(slack_user_id)
+    if not safe_slack_user_id:
+        raise ValueError("Invalid slack_user_id")
+
     token = secrets.token_urlsafe(32)
-    # Store in DynamoDB instead of in-memory dict
-    mapping_table.put_item(
-        Item={
-            "slack_user_id": f"pending_{token}",
-            "cognito_user_id": slack_user_id,
-            "status": "pending",
-            "created_at": datetime.now().isoformat(),
-            "ttl": int((datetime.now() + timedelta(minutes=10)).timestamp()),
-        }
+    try:
+        mapping_table.put_item(
+            Item={
+                "slack_user_id": f"pending_{token}",
+                "cognito_user_id": safe_slack_user_id,
+                "status": "pending",
+                "created_at": datetime.now().isoformat(),
+                "ttl": int((datetime.now() + timedelta(minutes=10)).timestamp()),
+            }
+        )
+        return token
+    except Exception as e:
+        logger.error(f"Failed to store link token: {str(e)}")
+        raise RuntimeError("Failed to generate link token") from e
+
+
+def sanitize_input(value):
+    """Sanitize input to prevent injection attacks"""
+    if not value or not isinstance(value, str):
+        return ""
+    # Remove potential injection patterns and limit length
+    sanitized = (
+        value.replace('"', "").replace("'", "").replace("\n", "").replace("\r", "")
     )
-    return token
+    return sanitized[:100]  # Limit length
 
 
 def get_cors_headers():

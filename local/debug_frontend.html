@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Frontend formatSource</title>
+</head>
+<body>
+    <h1>Debug Frontend formatSource</h1>
+    <div id="results"></div>
+
+    <script>
+        // Copy the exact formatSource function from the frontend
+        function formatSource(source) {
+            console.log('formatSource called with:', source);
+
+            if (!source || source === 'N/A') {
+                console.log('Returning N/A');
+                return 'N/A';
+            }
+
+            // If it's a GitHub URL, create a clickable link
+            if (source.includes('github.com')) {
+                console.log('Processing GitHub URL');
+                const urlParts = source.split('/');
+                console.log('URL parts:', urlParts);
+
+                const fileWithLine = urlParts[urlParts.length - 1] || 'View';
+                console.log('fileWithLine:', fileWithLine);
+
+                const fileName = fileWithLine.split('#')[0];
+                console.log('fileName:', fileName);
+
+                const lineNumber = source.includes('#L') ? source.split('#L')[1] : '';
+                console.log('lineNumber:', lineNumber);
+
+                const displayName = lineNumber ? `${fileName}#L${lineNumber}` : fileName;
+                console.log('displayName:', displayName);
+
+                const result = `<a href="${source}" target="_blank" class="source-link">🔗 ${displayName}</a>`;
+                console.log('Final result:', result);
+                return result;
+            }
+
+            console.log('Returning source as-is:', source);
+            return source;
+        }
+
+        // Test with real data
+        const testData = [
+            "https://github.com/rmnicholson0612/FocusFlow/blob/main/backend/functions/preferences/package.json#L7",
+            "https://github.com/rmnicholson0612/cloudops-assistant/blob/main/backend/lambda/requirements.txt#L1",
+            "https://github.com/rmnicholson0612/test/blob/main/Dockerfile",
+            "N/A",
+            null,
+            undefined
+        ];
+
+        const resultsDiv = document.getElementById('results');
+
+        testData.forEach((url, index) => {
+            console.log(`\n=== Test ${index + 1} ===`);
+            const result = formatSource(url);
+
+            resultsDiv.innerHTML += `
+                <div style="margin: 10px 0; padding: 10px; border: 1px solid #ccc;">
+                    <strong>Test ${index + 1}:</strong><br>
+                    Input: <code>${url}</code><br>
+                    Output: ${result}
+                </div>
+            `;
+        });
+
+        // Test the table row generation like the frontend does
+        console.log('\n=== Testing table row generation ===');
+        const mockFinding = {
+            technology: 'boto3',
+            version: '1.26.0',
+            tech_type: 'python-package',
+            repo_name: 'cloudops-assistant',
+            risk_level: 'unknown',
+            eol_date: null,
+            source: 'https://github.com/rmnicholson0612/cloudops-assistant/blob/main/backend/lambda/requirements.txt#L1',
+            github_url: 'https://github.com/rmnicholson0612/cloudops-assistant/blob/main/backend/lambda/requirements.txt#L1',
+            last_seen: '2025-01-21T10:00:00Z'
+        };
+
+        const sourceCell = formatSource(mockFinding.source || mockFinding.github_url);
+        console.log('Source cell HTML:', sourceCell);
+
+        resultsDiv.innerHTML += `
+            <div style="margin: 20px 0; padding: 10px; border: 2px solid #007bff;">
+                <strong>Mock Table Cell:</strong><br>
+                ${sourceCell}
+            </div>
+        `;
+    </script>
+
+    <style>
+        .source-link {
+            color: #007bff;
+            text-decoration: none;
+            font-size: 12px;
+        }
+        .source-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</body>
+</html>

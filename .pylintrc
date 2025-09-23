@@ -1,0 +1,26 @@
+[MESSAGES CONTROL]
+# Disable some overly strict checks for this project
+disable=missing-module-docstring,
+        missing-function-docstring,
+        too-many-locals,
+        too-many-branches,
+        too-many-return-statements,
+        broad-exception-caught,
+        logging-fstring-interpolation,
+        unused-argument,
+        import-outside-toplevel,
+        duplicate-code
+
+[FORMAT]
+# Maximum number of characters on a single line (match flake8)
+max-line-length=180
+
+[DESIGN]
+# Maximum number of arguments for function / method
+max-args=10
+# Maximum number of locals for function / method body
+max-locals=20
+# Maximum number of return / yield for function / method body
+max-returns=10
+# Maximum number of branch for function / method body
+max-branches=15

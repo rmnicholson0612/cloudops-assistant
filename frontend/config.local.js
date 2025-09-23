@@ -8,7 +8,7 @@ window.CONFIG = {
     APP_NAME: 'CloudOps Assistant (Local)',
     VERSION: '1.0.0-dev',
     ENVIRONMENT: 'local',
-    CURRENT_DAY: 14,
+    CURRENT_DAY: 17,
     TOTAL_DAYS: 30,
 
     // Feature Flags
@@ -23,8 +23,8 @@ window.CONFIG = {
     ALLOWED_FILE_TYPES: ['.txt', '.log', '.out', '.plan'],
 
     // GitHub Configuration
-    GITHUB_DEFAULT_TARGET: 'rmnicholson0612',
-    GITHUB_DEFAULT_TOKEN: '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',
+    GITHUB_DEFAULT_TARGET: '',
+    GITHUB_DEFAULT_TOKEN: '', // Token should be provided by user at runtime
 
     // Local Development Features
     MOCK_AUTH: true,

@@ -10,6 +10,33 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
+def get_cors_headers():
+    """Get standardized CORS headers for JWT authentication"""
+    return {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
+        "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+    }
+
+
+def success_response(data):
+    """Return standardized success response"""
+    return {
+        "statusCode": 200,
+        "headers": {"Content-Type": "application/json", **get_cors_headers()},
+        "body": json.dumps(data, default=str),
+    }
+
+
+def error_response(status_code, message):
+    """Return standardized error response"""
+    return {
+        "statusCode": status_code,
+        "headers": {"Content-Type": "application/json", **get_cors_headers()},
+        "body": json.dumps({"error": message}),
+    }
+
+
 def sanitize_input(input_str):
     """Sanitize input to prevent injection attacks"""
     if not isinstance(input_str, str):
@@ -27,27 +54,12 @@ def lambda_handler(event, context):
 
         # Handle OPTIONS for CORS
         if method == "OPTIONS":
-            return {
-                "statusCode": 200,
-                "headers": {
-                    "Access-Control-Allow-Origin": "*",
-                    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-                    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-                },
-                "body": "",
-            }
+            return {"statusCode": 200, "headers": get_cors_headers(), "body": ""}
 
         # Extract user_id from JWT token
         user_id = extract_user_id(event)
         if not user_id:
-            return {
-                "statusCode": 401,
-                "headers": {
-                    "Content-Type": "application/json",
-                    "Access-Control-Allow-Origin": "*",
-                },
-                "body": json.dumps({"error": "Unauthorized"}),
-            }
+            return error_response(401, "Unauthorized")
 
         if path == "/docs/register" and method == "POST":
             return register_service(event, user_id)
@@ -64,35 +76,13 @@ def lambda_handler(event, context):
         elif path == "/docs/delete" and method == "DELETE":
             return delete_document(event, user_id)
         elif path == "/docs/get" and method == "OPTIONS":
-            return {
-                "statusCode": 200,
-                "headers": {
-                    "Access-Control-Allow-Origin": "*",
-                    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-                    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-                },
-                "body": "",
-            }
+            return {"statusCode": 200, "headers": get_cors_headers(), "body": ""}
         else:
-            return {
-                "statusCode": 404,
-                "headers": {
-                    "Content-Type": "application/json",
-                    "Access-Control-Allow-Origin": "*",
-                },
-                "body": json.dumps({"error": "Not found"}),
-            }
+            return error_response(404, "Not found")
 
     except Exception as e:
         logger.error(f"Error: {str(e)}")
-        return {
-            "statusCode": 500,
-            "headers": {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*",
-            },
-            "body": json.dumps({"error": str(e)}),
-        }
+        return error_response(500, str(e))
 
 
 def extract_user_id(event):
@@ -120,14 +110,7 @@ def register_service(event, user_id):
         github_repo = sanitize_input(body["github_repo"])
 
         if not all([service_name, service_owner, github_repo]):
-            return {
-                "statusCode": 400,
-                "headers": {
-                    "Content-Type": "application/json",
-                    "Access-Control-Allow-Origin": "*",
-                },
-                "body": json.dumps({"error": "Missing required fields"}),
-            }
+            return error_response(400, "Missing required fields")
 
         dynamodb = boto3.resource("dynamodb")
         table = dynamodb.Table("cloudops-assistant-service-docs-v2")
@@ -150,30 +133,16 @@ def register_service(event, user_id):
             }
         )
 
-        return {
-            "statusCode": 200,
-            "headers": {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*",
-            },
-            "body": json.dumps(
-                {
-                    "message": "Service registered successfully",
-                    "service_name": service_name,
-                }
-            ),
-        }
+        return success_response(
+            {
+                "message": "Service registered successfully",
+                "service_name": service_name,
+            }
+        )
 
     except Exception as e:
         logger.error(f"Register error: {str(e)}")
-        return {
-            "statusCode": 500,
-            "headers": {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*",
-            },
-            "body": json.dumps({"error": str(e)}),
-        }
+        return error_response(500, str(e))
 
 
 def list_available_services(user_id):
@@ -183,10 +152,21 @@ def list_available_services(user_id):
         dynamodb = boto3.resource("dynamodb")
         plans_table = dynamodb.Table("cloudops-assistant-terraform-plans")
 
-        response = plans_table.query(
-            IndexName="user-id-index",
-            KeyConditionExpression=boto3.dynamodb.conditions.Key("user_id").eq(user_id),
-        )
+        # Sanitize user_id to prevent injection
+        safe_user_id = str(user_id).strip()[:100] if user_id else ""
+        if not safe_user_id:
+            return error_response(400, "Invalid user ID")
+
+        try:
+            from boto3.dynamodb.conditions import Key
+
+            response = plans_table.query(
+                IndexName="user-id-index",
+                KeyConditionExpression=Key("user_id").eq(safe_user_id),
+            )
+        except Exception as db_error:
+            logger.error(f"DynamoDB query failed: {str(db_error)}")
+            return error_response(500, "Failed to retrieve services")
 
         # Extract unique repo names
         repos = set()
@@ -206,25 +186,11 @@ def list_available_services(user_id):
                 }
             )
 
-        return {
-            "statusCode": 200,
-            "headers": {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*",
-            },
-            "body": json.dumps({"available_services": available_services}),
-        }
+        return success_response({"available_services": available_services})
 
     except Exception as e:
         logger.error(f"List services error: {str(e)}")
-        return {
-            "statusCode": 500,
-            "headers": {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*",
-            },
-            "body": json.dumps({"error": str(e)}),
-        }
+        return error_response(500, str(e))
 
 
 def handle_upload(event, user_id):
@@ -236,14 +202,7 @@ def handle_upload(event, user_id):
         content = body["content"]  # Don't sanitize content as it's document text
 
         if not all([service_name, doc_name, content]):
-            return {
-                "statusCode": 400,
-                "headers": {
-                    "Content-Type": "application/json",
-                    "Access-Control-Allow-Origin": "*",
-                },
-                "body": json.dumps({"error": "Missing required fields"}),
-            }
+            return error_response(400, "Missing required fields")
 
         s3 = boto3.client("s3")
         bucket = "cloudops-assistant-service-docs"
@@ -256,6 +215,11 @@ def handle_upload(event, user_id):
         dynamodb = boto3.resource("dynamodb")
         table = dynamodb.Table("cloudops-assistant-service-docs-v2")
 
+        # Sanitize user_id before storing
+        safe_user_id = str(user_id).strip()[:100] if user_id else ""
+        if not safe_user_id:
+            return error_response(400, "Invalid user ID")
+
         table.put_item(
             Item={
                 "service_name": service_name,
@@ -266,86 +230,54 @@ def handle_upload(event, user_id):
                 "content_preview": (
                     content[:200] + "..." if len(content) > 200 else content
                 ),
-                "uploaded_by": user_id,
+                "uploaded_by": safe_user_id,
                 "ttl": int(
                     (datetime.now(timezone.utc) + timedelta(days=90)).timestamp()
                 ),
             }
         )
 
-        return {
-            "statusCode": 200,
-            "headers": {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*",
-            },
-            "body": json.dumps(
-                {
-                    "message": "Document uploaded successfully",
-                    "service_name": service_name,
-                    "doc_name": doc_name,
-                }
-            ),
-        }
+        return success_response(
+            {
+                "message": "Document uploaded successfully",
+                "service_name": service_name,
+                "doc_name": doc_name,
+            }
+        )
 
     except Exception as e:
         logger.error(f"Upload error: {str(e)}")
-        return {
-            "statusCode": 500,
-            "headers": {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*",
-            },
-            "body": json.dumps({"error": str(e)}),
-        }
+        return error_response(500, str(e))
 
 
 def handle_search(event, user_id):
     """Handle documentation search with AI"""
     try:
         body = json.loads(event["body"])
-        query = body["query"]
+        raw_query = body["query"]
 
-        if not query:
-            return {
-                "statusCode": 400,
-                "headers": {
-                    "Content-Type": "application/json",
-                    "Access-Control-Allow-Origin": "*",
-                },
-                "body": json.dumps({"error": "Query is required"}),
-            }
+        if not raw_query:
+            return error_response(400, "Query is required")
+
+        # Sanitize query to prevent NoSQL injection
+        query = sanitize_input(raw_query)
 
         docs = get_all_documents()
         relevant_docs = find_relevant_docs(query, docs)
         ai_response = generate_ai_response(query, relevant_docs)
 
-        return {
-            "statusCode": 200,
-            "headers": {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*",
-            },
-            "body": json.dumps(
-                {
-                    "query": query,
-                    "answer": ai_response["answer"],
-                    "sources": ai_response["sources"],
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                }
-            ),
-        }
+        return success_response(
+            {
+                "query": query,
+                "answer": ai_response["answer"],
+                "sources": ai_response["sources"],
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        )
 
     except Exception as e:
         logger.error(f"Search error: {str(e)}")
-        return {
-            "statusCode": 500,
-            "headers": {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*",
-            },
-            "body": json.dumps({"error": str(e)}),
-        }
+        return error_response(500, str(e))
 
 
 def list_documents(user_id):
@@ -358,35 +290,31 @@ def list_documents(user_id):
             service_name = doc["service_name"]
             if service_name not in services:
                 services[service_name] = []
+            try:
+                file_size_raw = doc.get("file_size", 0)
+                if file_size_raw is None:
+                    file_size = 0
+                elif isinstance(file_size_raw, (int, float)):
+                    file_size = int(file_size_raw)
+                else:
+                    file_size = int(str(file_size_raw))
+            except (ValueError, TypeError, AttributeError):
+                logger.warning("Invalid file_size value detected, defaulting to 0")
+                file_size = 0
+
             services[service_name].append(
                 {
                     "doc_name": doc["doc_name"],
                     "upload_date": doc["upload_date"],
-                    "file_size": int(doc.get("file_size", 0)),
+                    "file_size": file_size,
                 }
             )
 
-        return {
-            "statusCode": 200,
-            "headers": {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*",
-            },
-            "body": json.dumps(
-                {"services": services, "total_documents": len(docs)}, default=str
-            ),  # Fix Decimal serialization
-        }
+        return success_response({"services": services, "total_documents": len(docs)})
 
     except Exception as e:
         logger.error(f"List error: {str(e)}")
-        return {
-            "statusCode": 500,
-            "headers": {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*",
-            },
-            "body": json.dumps({"error": str(e)}),
-        }
+        return error_response(500, str(e))
 
 
 def get_all_documents():
@@ -395,7 +323,10 @@ def get_all_documents():
         dynamodb = boto3.resource("dynamodb")
         table = dynamodb.Table("cloudops-assistant-service-docs-v2")
 
-        response = table.scan()
+        # Use scan with projection to limit data exposure
+        response = table.scan(
+            ProjectionExpression="service_name, doc_name, upload_date, file_size, content_preview"
+        )
 
         return response.get("Items", [])
     except Exception as e:
@@ -405,7 +336,9 @@ def get_all_documents():
 
 def find_relevant_docs(query, docs):
     """Simple keyword matching to find relevant documents"""
-    query_words = query.lower().split()
+    # Sanitize query to prevent NoSQL injection
+    sanitized_query = sanitize_input(query) if query else ""
+    query_words = [sanitize_input(word) for word in sanitized_query.lower().split()]
     relevant = []
 
     for doc in docs:
@@ -430,35 +363,62 @@ def find_relevant_docs(query, docs):
     return relevant[:3]
 
 
+def load_document_content(relevant_docs):
+    """Load document content from S3"""
+    s3 = boto3.client("s3")
+    bucket = "cloudops-assistant-service-docs"
+    context_docs = []
+
+    for doc in relevant_docs:
+        try:
+            response = s3.get_object(Bucket=bucket, Key=doc["s3_key"])
+            content = response["Body"].read().decode("utf-8")
+            context_docs.append(
+                {
+                    "service": doc["service_name"],
+                    "document": doc["doc_name"],
+                    "content": content[:2000],
+                }
+            )
+        except s3.exceptions.NoSuchKey:
+            logger.warning(f"S3 object not found: {doc['s3_key']}")
+        except Exception as e:
+            logger.error(f"Error reading S3 object {doc['s3_key']}: {str(e)}")
+
+    return context_docs
+
+
+def call_bedrock_ai(prompt):
+    """Call AWS Bedrock for AI response"""
+    bedrock = boto3.client("bedrock-runtime")
+    response = bedrock.invoke_model(
+        modelId="amazon.nova-lite-v1:0",
+        body=json.dumps(
+            {
+                "messages": [{"role": "user", "content": [{"text": prompt}]}],
+                "inferenceConfig": {"maxTokens": 1000, "temperature": 0.7},
+            }
+        ),
+    )
+    result = json.loads(response["body"].read().decode("utf-8"))
+    return result["output"]["message"]["content"][0]["text"]
+
+
 def generate_ai_response(query, relevant_docs):
     """Generate AI response using Bedrock"""
     try:
         if not relevant_docs:
             return {
-                "answer": (
-                    "I couldn't find any relevant documentation for your query. "
-                    "Please make sure you've uploaded service documentation first."
-                ),
+                "answer": "I couldn't find any relevant documentation for your query. Please make sure you've uploaded service documentation first.",
                 "sources": [],
             }
 
-        s3 = boto3.client("s3")
-        bucket = "cloudops-assistant-service-docs"
-        context_docs = []
-
-        for doc in relevant_docs:
-            try:
-                response = s3.get_object(Bucket=bucket, Key=doc["s3_key"])
-                content = response["Body"].read().decode("utf-8")
-                context_docs.append(
-                    {
-                        "service": doc["service_name"],
-                        "document": doc["doc_name"],
-                        "content": content[:2000],
-                    }
-                )
-            except Exception as e:
-                logger.error(f"Error reading S3 object {doc['s3_key']}: {str(e)}")
+        context_docs = load_document_content(relevant_docs)
+        if not context_docs:
+            return {
+                "answer": "No accessible documentation found for your query.",
+                "sources": [],
+            }
 
         context = "\n\n".join(
             [
@@ -474,32 +434,34 @@ def generate_ai_response(query, relevant_docs):
             "If the documentation doesn't contain the answer, say so clearly."
         )
 
-        bedrock = boto3.client("bedrock-runtime")
-
-        response = bedrock.invoke_model(
-            modelId="amazon.nova-lite-v1:0",
-            body=json.dumps(
-                {
-                    "messages": [{"role": "user", "content": [{"text": prompt}]}],
-                    "inferenceConfig": {"maxTokens": 1000, "temperature": 0.7},
-                }
-            ),
-        )
-
-        result = json.loads(response["body"].read().decode("utf-8"))
-
-        return {
-            "answer": result["output"]["message"]["content"][0]["text"],
-            "sources": [
-                {"service": doc["service"], "document": doc["document"]}
-                for doc in context_docs
-            ],
-        }
+        try:
+            answer = call_bedrock_ai(prompt)
+            return {
+                "answer": answer,
+                "sources": [
+                    {"service": doc["service"], "document": doc["document"]}
+                    for doc in context_docs
+                ],
+            }
+        except Exception as bedrock_error:
+            logger.error(f"Bedrock API error: {str(bedrock_error)}")
+            fallback_answer = "Based on the available documentation: " + (
+                context_docs[0]["content"][:500] + "..."
+                if context_docs
+                else "No relevant documentation found."
+            )
+            return {
+                "answer": fallback_answer,
+                "sources": [
+                    {"service": doc["service"], "document": doc["document"]}
+                    for doc in context_docs
+                ],
+            }
 
     except Exception as e:
         logger.error(f"AI response error: {str(e)}")
         return {
-            "answer": f"I encountered an error while processing your query: {str(e)}",
+            "answer": "I encountered an error while processing your query. Please try again or contact support if the issue persists.",
             "sources": [],
         }
 
@@ -512,14 +474,16 @@ def get_document(event, user_id):
         doc_name = sanitize_input(body["doc_name"])
 
         if not all([service_name, doc_name]):
-            return {
-                "statusCode": 400,
-                "headers": {
-                    "Content-Type": "application/json",
-                    "Access-Control-Allow-Origin": "*",
-                },
-                "body": json.dumps({"error": "Missing required fields"}),
-            }
+            return error_response(400, "Missing required fields")
+
+        # Additional validation to prevent path traversal
+        if (
+            ".." in service_name
+            or ".." in doc_name
+            or "/" in service_name
+            or "/" in doc_name
+        ):
+            return error_response(400, "Invalid service or document name")
 
         s3 = boto3.client("s3")
         bucket = "cloudops-assistant-service-docs"
@@ -529,40 +493,19 @@ def get_document(event, user_id):
             response = s3.get_object(Bucket=bucket, Key=s3_key)
             content = response["Body"].read().decode("utf-8")
 
-            return {
-                "statusCode": 200,
-                "headers": {
-                    "Content-Type": "application/json",
-                    "Access-Control-Allow-Origin": "*",
-                },
-                "body": json.dumps(
-                    {
-                        "service_name": service_name,
-                        "doc_name": doc_name,
-                        "content": content,
-                    }
-                ),
-            }
+            return success_response(
+                {
+                    "service_name": service_name,
+                    "doc_name": doc_name,
+                    "content": content,
+                }
+            )
         except s3.exceptions.NoSuchKey:
-            return {
-                "statusCode": 404,
-                "headers": {
-                    "Content-Type": "application/json",
-                    "Access-Control-Allow-Origin": "*",
-                },
-                "body": json.dumps({"error": "Document not found"}),
-            }
+            return error_response(404, "Document not found")
 
     except Exception as e:
         logger.error(f"Get document error: {str(e)}")
-        return {
-            "statusCode": 500,
-            "headers": {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*",
-            },
-            "body": json.dumps({"error": str(e)}),
-        }
+        return error_response(500, str(e))
 
 
 def delete_document(event, user_id):
@@ -573,14 +516,16 @@ def delete_document(event, user_id):
         doc_name = sanitize_input(body["doc_name"])
 
         if not all([service_name, doc_name]):
-            return {
-                "statusCode": 400,
-                "headers": {
-                    "Content-Type": "application/json",
-                    "Access-Control-Allow-Origin": "*",
-                },
-                "body": json.dumps({"error": "Missing required fields"}),
-            }
+            return error_response(400, "Missing required fields")
+
+        # Additional validation to prevent path traversal and injection
+        if (
+            ".." in service_name
+            or ".." in doc_name
+            or "/" in service_name
+            or "/" in doc_name
+        ):
+            return error_response(400, "Invalid service or document name")
 
         # Delete from S3
         s3 = boto3.client("s3")
@@ -596,24 +541,19 @@ def delete_document(event, user_id):
         dynamodb = boto3.resource("dynamodb")
         table = dynamodb.Table("cloudops-assistant-service-docs-v2")
 
-        table.delete_item(Key={"service_name": service_name, "doc_name": doc_name})
+        # Use sanitized inputs for delete operation with additional validation
+        if not re.match(r"^[a-zA-Z0-9._-]+$", service_name) or not re.match(
+            r"^[a-zA-Z0-9._-]+$", doc_name
+        ):
+            return error_response(400, "Invalid characters in service or document name")
 
-        return {
-            "statusCode": 200,
-            "headers": {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*",
-            },
-            "body": json.dumps({"message": "Document deleted successfully"}),
-        }
+        table.delete_item(
+            Key={"service_name": service_name, "doc_name": doc_name},
+            ConditionExpression="attribute_exists(service_name) AND attribute_exists(doc_name)",
+        )
+
+        return success_response({"message": "Document deleted successfully"})
 
     except Exception as e:
         logger.error(f"Delete document error: {str(e)}")
-        return {
-            "statusCode": 500,
-            "headers": {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*",
-            },
-            "body": json.dumps({"error": str(e)}),
-        }
+        return error_response(500, str(e))

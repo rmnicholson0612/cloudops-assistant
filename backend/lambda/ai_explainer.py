@@ -9,6 +9,13 @@ import boto3
 try:
     from auth_utils import auth_required
 except ImportError:
+    auth_required = None
+
+# Override auth_required for local development or if not available
+if (
+    os.environ.get("AWS_ENDPOINT_URL") == "http://localhost:4566"
+    or auth_required is None
+):
 
     def auth_required(func):
         return func
@@ -19,10 +26,10 @@ logger.setLevel(logging.INFO)
 
 # Initialize AWS clients
 try:
-    bedrock = boto3.client("bedrock-runtime", region_name="us-east-1")
+    BEDROCK = boto3.client("bedrock-runtime", region_name="us-east-1")
 except Exception as e:
     logger.warning(f"Bedrock client initialization failed: {e}")
-    bedrock = None
+    BEDROCK = None
 
 dynamodb = boto3.resource("dynamodb")
 
@@ -48,10 +55,9 @@ def _authenticated_handler(event, context):
 
         if method == "POST" and "/ai/explain" in path:
             return explain_terraform_plan(event)
-        elif method == "GET" and "/ai/explanations" in path:
+        if method == "GET" and "/ai/explanations" in path:
             return get_plan_explanations(event)
-        else:
-            return error_response("Invalid endpoint", 404)
+        return error_response("Invalid endpoint", 404)
 
     except Exception as e:
         logger.error(f"AI explainer error: {str(e)}")
@@ -208,7 +214,7 @@ def generate_ai_explanation(plan_content):
             return generate_ollama_explanation(plan_content)
 
         # Production: use AWS Bedrock
-        if not bedrock:
+        if not BEDROCK:
             return generate_fallback_explanation(plan_content)
 
         prompt = f"""Analyze this Terraform plan and provide a clear explanation:
@@ -256,7 +262,7 @@ Format as JSON with keys: summary, risk_level, impact, recommendations (array)""
                         },
                     }
 
-                response = bedrock.invoke_model(modelId=model_id, body=json.dumps(body))
+                response = BEDROCK.invoke_model(modelId=model_id, body=json.dumps(body))
 
                 result = json.loads(response["body"].read().decode("utf-8"))
 

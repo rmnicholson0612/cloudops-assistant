@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
@@ -10,7 +11,14 @@ import urllib3
 try:
     from auth_utils import auth_required
 except ImportError:
-    # Fallback if auth_utils not available
+    auth_required = None
+
+# Override auth_required for local development or if not available
+if (
+    os.environ.get("AWS_ENDPOINT_URL") == "http://localhost:4566"
+    or auth_required is None
+):
+
     def auth_required(func):
         return func
 
@@ -219,9 +227,9 @@ def _fetch_repos(url, headers):
             repos = json.loads(response.data.decode("utf-8"))
             logger.info(f"Found {len(repos)} repositories")
             # Debug: Log first few repo names and visibility
-            for i, repo in enumerate(repos[:5]):
+            for idx, repo in enumerate(repos[:5]):
                 logger.info(
-                    f"Repo {i+1}: {repo.get('name')} (private: {repo.get('private', False)})"
+                    f"Repo {idx+1}: {repo.get('name')} (private: {repo.get('private', False)})"
                 )
             return repos
         elif response.status == 403:
@@ -430,6 +438,7 @@ def scan_repo_drift(repo, token=None):
                 timeout=60,
                 cwd=tf_dir,
                 env={"PATH": os.environ.get("PATH", "")},
+                check=False,
             )
             if init_result.returncode != 0:
                 return {
@@ -451,6 +460,7 @@ def scan_repo_drift(repo, token=None):
                 timeout=120,
                 cwd=tf_dir,
                 env={"PATH": os.environ.get("PATH", "")},
+                check=False,
             )
 
             # Parse plan output for changes

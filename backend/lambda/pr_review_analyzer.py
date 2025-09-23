@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 from datetime import datetime, timezone
 
 import boto3
@@ -21,12 +22,18 @@ pr_reviews_table = dynamodb.Table(pr_reviews_table_name)
 
 def lambda_handler(event, context):
     """Analyze PR changes and post AI review"""
+    review_id = event.get("review_id")
     try:
-        review_id = event.get("review_id")
         pr_data = event.get("pr_data", {})
         repo_token = event.get("repo_token")
 
-        logger.info(f"Analyzing PR review: {review_id}")
+        # Sanitize review_id for logging to prevent log injection
+        safe_review_id = (
+            str(review_id).replace("\n", "").replace("\r", "")[:50]
+            if review_id
+            else "unknown"
+        )
+        logger.info(f"Analyzing PR review: {safe_review_id}")
 
         # Get PR diff from GitHub
         diff_content = get_pr_diff(pr_data, repo_token)
@@ -50,7 +57,7 @@ def lambda_handler(event, context):
             },
         )
 
-        logger.info(f"PR review completed: {review_id}")
+        logger.info(f"PR review completed: {safe_review_id}")
         return {
             "statusCode": 200,
             "body": json.dumps({"review_id": review_id, "status": "completed"}),
@@ -58,8 +65,8 @@ def lambda_handler(event, context):
 
     except Exception as e:
         logger.error(f"PR analysis error: {str(e)}")
-        # Update status to failed
-        if "review_id" in locals():
+        # Update status to failed if review_id exists
+        if review_id:
             pr_reviews_table.update_item(
                 Key={"review_id": review_id},
                 UpdateExpression="SET #status = :status, error_message = :error",
@@ -76,8 +83,17 @@ def get_pr_diff(pr_data, repo_token=None):
         if repo_token:
             headers["Authorization"] = f"token {repo_token}"
 
+        # Validate and sanitize URL components to prevent SSRF
+        repo_full_name, pr_number = _validate_pr_params(pr_data)
+        if not repo_full_name:
+            return f"PR #{pr_number}: Invalid repository format"
+        if not pr_number:
+            return "PR: Invalid PR number format"
+
         # Get PR files to see what changed
-        files_url = f"https://api.github.com/repos/{pr_data['repo_full_name']}/pulls/{pr_data['pr_number']}/files"
+        files_url = (
+            f"https://api.github.com/repos/{repo_full_name}/pulls/{pr_number}/files"
+        )
         files_response = requests.get(files_url, headers=headers, timeout=30)
 
         if files_response.status_code == 200:
@@ -105,9 +121,9 @@ def get_pr_diff(pr_data, repo_token=None):
                     )
 
             return changes_summary[:8000]  # Limit total size
-        else:
-            logger.warning(f"Failed to get PR files: {files_response.status_code}")
-            return f"PR #{pr_data['pr_number']}: {pr_data['pr_title']}\nUnable to fetch file changes."
+
+        logger.warning(f"Failed to get PR files: {files_response.status_code}")
+        return f"PR #{pr_data['pr_number']}: {pr_data['pr_title']}\nUnable to fetch file changes."
 
     except Exception as e:
         logger.error(f"Error getting PR files: {str(e)}")
@@ -149,17 +165,10 @@ Keep each array item as a single clear sentence. Do not include nested objects o
         )
 
         result = json.loads(response["body"].read().decode("utf-8"))
-        ai_text = result["output"]["message"]["content"][0]["text"]
 
-        try:
-            return json.loads(ai_text)
-        except json.JSONDecodeError:
-            return {
-                "risk_level": "MEDIUM",
-                "security_issues": [],
-                "violations": [],
-                "recommendations": [ai_text[:500]],
-            }
+        # Extract AI text with simplified error handling
+        ai_text = _extract_ai_text(result)
+        return _parse_ai_response(ai_text)
 
     except Exception as e:
         logger.error(f"AI review generation failed: {str(e)}")
@@ -202,7 +211,14 @@ def post_github_comment(pr_data, ai_review, repo_token=None):
             "Accept": "application/vnd.github.v3+json",
         }
 
-        url = f"https://api.github.com/repos/{pr_data['repo_full_name']}/issues/{pr_data['pr_number']}/comments"
+        # Validate and sanitize URL components to prevent SSRF
+        repo_full_name, pr_number = _validate_pr_params(pr_data)
+        if not repo_full_name or not pr_number:
+            return False
+
+        url = (
+            f"https://api.github.com/repos/{repo_full_name}/issues/{pr_number}/comments"
+        )
         response = requests.post(
             url, headers=headers, json={"body": comment}, timeout=30
         )
@@ -212,6 +228,49 @@ def post_github_comment(pr_data, ai_review, repo_token=None):
     except Exception as e:
         logger.error(f"Failed to post GitHub comment: {str(e)}")
         return False
+
+
+def _validate_pr_params(pr_data):
+    """Validate and sanitize PR parameters"""
+    repo_full_name = str(pr_data.get("repo_full_name", "")).strip()
+    pr_number = str(pr_data.get("pr_number", "")).strip()
+
+    # Validate repo_full_name format (owner/repo)
+    if (
+        not re.match(r"^[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+$", repo_full_name)
+        or len(repo_full_name) > 100
+    ):
+        logger.error(f"Invalid repo_full_name format: {repo_full_name}")
+        return None, pr_number
+
+    # Validate pr_number is numeric
+    if not pr_number.isdigit() or int(pr_number) <= 0:
+        logger.error(f"Invalid pr_number: {pr_number}")
+        return repo_full_name, None
+
+    return repo_full_name, pr_number
+
+
+def _extract_ai_text(result):
+    """Extract AI text from Bedrock response"""
+    try:
+        return result["output"]["message"]["content"][0]["text"]
+    except (KeyError, IndexError, TypeError) as e:
+        logger.error(f"Invalid Bedrock response structure: {str(e)}")
+        raise ValueError("Invalid AI response format")
+
+
+def _parse_ai_response(ai_text):
+    """Parse AI response text into structured format"""
+    try:
+        return json.loads(ai_text)
+    except json.JSONDecodeError:
+        return {
+            "risk_level": "MEDIUM",
+            "security_issues": [],
+            "violations": [],
+            "recommendations": [ai_text[:500]],
+        }
 
 
 def format_list(items):

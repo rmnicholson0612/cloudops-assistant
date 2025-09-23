@@ -23,7 +23,7 @@ def load_env_file(path: Path) -> dict:
 
 def main():
     """Validate configuration consistency."""
-    print("🔍 Validating CloudOps Assistant Configuration...")
+    print("Validating CloudOps Assistant Configuration...")
 
     # Load environment files
     backend_env = load_env_file(Path("backend/.env"))
@@ -39,7 +39,7 @@ def main():
 
     for var in required_backend:
         if var not in backend_env or not backend_env[var]:
-            issues.append(f"❌ Missing backend variable: {var}")
+            issues.append(f"Missing backend variable: {var}")
 
     # Check required frontend variables
     required_frontend = [
@@ -49,23 +49,23 @@ def main():
 
     for var in required_frontend:
         if var not in frontend_env or not frontend_env[var]:
-            issues.append(f"❌ Missing frontend variable: {var}")
+            issues.append(f"Missing frontend variable: {var}")
 
     # Check API URL is set (after deployment)
     if "VITE_API_BASE_URL" in frontend_env:
         api_url = frontend_env["VITE_API_BASE_URL"]
         if "your-api-gateway-url" in api_url:
-            issues.append("⚠️  Frontend API URL not updated (run 'make update-config' after deployment)")
+            issues.append("Frontend API URL not updated (run 'make update-config' after deployment)")
 
     # Report results
     if issues:
         print("\\n".join(issues))
-        print(f"\\n❌ Found {len(issues)} configuration issues")
+        print(f"\\nFound {len(issues)} configuration issues")
         return 1
     else:
-        print("✅ All configuration checks passed!")
-        print(f"📊 Backend variables: {len(backend_env)}")
-        print(f"🎨 Frontend variables: {len(frontend_env)}")
+        print("All configuration checks passed!")
+        print(f"Backend variables: {len(backend_env)}")
+        print(f"Frontend variables: {len(frontend_env)}")
         return 0
 
 

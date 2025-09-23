@@ -525,16 +525,34 @@ def validate_authorization(event):
 
         token = auth_header.replace("Bearer ", "")
 
-        # Local development bypass
-        if token == "mock-jwt-token-local-dev":
+        # Local development bypass - only in development environment
+        if (
+            token == "mock-jwt-token-local-dev"
+            and os.environ.get("LOCAL_DEV") == "true"
+        ):  # nosec B105
             return "local-user"
 
-        import base64
+        # Use proper JWT verification with Cognito
+        try:
+            cognito_client = boto3.client("cognito-idp")
+            response = cognito_client.get_user(AccessToken=token)
+            user_attributes = {
+                attr["Name"]: attr["Value"] for attr in response["UserAttributes"]
+            }
+            return user_attributes.get("sub")
+        except Exception:
+            # Fallback to manual parsing only for development
+            if os.environ.get("LOCAL_DEV") == "true":
+                import base64
 
-        payload = token.split(".")[1]
-        payload += "=" * (4 - len(payload) % 4)
-        decoded = json.loads(base64.b64decode(payload))
-        return decoded.get("sub")
+                try:
+                    payload = token.split(".")[1]
+                    payload += "=" * (4 - len(payload) % 4)
+                    decoded = json.loads(base64.b64decode(payload))
+                    return decoded.get("sub")
+                except Exception:
+                    return None
+            return None
     except Exception as e:
         logger.error(f"Authorization validation error: {str(e)}")
         return None

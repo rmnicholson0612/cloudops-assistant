@@ -2,15 +2,23 @@ import difflib
 import json
 import logging
 import os
+import urllib.parse
 from decimal import Decimal
 
 import boto3
-from boto3.dynamodb.conditions import Attr
+from boto3.dynamodb.conditions import Attr, Key
 
 try:
     from auth_utils import auth_required
 except ImportError:
-    # Fallback if auth_utils not available
+    auth_required = None
+
+# Override auth_required for local development or if not available
+if (
+    os.environ.get("AWS_ENDPOINT_URL") == "http://localhost:4566"
+    or auth_required is None
+):
+
     def auth_required(func):
         return func
 
@@ -37,8 +45,24 @@ table = dynamodb.Table(table_name)
 def get_cors_headers():
     return {
         "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type,Authorization",
-        "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
+        "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+    }
+
+
+def error_response(status_code, message):
+    return {
+        "statusCode": status_code,
+        "headers": get_cors_headers(),
+        "body": json.dumps({"error": message}),
+    }
+
+
+def success_response(data):
+    return {
+        "statusCode": 200,
+        "headers": get_cors_headers(),
+        "body": json.dumps(data, cls=DecimalEncoder),
     }
 
 
@@ -60,11 +84,7 @@ def _authenticated_handler(event, context):
         if path.startswith("/plan-history/"):
             parts = path.split("/")
             if len(parts) < 3 or not parts[-1]:
-                return {
-                    "statusCode": 400,
-                    "headers": get_cors_headers(),
-                    "body": json.dumps({"error": "Repository name required"}),
-                }
+                return error_response(400, "Repository name required")
             repo_name = parts[-1]
             user_id = event["user_info"]["user_id"]
             return get_plan_history(repo_name, user_id)
@@ -77,15 +97,9 @@ def _authenticated_handler(event, context):
                     plan_id = parts[-1]
 
             if not plan_id:
-                return {
-                    "statusCode": 400,
-                    "headers": get_cors_headers(),
-                    "body": json.dumps({"error": "Plan ID required"}),
-                }
+                return error_response(400, "Plan ID required")
 
             # URL decode the plan_id
-            import urllib.parse
-
             plan_id = urllib.parse.unquote(plan_id)
             user_id = event["user_info"]["user_id"]
             return get_plan_details(plan_id, user_id)
@@ -101,39 +115,23 @@ def _authenticated_handler(event, context):
                     plan_id1, plan_id2 = parts[-2], parts[-1]
 
             if not plan_id1 or not plan_id2:
-                return {
-                    "statusCode": 400,
-                    "headers": get_cors_headers(),
-                    "body": json.dumps({"error": "Two plan IDs required"}),
-                }
+                return error_response(400, "Two plan IDs required")
 
             # URL decode the plan IDs
-            import urllib.parse
-
             plan_id1 = urllib.parse.unquote(plan_id1)
             plan_id2 = urllib.parse.unquote(plan_id2)
             user_id = event["user_info"]["user_id"]
             return compare_plans(plan_id1, plan_id2, user_id)
 
-        return {
-            "statusCode": 404,
-            "headers": get_cors_headers(),
-            "body": json.dumps({"error": "Not found"}),
-        }
+        return error_response(404, "Not found")
 
     except Exception as e:
         logger.error(f"Lambda handler error: {str(e)}")
-        return {
-            "statusCode": 500,
-            "headers": get_cors_headers(),
-            "body": json.dumps({"error": "Internal server error"}),
-        }
+        return error_response(500, "Internal server error")
 
 
 def get_plan_history(repo_name, user_id):
     try:
-        from boto3.dynamodb.conditions import Key
-
         response = table.query(
             IndexName="repo-timestamp-index",
             KeyConditionExpression=Key("repo_name").eq(repo_name),
@@ -181,20 +179,32 @@ def compare_plans(plan_id1, plan_id2, user_id):
         response2 = table.get_item(Key={"plan_id": str(plan_id2)})
 
         # Verify user owns both plans
-        if ("Item" in response1 and response1["Item"].get("user_id") != user_id) or (
-            "Item" in response2 and response2["Item"].get("user_id") != user_id
-        ):
+        if "Item" in response1 and response1["Item"].get("user_id") != user_id:
             return {
                 "statusCode": 403,
                 "headers": get_cors_headers(),
                 "body": json.dumps({"error": "Access denied"}),
             }
 
-        if "Item" not in response1 or "Item" not in response2:
+        if "Item" in response2 and response2["Item"].get("user_id") != user_id:
+            return {
+                "statusCode": 403,
+                "headers": get_cors_headers(),
+                "body": json.dumps({"error": "Access denied"}),
+            }
+
+        if "Item" not in response1:
             return {
                 "statusCode": 404,
                 "headers": get_cors_headers(),
-                "body": json.dumps({"error": "One or both plans not found"}),
+                "body": json.dumps({"error": "First plan not found"}),
+            }
+
+        if "Item" not in response2:
+            return {
+                "statusCode": 404,
+                "headers": get_cors_headers(),
+                "body": json.dumps({"error": "Second plan not found"}),
             }
 
         plan1 = response1["Item"]
@@ -245,52 +255,32 @@ def compare_plans(plan_id1, plan_id2, user_id):
 
 def get_plan_details(plan_id, user_id):
     try:
-        # Sanitize plan ID to prevent NoSQL injection
         if not isinstance(plan_id, str):
             raise ValueError("Invalid plan ID format")
 
         response = table.get_item(Key={"plan_id": str(plan_id)})
 
         if "Item" not in response:
-            return {
-                "statusCode": 404,
-                "headers": get_cors_headers(),
-                "body": json.dumps({"error": "Plan not found"}),
-            }
+            return error_response(404, "Plan not found")
 
-        # Verify user owns this plan
         if response["Item"].get("user_id") != user_id:
-            return {
-                "statusCode": 403,
-                "headers": get_cors_headers(),
-                "body": json.dumps({"error": "Access denied"}),
-            }
+            return error_response(403, "Access denied")
 
         plan = response["Item"]
-
-        return {
-            "statusCode": 200,
-            "headers": get_cors_headers(),
-            "body": json.dumps(
-                {
-                    "plan_id": plan["plan_id"],
-                    "repo_name": plan["repo_name"],
-                    "timestamp": plan["timestamp"],
-                    "changes_detected": plan.get("changes_detected", 0),
-                    "drift_detected": plan.get("drift_detected", False),
-                    "plan_content": plan.get("plan_content", ""),
-                    "change_summary": plan.get("change_summary", []),
-                    "ai_explanation": plan.get("ai_explanation"),
-                    "ai_analyzed_at": plan.get("ai_analyzed_at"),
-                },
-                cls=DecimalEncoder,
-            ),
-        }
+        return success_response(
+            {
+                "plan_id": plan["plan_id"],
+                "repo_name": plan["repo_name"],
+                "timestamp": plan["timestamp"],
+                "changes_detected": plan.get("changes_detected", 0),
+                "drift_detected": plan.get("drift_detected", False),
+                "plan_content": plan.get("plan_content", ""),
+                "change_summary": plan.get("change_summary", []),
+                "ai_explanation": plan.get("ai_explanation"),
+                "ai_analyzed_at": plan.get("ai_analyzed_at"),
+            }
+        )
 
     except Exception as e:
         logger.error(f"Failed to get plan details: {str(e)}")
-        return {
-            "statusCode": 500,
-            "headers": get_cors_headers(),
-            "body": json.dumps({"error": "Failed to get plan details"}),
-        }
+        return error_response(500, "Failed to get plan details")

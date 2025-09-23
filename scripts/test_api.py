@@ -10,6 +10,12 @@ from urllib.error import URLError
 
 def get_api_url(stack_name: str) -> str:
     """Get API URL from CloudFormation stack output."""
+    import re
+
+    # Validate stack name to prevent command injection
+    if not re.match(r'^[a-zA-Z0-9-]+$', stack_name):
+        raise ValueError("Invalid stack name format")
+
     try:
         result = subprocess.run(
             [
