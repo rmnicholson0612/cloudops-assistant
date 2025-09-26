@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Compliance Dashboard - CloudOps Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            color: #2d3748;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header .subtitle {
+            color: #718096;
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+        }
+
+        .overview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .score-card {
+            text-align: center;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        .score-number {
+            font-size: 4rem;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .score-label {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .stat-critical {
+            background: rgba(239, 68, 68, 0.1);
+            color: #dc2626;
+        }
+
+        .stat-medium {
+            background: rgba(245, 158, 11, 0.1);
+            color: #d97706;
+        }
+
+        .stat-passed {
+            background: rgba(34, 197, 94, 0.1);
+            color: #059669;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            display: block;
+        }
+
+        .compliance-frameworks {
+            margin-top: 20px;
+        }
+
+        .framework {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 10px 0;
+        }
+
+        .framework-name {
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            margin: 0 15px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-soc2 { background: linear-gradient(90deg, #10b981, #34d399); width: 82%; }
+        .progress-cis { background: linear-gradient(90deg, #3b82f6, #60a5fa); width: 75%; }
+        .progress-nist { background: linear-gradient(90deg, #8b5cf6, #a78bfa); width: 68%; }
+
+        .services-section {
+            margin-top: 30px;
+        }
+
+        .section-title {
+            color: white;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .service-item {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .service-item:hover {
+            transform: translateX(10px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        }
+
+        .service-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .service-name {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .service-score {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-left: auto;
+        }
+
+        .service-status {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-left: 15px;
+        }
+
+        .status-good { background: #dcfce7; color: #166534; }
+        .status-warning { background: #fef3c7; color: #92400e; }
+        .status-critical { background: #fee2e2; color: #991b1b; }
+
+        .service-details {
+            color: #6b7280;
+            font-size: 0.95rem;
+            margin-top: 8px;
+        }
+
+        .findings-section {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .findings-section.active {
+            display: block;
+        }
+
+        .finding-item {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid;
+        }
+
+        .finding-critical { border-left-color: #dc2626; }
+        .finding-medium { border-left-color: #d97706; }
+        .finding-low { border-left-color: #059669; }
+
+        .finding-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .finding-title {
+            font-weight: 600;
+            color: #1f2937;
+            flex: 1;
+        }
+
+        .finding-severity {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .severity-critical { background: #fee2e2; color: #991b1b; }
+        .severity-medium { background: #fef3c7; color: #92400e; }
+        .severity-low { background: #dcfce7; color: #166534; }
+
+        .finding-description {
+            color: #6b7280;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        .finding-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        .control-tag {
+            background: #e0e7ff;
+            color: #3730a3;
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .ai-fix {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+
+        .ai-fix::before {
+            content: "🤖 AI Recommendation: ";
+            font-weight: 600;
+        }
+
+        .scan-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #6b7280;
+            font-size: 0.9rem;
+        }
+
+        .scan-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .scan-button:hover {
+            transform: scale(1.05);
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .overview-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .service-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛡️ Security Compliance Dashboard</h1>
+            <p class="subtitle">Powered by Prowler - AWS Security Best Practices Scanner</p>
+            <div class="scan-info">
+                <span>Last scan: 2 hours ago • 291 checks completed</span>
+                <button class="scan-button" onclick="runScan()">🔄 Run New Scan</button>
+            </div>
+        </div>
+
+        <div class="overview-grid">
+            <div class="card score-card">
+                <div class="score-number">78%</div>
+                <div class="score-label">Overall Security Score</div>
+                <div class="stats-grid">
+                    <div class="stat-item stat-critical">
+                        <span class="stat-number">12</span>
+                        Critical
+                    </div>
+                    <div class="stat-item stat-medium">
+                        <span class="stat-number">45</span>
+                        Medium
+                    </div>
+                    <div class="stat-item stat-passed">
+                        <span class="stat-number">234</span>
+                        Passed
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 style="color: #374151; margin-bottom: 20px;">📋 Compliance Frameworks</h3>
+                <div class="compliance-frameworks">
+                    <div class="framework">
+                        <span class="framework-name">SOC 2 Type II</span>
+                        <div class="progress-bar">
+                            <div class="progress-fill progress-soc2"></div>
+                        </div>
+                        <span style="font-weight: 600; color: #059669;">82%</span>
+                    </div>
+                    <div class="framework">
+                        <span class="framework-name">CIS AWS Benchmark</span>
+                        <div class="progress-bar">
+                            <div class="progress-fill progress-cis"></div>
+                        </div>
+                        <span style="font-weight: 600; color: #3b82f6;">75%</span>
+                    </div>
+                    <div class="framework">
+                        <span class="framework-name">NIST Cybersecurity</span>
+                        <div class="progress-bar">
+                            <div class="progress-fill progress-nist"></div>
+                        </div>
+                        <span style="font-weight: 600; color: #8b5cf6;">68%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="services-section">
+            <h2 class="section-title">📦 Services Compliance Status</h2>
+
+            <div class="service-item" onclick="showFindings('user-service')">
+                <div class="service-header">
+                    <div class="service-name">
+                        🟢 user-service
+                        <span class="service-score">Score: 95%</span>
+                        <span class="service-status status-good">✅ SOC2 Ready</span>
+                    </div>
+                </div>
+                <div class="service-details">
+                    RDS encrypted, IAM roles configured, CloudTrail enabled • 2 minor issues
+                </div>
+            </div>
+
+            <div class="service-item" onclick="showFindings('payment-service')">
+                <div class="service-header">
+                    <div class="service-name">
+                        🟡 payment-service
+                        <span class="service-score">Score: 72%</span>
+                        <span class="service-status status-warning">⚠️ 3 issues</span>
+                    </div>
+                </div>
+                <div class="service-details">
+                    S3 bucket public access, missing MFA on IAM users, unencrypted EBS volumes
+                </div>
+            </div>
+
+            <div class="service-item" onclick="showFindings('legacy-api')">
+                <div class="service-header">
+                    <div class="service-name">
+                        🔴 legacy-api
+                        <span class="service-score">Score: 45%</span>
+                        <span class="service-status status-critical">❌ 8 critical</span>
+                    </div>
+                </div>
+                <div class="service-details">
+                    No encryption at rest, admin access keys, outdated AMI, security groups too permissive
+                </div>
+            </div>
+        </div>
+
+        <div id="findings-payment-service" class="findings-section">
+            <h2 class="section-title">🔍 payment-service Security Findings</h2>
+
+            <div class="finding-item finding-critical">
+                <div class="finding-header">
+                    <div class="finding-title">S3 Bucket "payments-backup" allows public read access</div>
+                    <span class="finding-severity severity-critical">CRITICAL</span>
+                </div>
+                <div class="finding-description">
+                    The S3 bucket containing payment backup data has a bucket policy that allows public read access. This could expose sensitive customer payment information to unauthorized users.
+                </div>
+                <div class="finding-controls">
+                    <span class="control-tag">SOC2 CC6.1</span>
+                    <span class="control-tag">CIS 2.1.1</span>
+                    <span class="control-tag">NIST PR.DS-1</span>
+                </div>
+                <div class="ai-fix">
+                    Remove the public read policy and implement bucket-level encryption. Use pre-signed URLs for legitimate access needs.
+                </div>
+            </div>
+
+            <div class="finding-item finding-critical">
+                <div class="finding-header">
+                    <div class="finding-title">IAM User "payment-deploy" lacks MFA enforcement</div>
+                    <span class="finding-severity severity-critical">CRITICAL</span>
+                </div>
+                <div class="finding-description">
+                    The IAM user used for payment service deployments does not have MFA enabled, creating a risk of compromised deployment pipeline.
+                </div>
+                <div class="finding-controls">
+                    <span class="control-tag">SOC2 CC6.2</span>
+                    <span class="control-tag">CIS 1.2</span>
+                </div>
+                <div class="ai-fix">
+                    Enable MFA for all IAM users with programmatic access. Consider using IAM roles with temporary credentials instead.
+                </div>
+            </div>
+
+            <div class="finding-item finding-medium">
+                <div class="finding-header">
+                    <div class="finding-title">EBS volumes not encrypted at rest</div>
+                    <span class="finding-severity severity-medium">MEDIUM</span>
+                </div>
+                <div class="finding-description">
+                    EC2 instances in the payment service have EBS volumes that are not encrypted at rest, potentially exposing data if physical storage is compromised.
+                </div>
+                <div class="finding-controls">
+                    <span class="control-tag">SOC2 CC6.1</span>
+                    <span class="control-tag">NIST PR.DS-1</span>
+                </div>
+                <div class="ai-fix">
+                    Enable EBS encryption by default in your AWS account and create encrypted snapshots of existing volumes.
+                </div>
+            </div>
+        </div>
+
+        <div id="findings-legacy-api" class="findings-section">
+            <h2 class="section-title">🔍 legacy-api Security Findings</h2>
+
+            <div class="finding-item finding-critical">
+                <div class="finding-header">
+                    <div class="finding-title">Root access keys found in EC2 instance</div>
+                    <span class="finding-severity severity-critical">CRITICAL</span>
+                </div>
+                <div class="finding-description">
+                    AWS root account access keys are stored on EC2 instances, providing unlimited access to all AWS services and resources.
+                </div>
+                <div class="finding-controls">
+                    <span class="control-tag">SOC2 CC6.2</span>
+                    <span class="control-tag">CIS 1.1</span>
+                    <span class="control-tag">NIST PR.AC-1</span>
+                </div>
+                <div class="ai-fix">
+                    Immediately delete root access keys and use IAM roles with least-privilege permissions instead.
+                </div>
+            </div>
+
+            <div class="finding-item finding-critical">
+                <div class="finding-header">
+                    <div class="finding-title">Security group allows unrestricted inbound access (0.0.0.0/0)</div>
+                    <span class="finding-severity severity-critical">CRITICAL</span>
+                </div>
+                <div class="finding-description">
+                    Security group "legacy-api-sg" allows inbound traffic from any IP address on multiple ports, creating unnecessary attack surface.
+                </div>
+                <div class="finding-controls">
+                    <span class="control-tag">SOC2 CC6.6</span>
+                    <span class="control-tag">CIS 4.1</span>
+                </div>
+                <div class="ai-fix">
+                    Restrict security group rules to specific IP ranges or other security groups. Use Application Load Balancer for public access.
+                </div>
+            </div>
+        </div>
+
+        <div id="findings-user-service" class="findings-section">
+            <h2 class="section-title">🔍 user-service Security Findings</h2>
+
+            <div class="finding-item finding-low">
+                <div class="finding-header">
+                    <div class="finding-title">CloudTrail log file validation not enabled</div>
+                    <span class="finding-severity severity-low">LOW</span>
+                </div>
+                <div class="finding-description">
+                    CloudTrail is configured but log file validation is not enabled, reducing the ability to detect tampering with audit logs.
+                </div>
+                <div class="finding-controls">
+                    <span class="control-tag">SOC2 CC7.2</span>
+                    <span class="control-tag">CIS 2.4</span>
+                </div>
+                <div class="ai-fix">
+                    Enable CloudTrail log file validation to ensure audit log integrity and detect unauthorized modifications.
+                </div>
+            </div>
+
+            <div class="finding-item finding-low">
+                <div class="finding-header">
+                    <div class="finding-title">S3 bucket versioning not enabled</div>
+                    <span class="finding-severity severity-low">LOW</span>
+                </div>
+                <div class="finding-description">
+                    S3 bucket "user-service-backups" does not have versioning enabled, reducing data protection against accidental deletion or corruption.
+                </div>
+                <div class="finding-controls">
+                    <span class="control-tag">SOC2 CC6.1</span>
+                </div>
+                <div class="ai-fix">
+                    Enable S3 bucket versioning and configure lifecycle policies to manage storage costs of old versions.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showFindings(serviceId) {
+            // Hide all findings sections
+            const allFindings = document.querySelectorAll('.findings-section');
+            allFindings.forEach(section => section.classList.remove('active'));
+
+            // Show the selected service findings
+            const targetSection = document.getElementById(`findings-${serviceId}`);
+            if (targetSection) {
+                targetSection.classList.add('active');
+                targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        function runScan() {
+            alert('🔄 Security scan initiated! This would trigger a new Prowler scan of your AWS environment. Results will be available in 3-5 minutes.');
+        }
+
+        // Add some interactive animations
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.card');
+            cards.forEach((card, index) => {
+                card.style.animationDelay = `${index * 0.1}s`;
+                card.style.animation = 'fadeInUp 0.6s ease forwards';
+            });
+        });
+
+        // Add CSS animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeInUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(30px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

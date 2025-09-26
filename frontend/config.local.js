@@ -8,7 +8,7 @@ window.CONFIG = {
     APP_NAME: 'CloudOps Assistant (Local)',
     VERSION: '1.0.0-dev',
     ENVIRONMENT: 'local',
-    CURRENT_DAY: 17,
+    CURRENT_DAY: 20,
     TOTAL_DAYS: 30,
 
     // Feature Flags

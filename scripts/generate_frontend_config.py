@@ -38,9 +38,8 @@ def get_stack_output(stack_name: str) -> str:
             capture_output=True,
             text=True,
             check=True,
-            shell=False,
-            timeout=30,
-            env={"PATH": os.environ.get("PATH", "")}
+            shell=True,  # Enable shell on Windows
+            timeout=30
         )
         api_url = result.stdout.strip()
         if api_url and api_url != "None":

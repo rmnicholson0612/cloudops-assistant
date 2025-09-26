@@ -7,7 +7,6 @@ Description: CloudOps Assistant - Day 14 with Local Development Support
 Globals:
   Function:
     Timeout: 60
-    Runtime: python3.12
     Environment:
       Variables:
         USER_POOL_ID: !Ref CloudOpsUserPool
@@ -413,6 +412,35 @@ Resources:
         - Key: Feature
           Value: eol-tracker
 
+  # Security Findings Table
+  SecurityFindingsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: cloudops-assistant-security-findings
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: TTL
+        Enabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Service
+          Value: cloudops-assistant
+        - Key: Feature
+          Value: security-scanner
+
   # Service Documentation Resources
   ServiceDocsTable:
     Type: AWS::DynamoDB::Table
@@ -476,6 +504,7 @@ Resources:
     Properties:
       CodeUri: backend/lambda/
       Handler: auth_handler.lambda_handler
+      Runtime: python3.13
       MemorySize: 256
       Timeout: 30
       Policies:
@@ -500,6 +529,7 @@ Resources:
     Properties:
       CodeUri: backend/lambda/
       Handler: plan_processor.lambda_handler
+      Runtime: python3.13
       MemorySize: 512
       Environment:
         Variables:
@@ -525,6 +555,7 @@ Resources:
     Properties:
       CodeUri: backend/lambda/
       Handler: plan_history.lambda_handler
+      Runtime: python3.13
       MemorySize: 256
       Timeout: 30
       Environment:
@@ -561,6 +592,7 @@ Resources:
     Properties:
       CodeUri: backend/lambda/
       Handler: cost_analyzer.lambda_handler
+      Runtime: python3.13
       MemorySize: 256
       Timeout: 30
       Environment:
@@ -605,6 +637,7 @@ Resources:
     Properties:
       CodeUri: backend/lambda/
       Handler: budget_manager.lambda_handler
+      Runtime: python3.13
       MemorySize: 256
       Timeout: 30
       Environment:
@@ -656,6 +689,7 @@ Resources:
     Properties:
       CodeUri: backend/lambda/
       Handler: drift_config.lambda_handler
+      Runtime: python3.13
       MemorySize: 1024
       Timeout: 600
       Environment:
@@ -710,6 +744,7 @@ Resources:
     Properties:
       CodeUri: backend/lambda/
       Handler: drift_scheduler.lambda_handler
+      Runtime: python3.13
       MemorySize: 1024
       Timeout: 900
       Layers:
@@ -739,6 +774,7 @@ Resources:
     Properties:
       CodeUri: backend/lambda/
       Handler: repo_scanner.lambda_handler
+      Runtime: python3.13
       MemorySize: 512
       Timeout: 300
       Layers:
@@ -762,6 +798,7 @@ Resources:
     Properties:
       CodeUri: backend/lambda/
       Handler: ai_explainer.lambda_handler
+      Runtime: python3.13
       MemorySize: 512
       Environment:
         Variables:
@@ -793,6 +830,7 @@ Resources:
     Properties:
       CodeUri: backend/lambda/
       Handler: postmortem_generator.lambda_handler
+      Runtime: python3.13
       MemorySize: 512
       Policies:
         - DynamoDBCrudPolicy:
@@ -867,6 +905,7 @@ Resources:
     Properties:
       CodeUri: backend/lambda/
       Handler: resource_discovery.lambda_handler
+      Runtime: python3.13
       MemorySize: 1024
       Timeout: 900
       Policies:
@@ -908,6 +947,7 @@ Resources:
     Properties:
       CodeUri: backend/lambda/
       Handler: resource_discovery_scheduler.lambda_handler
+      Runtime: python3.13
       MemorySize: 256
       Timeout: 300
       Policies:
@@ -932,6 +972,7 @@ Resources:
     Properties:
       CodeUri: backend/lambda/
       Handler: service_docs.lambda_handler
+      Runtime: python3.13
       MemorySize: 512
       Policies:
         - S3ReadPolicy:
@@ -991,6 +1032,7 @@ Resources:
     Properties:
       CodeUri: backend/lambda/
       Handler: slack_bot.lambda_handler
+      Runtime: python3.13
       MemorySize: 512
       Environment:
         Variables:
@@ -1040,6 +1082,7 @@ Resources:
     Properties:
       CodeUri: backend/lambda/
       Handler: slack_linking.lambda_handler
+      Runtime: python3.13
       MemorySize: 256
       Environment:
         Variables:
@@ -1073,6 +1116,7 @@ Resources:
     Properties:
       CodeUri: backend/lambda/
       Handler: pr_webhook_handler.lambda_handler
+      Runtime: python3.13
       MemorySize: 256
       Environment:
         Variables:
@@ -1101,6 +1145,7 @@ Resources:
     Properties:
       CodeUri: backend/lambda/
       Handler: pr_review_analyzer.lambda_handler
+      Runtime: python3.13
       MemorySize: 512
       Timeout: 300
       Environment:
@@ -1122,6 +1167,7 @@ Resources:
     Properties:
       CodeUri: backend/lambda/
       Handler: eol_tracker.lambda_handler
+      Runtime: python3.13
       MemorySize: 512
       Timeout: 300
       Environment:
@@ -1152,6 +1198,7 @@ Resources:
     Properties:
       CodeUri: backend/lambda/
       Handler: eol_scheduler.lambda_handler
+      Runtime: python3.13
       MemorySize: 256
       Timeout: 900
       Environment:
@@ -1182,6 +1229,7 @@ Resources:
     Properties:
       CodeUri: backend/lambda/
       Handler: pr_reviews_api.lambda_handler
+      Runtime: python3.13
       MemorySize: 256
       Environment:
         Variables:
@@ -1211,6 +1259,97 @@ Resources:
           Properties:
             Path: /pr-reviews/configure
             Method: post
+
+  # Security Scanner Function
+  SecurityScannerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/lambda/security_scanner/
+      Handler: security_scanner.lambda_handler
+      Runtime: python3.13
+      MemorySize: 1024
+      Timeout: 900
+      Environment:
+        Variables:
+          SECURITY_FINDINGS_TABLE: !Ref SecurityFindingsTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SecurityFindingsTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - ec2:Describe*
+                - s3:List*
+                - s3:Get*
+                - iam:List*
+                - iam:Get*
+                - lambda:List*
+                - rds:Describe*
+                - cloudtrail:DescribeTrails
+                - cloudtrail:GetTrailStatus
+                - config:DescribeConfigurationRecorders
+                - config:DescribeDeliveryChannels
+                - cloudwatch:DescribeAlarms
+                - logs:DescribeLogGroups
+                - kms:ListKeys
+                - kms:DescribeKey
+                - cognito-idp:GetUser
+              Resource: '*'
+      Events:
+        SecurityScan:
+          Type: Api
+          Properties:
+            Path: /security/scan
+            Method: post
+        SecurityFindings:
+          Type: Api
+          Properties:
+            Path: /security/findings
+            Method: get
+        SecurityCompliance:
+          Type: Api
+          Properties:
+            Path: /security/compliance
+            Method: get
+        SecurityAccounts:
+          Type: Api
+          Properties:
+            Path: /security/accounts
+            Method: get
+
+  # Terraform Executor Function (Containerized)
+  TerraformExecutorFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      DockerTag: latest
+      DockerContext: ./backend/terraform-executor
+      Dockerfile: Dockerfile
+    Properties:
+      PackageType: Image
+      MemorySize: 2048
+      Timeout: 900
+      Environment:
+        Variables:
+          USER_POOL_ID: !Ref CloudOpsUserPool
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:GetUser
+              Resource: !GetAtt CloudOpsUserPool.Arn
+      Events:
+        TerraformExecute:
+          Type: Api
+          Properties:
+            Path: /terraform/execute
+            Method: post
+        TerraformStatus:
+          Type: Api
+          Properties:
+            Path: /terraform/status
+            Method: get
 
 Outputs:
   CloudOpsAssistantApi:
@@ -1284,3 +1423,15 @@ Outputs:
     Value: !Ref EOLScansTable
     Export:
       Name: CloudOpsEOLScansTable
+
+  SecurityFindingsTableName:
+    Description: DynamoDB table for security findings
+    Value: !Ref SecurityFindingsTable
+    Export:
+      Name: CloudOpsSecurityFindingsTable
+
+  TerraformExecutorECRRepository:
+    Description: ECR Repository for Terraform Executor container
+    Value: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/cloudops-terraform-executor'
+    Export:
+      Name: CloudOpsTerraformExecutorECR

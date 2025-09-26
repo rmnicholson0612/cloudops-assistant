@@ -342,8 +342,8 @@ def run_manual_scan(event):
         if config_id:
             # Sanitize config_id to prevent injection
             config_id = str(config_id).strip()[:200]
-            # Only allow safe characters in config_id
-            if not re.match(r"^[a-zA-Z0-9_#-]+$", config_id):
+            # Allow URL-encoded characters (% followed by hex digits) in addition to safe characters
+            if not re.match(r"^[a-zA-Z0-9_#%-]+$", config_id):
                 return error_response("Invalid config ID format", 400)
 
         if not config_id:
@@ -456,7 +456,7 @@ def update_drift_config(event):
         config_id = event.get("pathParameters", {}).get("config_id")
         if config_id:
             config_id = str(config_id).strip()[:200]
-            if not re.match(r"^[a-zA-Z0-9_#-]+$", config_id):
+            if not re.match(r"^[a-zA-Z0-9_#%-]+$", config_id):
                 return error_response("Invalid config ID format", 400)
 
         if not config_id:
@@ -541,7 +541,7 @@ def delete_drift_config(event):
 
         config_id = urllib.parse.unquote(str(config_id))
         sanitized_config_id = str(config_id).strip()[:200]
-        # Only allow safe characters
+        # Only allow safe characters (after URL decoding)
         if not re.match(r"^[a-zA-Z0-9_#-]+$", sanitized_config_id):
             return error_response("Invalid config ID format", 400)
 
