@@ -3507,3 +3507,36 @@ body {
         grid-template-columns: 1fr;
     }
 }
+
+/* Drift Status Styles */
+.drift-status-link {
+    color: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.drift-status-link:hover {
+    opacity: 0.8;
+}
+
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.status-badge.error {
+    background-color: #dc3545;
+    color: white;
+}
+
+.status-badge.drift {
+    background-color: #ffc107;
+    color: black;
+}
+
+.status-badge.no-drift {
+    background-color: #28a745;
+    color: white;
+}

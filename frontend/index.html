@@ -153,16 +153,7 @@
                         <h3>Terraform Plan Analysis</h3>
                     </div>
                     <div class="card-body">
-                        <div class="ai-upload-area">
-                            <input type="file" id="terraform-plan" accept=".txt,.log,.plan" style="display: none;">
-                            <button class="btn btn-primary" onclick="document.getElementById('terraform-plan').click()">
-                                <i class="fas fa-upload"></i> Upload Terraform Plan
-                            </button>
-                            <button class="btn btn-secondary" onclick="analyzePlan()">
-                                <i class="fas fa-brain"></i> Analyze with AI
-                            </button>
-                        </div>
-                        <div id="ai-analysis">Upload a terraform plan file to get AI-powered analysis...</div>
+                        <div id="ai-analysis">AI analysis is automatically performed when drift detection runs. Check the drift detection tab to see AI-powered insights.</div>
                     </div>
                 </div>
             </div>
@@ -1615,55 +1606,7 @@
                 '</div>';
         }
 
-        // AI Assistant Functions
-        async function analyzePlan() {
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                alert('Please login first');
-                return;
-            }
-
-            const fileInput = document.getElementById('terraform-plan');
-            if (!fileInput.files[0]) {
-                alert('Please select a terraform plan file first');
-                return;
-            }
-
-            const display = document.getElementById('ai-analysis');
-            display.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing terraform plan with AI...';
-
-            try {
-                const formData = new FormData();
-                formData.append('plan_file', fileInput.files[0]);
-
-                const response = await fetch(`${window.CONFIG.API_BASE_URL}/ai/analyze-plan`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` },
-                    body: formData
-                });
-
-                const result = await response.json();
-                if (response.ok) {
-                    display.innerHTML = '<div class="ai-analysis-result">' +
-                            '<h4>AI Analysis Results</h4>' +
-                            '<div class="analysis-content">' +
-                                '<p><strong>Risk Level:</strong> ' + (result.risk_level || 'Unknown') + '</p>' +
-                                '<p><strong>Summary:</strong> ' + (result.summary || 'No analysis available') + '</p>' +
-                                '<div class="recommendations">' +
-                                    '<h5>Recommendations:</h5>' +
-                                    '<ul>' +
-                                        (result.recommendations || []).map(rec => '<li>' + rec + '</li>').join('') +
-                                    '</ul>' +
-                                '</div>' +
-                            '</div>' +
-                        '</div>';
-                } else {
-                    display.innerHTML = `<p>Analysis failed: ${result.error}</p>`;
-                }
-            } catch (error) {
-                display.innerHTML = `<p>Error: ${error.message}</p>`;
-            }
-        }
+        // AI Assistant Functions - Now integrated with drift detection
 
         // Code Review Functions
         async function loadPRReviews() {

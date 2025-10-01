@@ -19,8 +19,8 @@ aws ecr describe-repositories --repository-names %ECR_REPO% >nul 2>&1 || aws ecr
 REM Get ECR login token
 aws ecr get-login-password --region %AWS_REGION% | docker login --username AWS --password-stdin %ECR_URI%
 
-REM Build Docker image
-docker build -t %ECR_REPO% .
+REM Build Docker image for x86_64 architecture (Lambda requirement)
+docker build --platform linux/amd64 -t %ECR_REPO% .
 
 REM Tag image for ECR
 docker tag %ECR_REPO%:latest %ECR_URI%:latest

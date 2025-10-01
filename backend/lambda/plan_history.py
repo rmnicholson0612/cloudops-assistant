@@ -135,7 +135,7 @@ def get_plan_history(repo_name, user_id):
         response = table.query(
             IndexName="repo-timestamp-index",
             KeyConditionExpression=Key("repo_name").eq(repo_name),
-            FilterExpression=Attr("user_id").eq(user_id),
+            FilterExpression=Attr("user_id").eq(user_id) | Attr("user_id").eq("terraform-executor"),
             ScanIndexForward=False,  # Sort by timestamp descending (newest first)
             Limit=20,
         )
@@ -148,6 +148,9 @@ def get_plan_history(repo_name, user_id):
                     "timestamp": item["timestamp"],
                     "changes_detected": item.get("changes_detected", 0),
                     "change_summary": item.get("change_summary", []),
+                    "drift_detected": item.get("drift_detected", False),
+                    "status": item.get("status", "unknown"),
+                    "plan_content": item.get("plan_content", ""),
                 }
             )
 

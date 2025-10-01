@@ -57,65 +57,18 @@ def sanitize_db_input(value):
 
 
 def lambda_handler(event, context):
-    # Handle CORS preflight BEFORE authentication
-    if event.get("httpMethod") == "OPTIONS":
-        return {"statusCode": 200, "headers": get_cors_headers(), "body": ""}
+    """This function is now deprecated - terraform plans are processed automatically via drift detection"""
+    return {
+        "statusCode": 410,
+        "headers": get_cors_headers(),
+        "body": json.dumps({
+            "error": "Manual plan upload is deprecated. Use automated drift detection instead.",
+            "message": "Terraform plans are now processed automatically when repositories are scanned for drift."
+        })
+    }
 
-    return _authenticated_handler(event, context)
 
 
-@auth_required
-def _authenticated_handler(event, context):
-    try:
-        # Safer JSON parsing
-        body_str = event.get("body", "{}")
-        if not isinstance(body_str, str):
-            return error_response("Invalid request body format")
-
-        body = json.loads(body_str)
-        raw_repo_name = body.get("repo_name", "")
-        raw_github_target = body.get("github_target", "")
-        plan_content = body.get("plan_content", "")
-
-        # Validate before sanitization for better performance
-        if not raw_repo_name or not raw_github_target or not plan_content:
-            return error_response(
-                "repo_name, github_target, and plan_content are required"
-            )
-
-        # Sanitize only after validation
-        repo_name = sanitize_db_input(raw_repo_name)
-        github_target = sanitize_db_input(raw_github_target)
-
-        # Validate plan_content size and basic format
-        if len(plan_content) > 1000000:  # 1MB limit
-            return error_response("plan_content too large")
-        if not isinstance(plan_content, str):
-            return error_response("plan_content must be a string")
-
-        # Process the terraform plan
-        drift_result = process_terraform_plan(plan_content, repo_name)
-
-        # Store results in DynamoDB
-        try:
-            user_id = event["user_info"]["user_id"]
-        except KeyError:
-            return error_response("User authentication required")
-
-        store_plan_result(github_target, repo_name, drift_result, plan_content, user_id)
-
-        return {
-            "statusCode": 200,
-            "headers": get_cors_headers(),
-            "body": json.dumps(drift_result),
-        }
-
-    except json.JSONDecodeError as e:
-        logger.error("JSON parsing error: %s", sanitize_log_input(str(e)))
-        return error_response("Invalid JSON in request body")
-    except Exception as e:
-        logger.error("Unexpected error processing plan: %s", sanitize_log_input(str(e)))
-        return error_response("Failed to process terraform plan")
 
 
 def process_terraform_plan(plan_content, repo_name):

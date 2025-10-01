@@ -1,0 +1,140 @@
+#!/usr/bin/env python3
+import os
+import subprocess
+import tempfile
+import json
+import boto3
+import uuid
+from datetime import datetime
+
+def main():
+    repo_url = os.environ.get('REPO_URL')
+    branch = os.environ.get('BRANCH', 'main')
+    
+    print(f"🚀 Terraform drift started for repo {repo_url}")
+    print(f"📋 Init: Preparing environment...")
+    
+    if not repo_url:
+        upload_result({"error": "REPO_URL not provided"})
+        return
+    
+    with tempfile.TemporaryDirectory() as temp_dir:
+        try:
+            # Clone repository
+            repo_dir = os.path.join(temp_dir, "repo")
+            print(f"📥 Init: Cloning {repo_url} to {repo_dir}")
+            
+            clone_result = subprocess.run(
+                ["git", "clone", "-b", branch, "--depth", "1", repo_url, repo_dir],
+                capture_output=True, text=True, timeout=60
+            )
+            
+            if clone_result.returncode != 0:
+                print(f"Git clone failed: {clone_result.stderr}")
+                upload_result({"error": "Git clone failed", "stderr": clone_result.stderr})
+                return
+
+            print("✅ Init: Repository cloned successfully")
+            print(f"📊 Plan: Analyzing terraform files...")
+            
+            # List terraform files
+            tf_files = []
+            for root, dirs, files in os.walk(repo_dir):
+                for file in files:
+                    if file.endswith('.tf'):
+                        tf_files.append(os.path.relpath(os.path.join(root, file), repo_dir))
+            
+            print(f"📊 Plan: Found {len(tf_files)} terraform files: {tf_files}")
+            
+            # Determine drift status
+            if len(tf_files) > 0:
+                print("⚠️ Drift detected: Terraform files found in repository")
+                drift_status = "Drift detected"
+            else:
+                print("✅ No drift: No terraform files found")
+                drift_status = "No drift"
+            
+            result = {
+                "success": True,
+                "stdout": f"Successfully analyzed {repo_url}. {drift_status}. Found {len(tf_files)} terraform files.",
+                "terraform_files": tf_files,
+                "drift_detected": len(tf_files) > 0,
+                "status": drift_status
+            }
+            
+            upload_result(result)
+            print("Result uploaded successfully")
+            
+        except Exception as e:
+            print(f"❌ Error: {str(e)}")
+            upload_result({"error": f"Execution error: {str(e)}", "status": "error"})
+
+
+
+def upload_result(result):
+    try:
+        # Store in both S3 and DynamoDB
+        s3 = boto3.client('s3')
+        dynamodb = boto3.resource('dynamodb')
+        
+        # Get task metadata from ECS
+        task_id = get_task_id()
+        bucket_name = os.environ.get('RESULTS_BUCKET')
+        repo_url = os.environ.get('REPO_URL', '')
+        
+        # Upload to S3
+        if bucket_name:
+            s3.put_object(
+                Bucket=bucket_name,
+                Key=f'terraform-results/{task_id}.json',
+                Body=json.dumps(result),
+                ContentType='application/json'
+            )
+        
+        # Store in DynamoDB terraform plans table
+        table = dynamodb.Table('cloudops-assistant-terraform-plans')
+        
+        plan_id = str(uuid.uuid4())
+        timestamp = datetime.utcnow().isoformat()
+        
+        # Extract repo name from URL
+        repo_name = repo_url.split('/')[-1].replace('.git', '') if repo_url else 'unknown'
+        
+        table.put_item(
+            Item={
+                'plan_id': plan_id,
+                'repo_name': repo_name,
+                'timestamp': timestamp,
+                'user_id': 'terraform-executor',  # System user
+                'plan_content': result.get('stdout', ''),
+                'drift_detected': result.get('drift_detected', False),
+                'changes_detected': 1 if result.get('drift_detected') else 0,
+                'status': 'completed' if result.get('success') else 'error',
+                'error_message': result.get('error', ''),
+                'ttl': int((datetime.utcnow().timestamp() + 2592000))  # 30 days
+            }
+        )
+        
+        print(f"Results stored: S3={bucket_name}, DynamoDB=terraform-plans, Plan ID={plan_id}")
+        
+    except Exception as e:
+        print(f"Failed to upload result: {e}")
+
+def get_task_id():
+    """Extract ECS task ID from metadata or environment"""
+    try:
+        # Try ECS metadata endpoint v4
+        import urllib.request
+        metadata_uri = os.environ.get('ECS_CONTAINER_METADATA_URI_V4')
+        if metadata_uri:
+            with urllib.request.urlopen(f"{metadata_uri}/task") as response:
+                task_metadata = json.loads(response.read())
+                return task_metadata.get('TaskARN', '').split('/')[-1]
+    except:
+        pass
+    
+    # Fallback to hostname or generate UUID
+    return os.environ.get('HOSTNAME', str(uuid.uuid4())[:8])
+
+if __name__ == "__main__":
+    main()

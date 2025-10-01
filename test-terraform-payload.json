@@ -1,0 +1,8 @@
+{
+  "httpMethod": "POST",
+  "body": "{\"repo_url\": \"https://github.com/rmnicholson0612/example-terraform.git\"}",
+  "headers": {
+    "Authorization": "Bearer dummy-token",
+    "Content-Type": "application/json"
+  }
+}

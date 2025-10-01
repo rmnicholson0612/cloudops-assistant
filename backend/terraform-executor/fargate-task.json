@@ -1,0 +1,27 @@
+{
+  "family": "terraform-executor",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "executionRoleArn": "arn:aws:iam::794038210725:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::794038210725:role/cloudops-assistant-TerraformExecutorFunctionRole-hF7rkn3Rdqt2",
+  "containerDefinitions": [
+    {
+      "name": "terraform",
+      "image": "794038210725.dkr.ecr.us-east-1.amazonaws.com/cloudops-terraform-executor:latest",
+      "essential": true,
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/terraform-executor",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "environment": [
+        {"name": "AWS_DEFAULT_REGION", "value": "us-east-1"}
+      ]
+    }
+  ]
+}

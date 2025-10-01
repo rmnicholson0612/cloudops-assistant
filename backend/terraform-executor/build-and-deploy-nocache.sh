@@ -20,7 +20,7 @@ aws ecr describe-repositories --repository-names $ECR_REPO >/dev/null 2>&1 || aw
 aws ecr get-login-password --region $AWS_REGION | podman login --username AWS --password-stdin $ECR_URI
 
 # Build Docker image for x86_64 architecture (Lambda requirement)
-podman build --platform linux/amd64 -t $ECR_REPO .
+podman build --no-cache --platform linux/amd64 -t $ECR_REPO .
 
 # Tag image for ECR
 podman tag $ECR_REPO:latest $ECR_URI:latest

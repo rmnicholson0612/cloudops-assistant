@@ -32,14 +32,15 @@ def get_stack_output(stack_name: str) -> str:
             [
                 "aws", "cloudformation", "describe-stacks",
                 "--stack-name", stack_name,
+                "--region", "us-east-1",
                 "--query", "Stacks[0].Outputs[?OutputKey=='CloudOpsAssistantApi'].OutputValue",
                 "--output", "text"
             ],
             capture_output=True,
             text=True,
             check=True,
-            shell=True,  # Enable shell on Windows
-            timeout=30
+            timeout=30,
+            env=dict(os.environ)
         )
         api_url = result.stdout.strip()
         if api_url and api_url != "None":

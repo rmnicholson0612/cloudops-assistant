@@ -108,7 +108,7 @@ function displayDriftStatus(status) {
                     '<div class="repo-info">' +
                         '<h5>' + (repo.repo_name || repo.name) + '</h5>' +
                         '<p>Last check: ' + (repo.last_scan?.timestamp || 'Never') + '</p>' +
-                        '<p>Status: ' + (repo.last_scan?.drift_detected ? '⚠️ Drift detected' : '✅ No drift') + '</p>' +
+                        '<p>Status: <a href="#" onclick="showDriftHistory(\'' + repo.repo_name + '\')" class="drift-status-link">' + getDriftStatusDisplay(repo.last_scan) + '</a></p>' +
                         '<p>Schedule: ' + (repo.schedule || 'daily') + '</p>' +
                     '</div>' +
                     '<div class="repo-actions">' +
@@ -130,14 +130,43 @@ function displayDriftStatus(status) {
 async function checkDrift(configId) {
     if (!API.requireAuth()) return;
 
+    const button = event.target;
+    const originalText = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting...';
+
     try {
-        // URL encode the config_id to handle special characters like #
-        const encodedConfigId = encodeURIComponent(configId);
-        await API.post(`/drift/scan/${encodedConfigId}`);
-        alert(`Drift check completed`);
-        loadDriftStatus(); // Refresh status
+        const status = await API.get('/drift/status');
+        const repo = status.configurations?.find(r => r.config_id === configId);
+        
+        if (!repo) {
+            throw new Error('Repository configuration not found');
+        }
+
+        const result = await API.post('/terraform/execute', {
+            repo_url: repo.github_url || repo.repo_url,
+            branch: repo.branch || 'main',
+            terraform_dir: repo.terraform_dir || '.'
+        });
+        
+        if (result.error) {
+            throw new Error(result.error);
+        }
+        
+        if (result.success) {
+            alert(`✅ Terraform scan started! Task: ${result.task_id}\n\nThe scan is running in the background. Results will appear in Plan History when complete.`);
+        } else {
+            throw new Error('Failed to start terraform scan');
+        }
+        
+        setTimeout(() => loadDriftStatus(), 1000);
+        
     } catch (error) {
-        alert(`Drift check failed: ${error.message}`);
+        console.error('Drift check error:', error);
+        alert(`❌ Scan failed: ${error.message}`);
+    } finally {
+        button.disabled = false;
+        button.innerHTML = originalText;
     }
 }
 
@@ -224,6 +253,131 @@ function getDriftDisplay(repo) {
         return '<p class="text-success">✅ Infrastructure matches configuration</p>';
     }
     return '<p class="text-muted">Scan status unknown</p>';
+}
+
+function getDriftStatusDisplay(lastScan) {
+    if (!lastScan) {
+        return '❓ Never scanned';
+    }
+    
+    // Check for error in plan_content
+    if (lastScan.plan_content && (lastScan.plan_content.includes('error') || lastScan.plan_content.includes('Error') || lastScan.plan_content.includes('failed'))) {
+        return '❌ Error';
+    }
+    
+    // Check status field if available
+    if (lastScan.status === 'error') {
+        return '❌ Error';
+    }
+    
+    if (lastScan.drift_detected) {
+        return '⚠️ Drift detected';
+    }
+    
+    return '✅ No drift';
+}
+
+async function showDriftHistory(repoName) {
+    if (!API.requireAuth()) return;
+
+    try {
+        const history = await API.get(`/plan-history/${encodeURIComponent(repoName)}`);
+        displayDriftHistoryModal(repoName, history.plans || []);
+    } catch (error) {
+        alert(`Failed to load drift history: ${error.message}`);
+    }
+}
+
+function displayDriftHistoryModal(repoName, plans) {
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5); z-index: 1000; display: flex;
+        align-items: center; justify-content: center;
+    `;
+    
+    const content = document.createElement('div');
+    content.style.cssText = `
+        background: white; padding: 20px; border-radius: 8px;
+        max-width: 80%; max-height: 80%; overflow-y: auto;
+        min-width: 600px;
+    `;
+    
+    content.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3>Drift History: ${repoName}</h3>
+            <button onclick="this.closest('.modal').remove()" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button>
+        </div>
+        <div class="drift-history-list">
+            ${plans.length === 0 ? '<p>No scan history found.</p>' : 
+                plans.map(plan => `
+                    <div class="drift-history-item" style="border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 4px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <strong>${new Date(plan.timestamp).toLocaleString()}</strong>
+                            <span class="status-badge ${getStatusClass(plan)}">${getStatusText(plan)}</span>
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <strong>Changes:</strong> ${plan.changes_detected || 0}
+                        </div>
+                        <details>
+                            <summary style="cursor: pointer; color: #007bff;">View Details</summary>
+                            <pre style="background: #f8f9fa; padding: 10px; margin-top: 10px; border-radius: 4px; overflow-x: auto; white-space: pre-wrap;">${plan.plan_content || 'No plan content found in database'}</pre>
+                            ${!plan.plan_content ? `<div style="margin-top: 10px; padding: 10px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px;"><strong>Debug Info:</strong><br>Plan ID: ${plan.plan_id || 'Unknown'}<br>Status: ${plan.status || 'Unknown'}<br>Drift Detected: ${plan.drift_detected || false}<br>Timestamp: ${plan.timestamp || 'Unknown'}</div>` : ''}
+                        </details>
+                    </div>
+                `).join('')
+            }
+        </div>
+    `;
+    
+    modal.appendChild(content);
+    document.body.appendChild(modal);
+    
+    // Close modal when clicking outside
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
+}
+
+function getStatusClass(plan) {
+    // Check status field first
+    if (plan.status === 'error') {
+        return 'error';
+    }
+    
+    // Check for error in plan_content as fallback
+    if (plan.plan_content && (plan.plan_content.includes('error') || plan.plan_content.includes('Error') || plan.plan_content.includes('failed'))) {
+        return 'error';
+    }
+    
+    // Only show drift if not an error
+    if (plan.drift_detected && plan.status !== 'error') {
+        return 'drift';
+    }
+    
+    return 'no-drift';
+}
+
+function getStatusText(plan) {
+    // Check status field first
+    if (plan.status === 'error') {
+        return '❌ Error';
+    }
+    
+    // Check for error in plan_content as fallback
+    if (plan.plan_content && (plan.plan_content.includes('error') || plan.plan_content.includes('Error') || plan.plan_content.includes('failed'))) {
+        return '❌ Error';
+    }
+    
+    // Only show drift if not an error
+    if (plan.drift_detected && plan.status !== 'error') {
+        return '⚠️ Drift';
+    }
+    
+    return '✅ No Drift';
 }
 
 // Initialize drift monitoring on page load

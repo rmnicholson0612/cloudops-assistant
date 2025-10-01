@@ -4,7 +4,9 @@ import os
 import boto3
 
 logger = logging.getLogger()
-cognito_client = boto3.client("cognito-idp")
+
+def get_cognito_client():
+    return boto3.client("cognito-idp")
 
 def verify_jwt_token(event):
     """Extract and verify JWT token from Authorization header"""
@@ -33,6 +35,7 @@ def verify_jwt_token(event):
             }
 
         # Verify token with Cognito
+        cognito_client = get_cognito_client()
         response = cognito_client.get_user(AccessToken=token)
 
         # Extract user info
@@ -46,8 +49,9 @@ def verify_jwt_token(event):
             "username": response["Username"],
         }
 
-    except cognito_client.exceptions.NotAuthorizedException:
-        return {"statusCode": 401, "body": json.dumps({"error": "Invalid or expired token"})}
+    except Exception as auth_error:
+        if 'NotAuthorizedException' in str(auth_error):
+            return {"statusCode": 401, "body": json.dumps({"error": "Invalid or expired token"})}
     except Exception as e:
         logger.error(f"Token verification error: {str(e)}")
         return {"statusCode": 401, "body": json.dumps({"error": "Token verification failed"})}

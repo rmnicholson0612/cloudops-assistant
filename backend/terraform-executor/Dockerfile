@@ -1,24 +1,28 @@
-FROM public.ecr.aws/lambda/python:3.11
+# Use Python base image for Fargate (not Lambda)
+FROM python:3.11-slim
 
-# Install terraform
-RUN yum update -y && \
-    yum install -y wget unzip && \
-    wget https://releases.hashicorp.com/terraform/1.6.6/terraform_1.6.6_linux_amd64.zip && \
-    unzip terraform_1.6.6_linux_amd64.zip && \
-    mv terraform /usr/local/bin/ && \
-    chmod +x /usr/local/bin/terraform && \
-    rm terraform_1.6.6_linux_amd64.zip && \
-    yum clean all
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    unzip \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install git for repository cloning
-RUN yum install -y git
+# Install Terraform
+RUN curl -fsSL -k https://releases.hashicorp.com/terraform/1.5.0/terraform_1.5.0_linux_amd64.zip -o terraform.zip \
+    && unzip terraform.zip \
+    && mv terraform /usr/local/bin/ \
+    && rm terraform.zip
 
-# Copy requirements and install Python dependencies
-COPY requirements.txt ${LAMBDA_TASK_ROOT}
-RUN pip install -r requirements.txt
+# Install Python dependencies
+RUN pip install boto3
 
-# Copy function code
-COPY terraform_executor.py ${LAMBDA_TASK_ROOT}
-COPY auth_utils.py ${LAMBDA_TASK_ROOT}
+# Copy Fargate entrypoint
+COPY fargate-entrypoint.py /usr/local/bin/fargate-entrypoint.py
+RUN chmod +x /usr/local/bin/fargate-entrypoint.py
 
-CMD ["terraform_executor.lambda_handler"]
+# Set working directory
+WORKDIR /app
+
+# Run the entrypoint script
+CMD ["python3", "/usr/local/bin/fargate-entrypoint.py"]

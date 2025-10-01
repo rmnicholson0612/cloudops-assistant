@@ -408,15 +408,19 @@ def run_manual_scan(event):
             f"{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
         )
 
+        # Determine if this is an error case
+        is_error = "error" in drift_result["plan_output"].lower() or "failed" in drift_result["plan_output"].lower()
+        
         plans_table.put_item(
             Item={
                 "plan_id": plan_id,
                 "repo_name": config["repo_name"],
                 "user_id": user_id,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
-                "drift_detected": drift_result["drift_detected"],
+                "drift_detected": is_error or drift_result["drift_detected"],  # Show error as drift
                 "changes_detected": drift_result["changes_count"],
                 "plan_content": drift_result["plan_output"],
+                "status": "error" if is_error else ("drift" if drift_result["drift_detected"] else "no_drift"),
                 "ttl": int(
                     (datetime.now(timezone.utc) + timedelta(days=30)).timestamp()
                 ),
@@ -613,302 +617,89 @@ def get_cors_headers():
 
 
 def execute_terraform_scan(github_url, terraform_dir):
-    """Execute real terraform plan to detect drift"""
+    """Execute terraform plan using containerized TerraformExecutorFunction"""
     try:
         logger.info(f"Starting terraform scan for {github_url}")
-        with tempfile.TemporaryDirectory() as temp_dir:
-            logger.info(f"Created temp directory: {temp_dir}")
-            repo_dir = os.path.join(temp_dir, "repo")
-
-            # Validate terraform_dir to prevent path traversal
-            if (
-                os.path.isabs(terraform_dir)
-                or ".." in terraform_dir
-                or terraform_dir.startswith("/")
-            ):
-                raise ValueError("Unsafe terraform directory path detected")
-
-            # Sanitize terraform_dir to only allow safe characters
-            import re
-
-            if not re.match(r"^[a-zA-Z0-9._/-]+$", terraform_dir):
-                raise ValueError("Invalid characters in terraform directory path")
-
-            tf_dir = os.path.join(repo_dir, terraform_dir)
-
-            # Ensure the resolved path is still within repo_dir
-            if not os.path.abspath(tf_dir).startswith(os.path.abspath(repo_dir)):
-                raise ValueError("Path traversal attempt detected")
-
-            # Install terraform
-            logger.info("Installing terraform...")
-            install_result = install_terraform(temp_dir)
-            if not install_result:
-                logger.error("Failed to install terraform")
-                return {
-                    "drift_detected": False,
-                    "changes_count": 0,
-                    "plan_output": "Failed to install terraform",
-                }
-
-            terraform_bin = os.path.join(temp_dir, "terraform")
-            logger.info(f"Terraform installed at: {terraform_bin}")
-
-            # Clone repository with security measures
-            logger.info(f"Cloning repository: {github_url}")
-            # Additional URL validation before cloning
-            if not github_url.startswith("https://github.com/"):
-                raise ValueError("Only GitHub HTTPS URLs are allowed")
-
-            clone_result = subprocess.run(
-                [
-                    "git",
-                    "clone",
-                    "--depth",
-                    "1",
-                    "--single-branch",
-                    "--no-tags",
-                    github_url,
-                    repo_dir,
-                ],
-                capture_output=True,
-                text=True,
-                timeout=60,
-                # Security: Run with minimal environment
-                env={"PATH": os.environ.get("PATH", ""), "HOME": temp_dir},
-            )
-
-            if clone_result.returncode != 0:
-                logger.error(f"Clone failed: {clone_result.stderr}")
-                return {
-                    "drift_detected": False,
-                    "changes_count": 0,
-                    "plan_output": f"Failed to clone repository: {clone_result.stderr}",
-                }
-
-            logger.info(f"Repository cloned successfully to: {repo_dir}")
-
-            # Check if terraform directory exists
-            if not os.path.exists(tf_dir):
-                logger.error(f"Terraform directory not found: {tf_dir}")
-                return {
-                    "drift_detected": False,
-                    "changes_count": 0,
-                    "plan_output": (
-                        f"Terraform directory '{terraform_dir}' "
-                        f"not found in repository"
-                    ),
-                }
-
-            logger.info(f"Found terraform directory: {tf_dir}")
-
-            # Initialize terraform with security measures
-            logger.info("Running terraform init...")
-            init_result = subprocess.run(
-                [terraform_bin, "init", "-no-color", "-input=false"],
-                cwd=tf_dir,
-                capture_output=True,
-                text=True,
-                timeout=120,
-                # Security: Run with minimal environment and no network access to prevent data exfiltration
-                env={
-                    "PATH": os.environ.get("PATH", ""),
-                    "HOME": temp_dir,
-                    "TF_INPUT": "0",
-                },
-            )
-
-            logger.info(f"Terraform init exit code: {init_result.returncode}")
-            if init_result.returncode != 0:
-                logger.error(f"Terraform init failed: {init_result.stderr}")
-                return {
-                    "drift_detected": False,
-                    "changes_count": 0,
-                    "plan_output": f"Terraform init failed: {init_result.stderr}",
-                }
-
-            logger.info("Terraform init successful, running plan...")
-
-            # Run terraform plan with security measures
-            plan_result = subprocess.run(
-                [
-                    terraform_bin,
-                    "plan",
-                    "-no-color",
-                    "-detailed-exitcode",
-                    "-input=false",
-                    "-lock=false",
-                ],
-                cwd=tf_dir,
-                capture_output=True,
-                text=True,
-                timeout=300,
-                # Security: Run with minimal environment
-                env={
-                    "PATH": os.environ.get("PATH", ""),
-                    "HOME": temp_dir,
-                    "TF_INPUT": "0",
-                },
-            )
-
-            logger.info(f"Terraform plan exit code: {plan_result.returncode}")
-            logger.info(
-                f"Plan stdout length: "
-                f"{len(plan_result.stdout) if plan_result.stdout else 0}"
-            )
-            logger.info(
-                f"Plan stderr length: "
-                f"{len(plan_result.stderr) if plan_result.stderr else 0}"
-            )
-
-            # Parse terraform plan results
-            # Exit code 0: no changes, 1: error, 2: changes detected
-            plan_output = plan_result.stdout or plan_result.stderr
-
-            # Use robust drift detection (same as plan_processor)
-            drift_detected = detect_terraform_drift(plan_output)
-            changes_count = count_terraform_changes(plan_output)
-
-            # Fallback to exit code if our detection fails
-            if not drift_detected and plan_result.returncode == 2:
-                drift_detected = True
-
-            logger.info(f"Drift detected: {drift_detected}, Changes: {changes_count}")
-
-            return {
-                "drift_detected": drift_detected,
-                "changes_count": changes_count,
-                "plan_output": plan_result.stdout or plan_result.stderr,
+        
+        # Call the containerized TerraformExecutorFunction
+        lambda_client = boto3.client('lambda')
+        
+        payload = {
+            "httpMethod": "POST",
+            "body": json.dumps({
+                "repo_url": github_url,
+                "branch": "main",
+                "terraform_dir": terraform_dir
+            }),
+            "headers": {
+                "Authorization": "Bearer dummy-token"
             }
-
-    except subprocess.TimeoutExpired:
-        logger.error("Terraform scan timed out")
-        return {
-            "drift_detected": False,
-            "changes_count": 0,
-            "plan_output": "Terraform scan timed out",
         }
-    except Exception as e:
-        logger.error(f"Terraform scan error: {str(e)}")
-        return {
-            "drift_detected": False,
-            "changes_count": 0,
-            "plan_output": f"Scan failed: {str(e)}",
-        }
-
-
-def install_terraform(temp_dir):
-    """Install terraform binary at runtime"""
-    try:
-        import urllib.request
-        import zipfile
-
-        # Download terraform binary
-        tf_url = (
-            "https://releases.hashicorp.com/terraform/1.6.6/"
-            "terraform_1.6.6_linux_amd64.zip"
+        
+        function_name = 'cloudops-assistant-TerraformExecutorFunction-ZOrfvBDWMXoz'
+        
+        logger.info(f"Invoking TerraformExecutorFunction: {function_name}")
+        
+        response = lambda_client.invoke(
+            FunctionName=function_name,
+            InvocationType='RequestResponse',
+            Payload=json.dumps(payload)
         )
-        zip_path = os.path.join(temp_dir, "terraform.zip")
-
-        # Use secure download with proper validation and size limits
-        request = urllib.request.Request(tf_url)
-        request.add_header("User-Agent", "CloudOps-Assistant/1.0")
-
-        with urllib.request.urlopen(request, timeout=30) as response:
-            if response.getcode() != 200:
-                raise ValueError(
-                    f"Failed to download terraform: HTTP {response.getcode()}"
-                )
-
-            # Security: Limit download size to prevent DoS
-            content_length = response.headers.get("Content-Length")
-            if content_length and int(content_length) > 50 * 1024 * 1024:  # 50MB limit
-                raise ValueError("Terraform download too large")
-
-            # Read with size limit
-            data = response.read(50 * 1024 * 1024)  # 50MB limit
-            if len(data) >= 50 * 1024 * 1024:
-                raise ValueError("Terraform download exceeded size limit")
-
-            with open(zip_path, "wb") as f:
-                f.write(data)
-
-        # Extract terraform binary with path validation
-        with zipfile.ZipFile(zip_path, "r") as zip_ref:
-            # Validate that we're only extracting the terraform binary
-            if "terraform" not in zip_ref.namelist():
-                raise ValueError("terraform binary not found in zip")
-
-            # Secure extraction to prevent path traversal
-            for member in zip_ref.namelist():
-                if member == "terraform":
-                    # Validate member name to prevent path traversal
-                    if os.path.isabs(member) or ".." in member or "/" in member:
-                        raise ValueError("Unsafe zip member path detected")
-
-                    # Secure extraction with explicit destination path
-                    member_info = zip_ref.getinfo(member)
-                    target_path = os.path.join(temp_dir, "terraform")
-
-                    # Additional security check: ensure target path is within temp_dir
-                    abs_target = os.path.abspath(target_path)
-                    abs_temp = os.path.abspath(temp_dir)
-                    if not abs_target.startswith(abs_temp):
-                        raise ValueError(
-                            "Path traversal attempt detected in extraction"
-                        )
-
-                    # Additional path traversal protection using secure path validation
-                    normalized_target = os.path.normpath(target_path)
-                    normalized_temp = os.path.normpath(temp_dir)
-
-                    # Use os.path.commonpath for secure path validation
-                    try:
-                        common_path = os.path.commonpath(
-                            [normalized_target, normalized_temp]
-                        )
-                        if common_path != normalized_temp:
-                            raise ValueError("Path traversal attempt detected")
-                    except ValueError:
-                        raise ValueError("Invalid path detected during extraction")
-
-                    # Ensure target path doesn't contain dangerous patterns
-                    if ".." in normalized_target or os.path.isabs(
-                        normalized_target.replace(normalized_temp, "")
-                    ):
-                        raise ValueError(
-                            "Dangerous path pattern detected after normalization"
-                        )
-
-                    with zip_ref.open(member_info) as source, open(
-                        normalized_target, "wb"
-                    ) as target:
-                        target.write(source.read())
-                    break
-
-        # Make executable with secure permissions (owner only)
-        terraform_bin = os.path.normpath(os.path.join(temp_dir, "terraform"))
-
-        # Additional security check for the final binary path
-        if not terraform_bin.startswith(os.path.normpath(temp_dir) + os.sep):
-            raise ValueError("Terraform binary path traversal detected")
-        # Verify the file exists and is within temp directory before setting permissions
-        if not os.path.exists(terraform_bin):
-            raise ValueError("Terraform binary not found after extraction")
-
-        # Set restrictive permissions: owner read/execute only (0o500)
-        os.chmod(terraform_bin, 0o500)
-
-        # Verify permissions were set correctly
-        current_perms = oct(os.stat(terraform_bin).st_mode)[-3:]
-        if current_perms != "500":
-            raise ValueError(f"Failed to set secure permissions: {current_perms}")
-
-        return True
-
+        
+        result = json.loads(response['Payload'].read())
+        
+        # Check for Lambda execution errors
+        if 'errorType' in result:
+            error_msg = f"TerraformExecutorFunction error: {result.get('errorType', 'Unknown')} - {result.get('errorMessage', 'No details')}"
+            logger.error(error_msg)
+            return {
+                "drift_detected": False,
+                "changes_count": 0,
+                "plan_output": error_msg,
+            }
+        
+        if result.get('statusCode') == 200:
+            body = json.loads(result['body'])
+            
+            if body.get('success'):
+                plan_output = body.get('stdout', '')
+                drift_detected = detect_terraform_drift(plan_output)
+                changes_count = count_terraform_changes(plan_output)
+                
+                logger.info(f"Terraform execution successful - Drift: {drift_detected}, Changes: {changes_count}")
+                
+                return {
+                    "drift_detected": drift_detected,
+                    "changes_count": changes_count,
+                    "plan_output": plan_output,
+                }
+            else:
+                error_msg = body.get('stderr', 'Unknown terraform error')
+                logger.error(f"Terraform execution failed: {error_msg}")
+                return {
+                    "drift_detected": False,
+                    "changes_count": 0,
+                    "plan_output": f"Terraform execution failed: {error_msg}",
+                }
+        else:
+            error_msg = result.get('body', f"HTTP {result.get('statusCode', 'Unknown')}")
+            logger.error(f"TerraformExecutorFunction failed: {error_msg}")
+            return {
+                "drift_detected": False,
+                "changes_count": 0,
+                "plan_output": f"Lambda execution failed: {error_msg}",
+            }
+            
     except Exception as e:
-        logger.error(f"Failed to install terraform: {str(e)}")
-        return False
+        logger.error(f"Error calling TerraformExecutorFunction: {str(e)}")
+        return {
+            "drift_detected": False,
+            "changes_count": 0,
+            "plan_output": f"Failed to execute terraform scan: {str(e)}",
+        }
+
+
+
 
 
 def detect_terraform_drift(plan_output):

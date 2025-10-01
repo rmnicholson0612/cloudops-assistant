@@ -15,6 +15,7 @@ Globals:
         BEDROCK_MODEL: ${BEDROCK_MODEL}
         BEDROCK_COMPLEX_MODEL: ${BEDROCK_COMPLEX_MODEL}
         BEDROCK_SIMPLE_MODEL: ${BEDROCK_SIMPLE_MODEL}
+        GITHUB_TOKEN: ${GITHUB_TOKEN}
   Api:
     Cors:
       AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
@@ -711,6 +712,8 @@ Resources:
                 - sns:Subscribe
                 - sns:Publish
                 - cognito-idp:GetUser
+                - lambda:InvokeFunction
+                - lambda:ListFunctions
               Resource: '*'
       Events:
         Configure:
@@ -1318,20 +1321,151 @@ Resources:
             Path: /security/accounts
             Method: get
 
-  # Terraform Executor Function (Containerized)
+  # Terraform Results S3 Bucket
+  TerraformResultsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'cloudops-terraform-results-${AWS::AccountId}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldResults
+            Status: Enabled
+            ExpirationInDays: 7
+
+  # ECS Cluster
+  TerraformExecutorCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: terraform-executor-cluster
+      CapacityProviders:
+        - FARGATE
+      DefaultCapacityProviderStrategy:
+        - CapacityProvider: FARGATE
+          Weight: 1
+
+  # ECS Task Definition
+  TerraformExecutorTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: terraform-executor
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: 256
+      Memory: 512
+      ExecutionRoleArn: !Ref TerraformExecutorExecutionRole
+      TaskRoleArn: !Ref TerraformExecutorTaskRole
+      ContainerDefinitions:
+        - Name: terraform
+          Image: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/cloudops-terraform-executor:latest'
+          Essential: true
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref TerraformExecutorLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: ecs
+          Environment:
+            - Name: AWS_DEFAULT_REGION
+              Value: !Ref AWS::Region
+            - Name: RESULTS_BUCKET
+              Value: !Ref TerraformResultsBucket
+
+  # ECS Task Execution Role
+  TerraformExecutorExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Policies:
+        - PolicyName: ECRAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                Resource: '*'
+
+  # ECS Task Role (for Terraform execution)
+  TerraformExecutorTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/PowerUserAccess
+      Policies:
+        - PolicyName: S3ResultsAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                Resource: !Sub '${TerraformResultsBucket.Arn}/*'
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource: !GetAtt TerraformResultsBucket.Arn
+        - PolicyName: DynamoDBAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:GetItem
+                  - dynamodb:UpdateItem
+                Resource: !GetAtt TerraformPlansTable.Arn
+
+  # CloudWatch Log Group
+  TerraformExecutorLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /ecs/terraform-executor
+      RetentionInDays: 7
+
+  # Lambda Function (ECS Trigger)
   TerraformExecutorFunction:
     Type: AWS::Serverless::Function
-    Metadata:
-      DockerTag: latest
-      DockerContext: ./backend/terraform-executor
-      Dockerfile: Dockerfile
     Properties:
-      PackageType: Image
-      MemorySize: 2048
-      Timeout: 900
+      CodeUri: backend/terraform-executor/
+      Handler: terraform_executor.lambda_handler
+      Runtime: python3.13
+      MemorySize: 256
+      Timeout: 30
       Environment:
         Variables:
           USER_POOL_ID: !Ref CloudOpsUserPool
+          ECS_CLUSTER: !Ref TerraformExecutorCluster
+          ECS_TASK_DEFINITION: !Ref TerraformExecutorTaskDefinition
+          RESULTS_BUCKET: !Ref TerraformResultsBucket
       Policies:
         - Version: '2012-10-17'
           Statement:
@@ -1339,6 +1473,31 @@ Resources:
               Action:
                 - cognito-idp:GetUser
               Resource: !GetAtt CloudOpsUserPool.Arn
+            - Effect: Allow
+              Action:
+                - ecs:RunTask
+                - ecs:DescribeTasks
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - iam:PassRole
+              Resource:
+                - !GetAtt TerraformExecutorExecutionRole.Arn
+                - !GetAtt TerraformExecutorTaskRole.Arn
+            - Effect: Allow
+              Action:
+                - ec2:DescribeVpcs
+                - ec2:DescribeSubnets
+                - ec2:DescribeSecurityGroups
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+              Resource: !Sub '${TerraformResultsBucket.Arn}/*'
+            - Effect: Allow
+              Action:
+                - s3:ListBucket
+              Resource: !GetAtt TerraformResultsBucket.Arn
       Events:
         TerraformExecute:
           Type: Api
@@ -1435,3 +1594,15 @@ Outputs:
     Value: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/cloudops-terraform-executor'
     Export:
       Name: CloudOpsTerraformExecutorECR
+
+  TerraformExecutorTaskDefinitionArn:
+    Description: ECS Task Definition ARN for Terraform Executor
+    Value: !Ref TerraformExecutorTaskDefinition
+    Export:
+      Name: CloudOpsTerraformExecutorTaskDefinition
+
+  TerraformResultsBucketName:
+    Description: S3 Bucket for Terraform execution results
+    Value: !Ref TerraformResultsBucket
+    Export:
+      Name: CloudOpsTerraformResultsBucket

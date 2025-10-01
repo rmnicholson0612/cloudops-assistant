@@ -2,6 +2,8 @@
 
 # Load environment variables from backend/.env file
 include backend/.env
+# Load AWS credentials if available
+-include ../.env.aws
 export
 
 STACK_NAME := $(or $(STACK_NAME),cloudops-assistant)
@@ -197,7 +199,7 @@ cleanup-eol:
 
 # Build and deploy terraform executor container
 build-terraform-executor:
-	cd backend/terraform-executor && build-and-deploy.bat
+	cd backend/terraform-executor && ./build-and-deploy.sh
 
 # Deploy with terraform executor
 deploy-with-terraform:
