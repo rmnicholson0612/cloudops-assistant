@@ -38,6 +38,8 @@ def lambda_handler(event, context):
             return handle_get_findings(event, user_info)
         elif path == "/security/compliance" and method == "GET":
             return handle_get_compliance(event, user_info)
+        elif path == "/security/compliance/rules" and method == "GET":
+            return handle_get_compliance_rules(event, user_info)
         elif path == "/security/accounts" and method == "GET":
             return handle_get_accounts(event, user_info)
         else:
@@ -236,17 +238,126 @@ def handle_get_accounts(event, user_info):
     }
 
 
+def handle_get_compliance_rules(event, user_info):
+    from compliance_checks import COMPLIANCE_CHECK_REGISTRY
+
+    # Get query parameters
+    query_params = event.get("queryStringParameters") or {}
+    framework_filter = query_params.get("framework", "all")
+
+    # Build compliance rules structure
+    compliance_rules = {}
+
+    for check_id, frameworks in COMPLIANCE_CHECK_REGISTRY.items():
+        for framework_check in frameworks:
+            framework = framework_check.split("-")[0]
+
+            # Apply framework filter
+            if framework_filter != "all" and framework != framework_filter:
+                continue
+
+            if framework not in compliance_rules:
+                compliance_rules[framework] = {
+                    "name": get_framework_full_name(framework),
+                    "rules": [],
+                }
+
+            # Get rule details
+            rule_info = get_rule_info(check_id, framework_check)
+            if rule_info:
+                compliance_rules[framework]["rules"].append(rule_info)
+
+    return {
+        "statusCode": 200,
+        "headers": get_cors_headers(),
+        "body": json.dumps(compliance_rules),
+    }
+
+
+def get_framework_full_name(framework):
+    names = {
+        "CIS": "CIS Controls",
+        "NIST": "NIST Cybersecurity Framework",
+        "PCI": "PCI-DSS",
+        "SOC2": "SOC 2 Type II",
+    }
+    return names.get(framework, framework)
+
+
+def get_rule_info(check_id, framework_check):
+    # Map check IDs to rule descriptions and CVE references
+    rule_mapping = {
+        "iam_root_mfa_enabled": {
+            "title": "Root Account MFA Enforcement",
+            "description": "Ensure root account has multi-factor authentication enabled",
+            "severity": "CRITICAL",
+            "cve_references": ["CVE-2020-1472"],
+            "remediation": "Enable MFA for root account in AWS Console",
+        },
+        "s3_bucket_public_read": {
+            "title": "S3 Bucket Public Access Control",
+            "description": "Prevent S3 buckets from allowing public read access",
+            "severity": "HIGH",
+            "cve_references": ["CVE-2017-3156"],
+            "remediation": "Remove public read permissions from S3 bucket ACL",
+        },
+        "ec2_security_group_ssh_world_accessible": {
+            "title": "SSH Access Restriction",
+            "description": "Security groups should not allow SSH access from 0.0.0.0/0",
+            "severity": "HIGH",
+            "cve_references": ["CVE-2019-5736"],
+            "remediation": "Restrict SSH access to specific IP ranges",
+        },
+        "rds_instance_storage_encrypted": {
+            "title": "RDS Storage Encryption",
+            "description": "RDS instances should have storage encryption enabled",
+            "severity": "HIGH",
+            "cve_references": ["CVE-2019-11043"],
+            "remediation": "Enable encryption at rest for RDS instances",
+        },
+        "s3_bucket_server_side_encryption": {
+            "title": "S3 Server-Side Encryption",
+            "description": "S3 buckets should have server-side encryption enabled",
+            "severity": "HIGH",
+            "cve_references": ["CVE-2018-1002105"],
+            "remediation": "Enable default encryption on S3 buckets",
+        },
+    }
+
+    rule_info = rule_mapping.get(check_id)
+    if rule_info:
+        return {
+            "check_id": check_id,
+            "framework_rule": framework_check,
+            "title": rule_info["title"],
+            "description": rule_info["description"],
+            "severity": rule_info["severity"],
+            "cve_references": rule_info["cve_references"],
+            "remediation": rule_info["remediation"],
+        }
+
+    # Default rule info if not in mapping
+    return {
+        "check_id": check_id,
+        "framework_rule": framework_check,
+        "title": check_id.replace("_", " ").title(),
+        "description": f"Compliance check for {framework_check}",
+        "severity": "MEDIUM",
+        "cve_references": [],
+        "remediation": "Follow framework guidelines for remediation",
+    }
+
+
 def get_stored_findings(user_info):
     try:
         dynamodb = boto3.resource("dynamodb")
         table = dynamodb.Table(os.environ["SECURITY_FINDINGS_TABLE"])
 
-        # Get today's findings for this user
+        # Get latest findings for the AWS account (shared across all users)
         today = datetime.now().date()
-        user_id = user_info.get("user_id", "unknown")
         response = table.query(
             KeyConditionExpression=boto3.dynamodb.conditions.Key("PK").eq(
-                f"user_{user_id}_scan_{today}"
+                f"account_scan_{today}"
             )
         )
 
@@ -293,7 +404,7 @@ def store_scan_results(scan_results, services, regions, user_info):
 
     findings = scan_results.get("findings", [])
     findings_count = 0
-    user_id = user_info.get("user_id", "unknown")
+    scan_user = user_info.get("email", "unknown")
 
     for finding in findings:
         findings_count += 1
@@ -303,7 +414,7 @@ def store_scan_results(scan_results, services, regions, user_info):
 
         table.put_item(
             Item={
-                "PK": f"user_{user_id}_scan_{datetime.now().date()}",
+                "PK": f"account_scan_{datetime.now().date()}",
                 "SK": f"finding_{findings_count}",
                 "status": status,
                 "severity": severity,
@@ -315,6 +426,7 @@ def store_scan_results(scan_results, services, regions, user_info):
                 "compliance": finding.get("compliance", []),
                 "check_id": finding.get("check_id", "unknown"),
                 "timestamp": datetime.now().isoformat(),
+                "scanned_by": scan_user,
                 "TTL": int(datetime.now().timestamp()) + 2592000,
             }
         )

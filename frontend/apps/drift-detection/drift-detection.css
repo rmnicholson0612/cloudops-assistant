@@ -1,0 +1,465 @@
+/* Drift Detection App Specific Styles */
+
+/* GitHub Scanning Styles */
+.scan-controls {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.github-input {
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    min-width: 200px;
+    flex: 1;
+}
+
+.github-input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+}
+
+.scan-summary {
+    background: rgba(102, 126, 234, 0.1);
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    border-left: 4px solid #667eea;
+}
+
+.scan-summary h4 {
+    margin: 0 0 0.5rem 0;
+    color: #333;
+    text-align: center;
+}
+
+.scan-summary p {
+    margin: 0;
+    color: #666;
+}
+
+.repo-results {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.repo-item {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 1rem;
+    background: #fff;
+    transition: all 0.3s ease;
+}
+
+.repo-item:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.repo-item.has-drift {
+    border-left: 4px solid #ffc107;
+    background: rgba(255, 193, 7, 0.05);
+}
+
+.repo-item.no-drift {
+    border-left: 4px solid #28a745;
+    background: rgba(40, 167, 69, 0.05);
+}
+
+.repo-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.repo-header strong {
+    flex: 1;
+}
+
+.repo-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-left: auto;
+}
+
+.repo-header a {
+    color: #333;
+    text-decoration: none;
+}
+
+.repo-header a:hover {
+    color: #667eea;
+    text-decoration: underline;
+}
+
+.repo-header .status {
+    font-size: 0.9rem;
+    color: #666;
+    font-weight: normal;
+}
+
+.repo-actions {
+    margin-top: 1rem;
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+/* Drift Monitoring Styles */
+.drift-status {
+    margin-top: 1rem;
+}
+
+.drift-repos {
+    margin-top: 15px;
+}
+
+.drift-repo-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+    background: white;
+}
+
+.repo-info h5 {
+    margin: 0 0 5px 0;
+    color: #333;
+}
+
+.repo-info p {
+    margin: 2px 0;
+    color: #666;
+    font-size: 14px;
+}
+
+.drift-loading {
+    padding: 2rem;
+    text-align: center;
+    color: #667eea;
+    font-weight: 500;
+}
+
+.drift-status-link {
+    color: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.drift-status-link:hover {
+    opacity: 0.8;
+}
+
+/* Drift History Modal */
+.drift-history-item {
+    border: 1px solid #ddd;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+}
+
+.drift-history-item details {
+    margin-top: 10px;
+}
+
+.drift-history-item summary {
+    cursor: pointer;
+    color: #007bff;
+}
+
+.drift-history-item pre {
+    background: #f8f9fa;
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 4px;
+    overflow-x: auto;
+    white-space: pre-wrap;
+}
+
+/* Drift Configuration Styles */
+.drift-config-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.drift-config-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 1rem;
+    background: white;
+    transition: all 0.3s ease;
+}
+
+.drift-config-item:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.drift-config-item.has-drift {
+    border-left: 4px solid #ffc107;
+    background: rgba(255, 193, 7, 0.05);
+}
+
+.drift-config-item.no-drift {
+    border-left: 4px solid #28a745;
+    background: rgba(40, 167, 69, 0.05);
+}
+
+.drift-config-info {
+    flex: 1;
+}
+
+.drift-repo-name {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: #333;
+    margin-bottom: 0.25rem;
+}
+
+.drift-schedule,
+.drift-last-scan,
+.drift-alert-email,
+.drift-status {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 0.25rem;
+}
+
+.drift-status {
+    font-weight: 500;
+}
+
+.drift-config-item.has-drift .drift-status {
+    color: #ffc107;
+}
+
+.drift-config-item.no-drift .drift-status {
+    color: #28a745;
+}
+
+.drift-config-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.no-drift-config {
+    text-align: center;
+    padding: 2rem;
+    color: #666;
+    font-style: italic;
+}
+
+.drift-error {
+    padding: 1rem;
+    background: rgba(220, 53, 69, 0.1);
+    border: 1px solid rgba(220, 53, 69, 0.2);
+    border-radius: 8px;
+    color: #dc3545;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .scan-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .github-input {
+        min-width: auto;
+    }
+
+    .drift-repo-item {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+        gap: 1rem;
+    }
+
+    .repo-actions {
+        justify-content: center;
+    }
+
+    .drift-config-item {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+    }
+
+    .drift-config-actions {
+        justify-content: center;
+    }
+}
+
+/* Enhanced Scan Results Styles */
+.scan-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 1rem;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+}
+
+.stat-number {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #007bff;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+}
+
+@media (max-width: 768px) {
+    .scan-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.repo-item.monitored {
+    border-left: 4px solid #28a745;
+    background: #f8fff9;
+}
+
+.repo-item.not-monitored {
+    border-left: 4px solid #6c757d;
+}
+
+.repo-item.monitored .status {
+    background: #d4edda;
+    color: #155724;
+}
+
+.repo-item.not-monitored .status {
+    background: #f8f9fa;
+    color: #6c757d;
+}
+
+.private-badge {
+    background: #ffc107;
+    color: #212529;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    margin-left: 0.5rem;
+}
+
+.status {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+/* AI Explanations Styles */
+.ai-explanations {
+    min-height: 200px;
+}
+
+.ai-loading {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}
+
+.explanation-item {
+    background: white;
+    border: 1px solid #e1e5e9;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 15px;
+}
+
+.explanation-item h4 {
+    margin: 0 0 10px 0;
+    color: #333;
+}
+
+.explanation-content {
+    margin: 15px 0;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+.explanation-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+.risk-level {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.risk-low { background: #d4edda; color: #155724; }
+.risk-medium { background: #fff3cd; color: #856404; }
+.risk-high { background: #f8d7da; color: #721c24; }
+.risk-unknown { background: #e2e3e5; color: #383d41; }
+
+.timestamp {
+    color: #666;
+    font-size: 14px;
+}
+
+.no-data {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px dashed #ddd;
+}
+
+.no-data i {
+    font-size: 24px;
+    margin-bottom: 10px;
+    color: #999;
+}
+
+.error {
+    text-align: center;
+    padding: 40px;
+    color: #721c24;
+    background: #f8d7da;
+    border-radius: 8px;
+    border: 1px solid #f5c6cb;
+}
+
+.error i {
+    font-size: 24px;
+    margin-bottom: 10px;
+}

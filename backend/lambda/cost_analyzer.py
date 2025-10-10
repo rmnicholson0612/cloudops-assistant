@@ -295,13 +295,21 @@ def get_costs_by_tag(month=None):
                 GroupBy=[{"Type": "TAG", "Key": "Service"}],
             )
 
+            # Debug: Log the raw response to see what tags exist
+            logger.info(
+                f"Tag cost response groups: {len(response.get('ResultsByTime', [{}])[0].get('Groups', []))}"
+            )
+
             # Extract tag costs
             services = []
             if response["ResultsByTime"]:
                 groups = response["ResultsByTime"][0]["Groups"]
+                logger.info(f"Found {len(groups)} tag groups")
                 for group in groups:
                     # Keys format: ['Service$tag-value'] or ['Service$'] for untagged
                     raw_key = group["Keys"][0] if group["Keys"] else "Service$Untagged"
+                    logger.info(f"Processing tag group: {raw_key}")
+
                     service_tag = (
                         raw_key.split("$")[1]
                         if "$" in raw_key and len(raw_key.split("$")) > 1
@@ -311,6 +319,8 @@ def get_costs_by_tag(month=None):
                         service_tag = "Untagged"
 
                     cost = float(group["Metrics"]["BlendedCost"]["Amount"])
+                    logger.info(f"Tag '{service_tag}': ${cost}")
+
                     if cost > 0.01:  # Only include meaningful costs
                         services.append(
                             {"service": service_tag, "cost": round(cost, 2)}

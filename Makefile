@@ -13,17 +13,57 @@ AWS_REGION := $(or $(AWS_REGION),us-east-1)
 # AWS Deployment
 ###
 
-# Default target - deploy stack
+# Modular deployment system
+# Usage: make deploy MODULES="drift costs security"
+# Available modules: drift, costs, security, docs, eol, monitoring, integrations, incident-hub, code-reviews
+MODULES ?= drift costs security
+
+# Deploy with selected modules using conditional template
 deploy:
-	sam build
-	sam deploy --stack-name $(STACK_NAME) --resolve-s3 --resolve-image-repos --capabilities CAPABILITY_IAM --region $(AWS_REGION)
+	@echo "Deploying with modules: $(MODULES)"
+	$(eval ENABLE_DRIFT := $(shell echo "$(MODULES)" | findstr "drift" >nul && echo true || echo false))
+	$(eval ENABLE_COSTS := $(shell echo "$(MODULES)" | findstr "costs" >nul && echo true || echo false))
+	$(eval ENABLE_SECURITY := $(shell echo "$(MODULES)" | findstr "security" >nul && echo true || echo false))
+	$(eval ENABLE_EOL := $(shell echo "$(MODULES)" | findstr "eol" >nul && echo true || echo false))
+	$(eval ENABLE_DOCS := $(shell echo "$(MODULES)" | findstr "docs" >nul && echo true || echo false))
+	$(eval ENABLE_MONITORING := $(shell echo "$(MODULES)" | findstr "monitoring" >nul && echo true || echo false))
+	$(eval ENABLE_INTEGRATIONS := $(shell echo "$(MODULES)" | findstr "integrations" >nul && echo true || echo false))
+	$(eval ENABLE_INCIDENT_HUB := $(shell echo "$(MODULES)" | findstr "incident-hub" >nul && echo true || echo false))
+	$(eval ENABLE_CODE_REVIEWS := $(shell echo "$(MODULES)" | findstr "code-reviews" >nul && echo true || echo false))
+	sam build -t infrastructure/template-modular.yaml
+	sam deploy --template-file infrastructure/template-modular.yaml --stack-name $(STACK_NAME) --resolve-s3 --capabilities CAPABILITY_IAM --parameter-overrides EnableDrift=$(ENABLE_DRIFT) EnableCosts=$(ENABLE_COSTS) EnableSecurity=$(ENABLE_SECURITY) EnableEOL=$(ENABLE_EOL) EnableDocs=$(ENABLE_DOCS) EnableMonitoring=$(ENABLE_MONITORING) EnableIntegrations=$(ENABLE_INTEGRATIONS) EnableIncidentHub=$(ENABLE_INCIDENT_HUB) EnableCodeReviews=$(ENABLE_CODE_REVIEWS) --region $(AWS_REGION)
+	$(MAKE) update-config
+
+# Deploy full stack (legacy)
+deploy-full-stack:
+	sam build -t infrastructure/template-full.yaml
+	sam deploy --template-file infrastructure/template-full.yaml --stack-name $(STACK_NAME) --resolve-s3 --resolve-image-repos --capabilities CAPABILITY_IAM --region $(AWS_REGION)
 	$(MAKE) update-config
 
 # Deploy with guided setup
 deploy-guided:
-	sam build
-	sam deploy --guided --stack-name $(STACK_NAME) --capabilities CAPABILITY_IAM --region $(AWS_REGION)
+	sam build -t infrastructure/template-full.yaml
+	sam deploy --guided --template-file infrastructure/template-full.yaml --stack-name $(STACK_NAME) --capabilities CAPABILITY_IAM --region $(AWS_REGION)
 	$(MAKE) update-config
+
+# Deploy core only (for testing)
+deploy-core:
+	@echo "Deploying core infrastructure only..."
+	sam build -t infrastructure/template-core.yaml
+	sam deploy --template-file infrastructure/template-core.yaml --stack-name $(STACK_NAME)-core --resolve-s3 --capabilities CAPABILITY_IAM --region $(AWS_REGION)
+
+# Common deployment combinations
+deploy-basic:
+	$(MAKE) deploy MODULES="drift costs"
+
+deploy-security:
+	$(MAKE) deploy MODULES="drift costs security"
+
+deploy-full:
+	$(MAKE) deploy MODULES="drift costs security docs eol monitoring integrations incident-hub code-reviews"
+
+deploy-eol:
+	$(MAKE) deploy MODULES="drift costs security eol"
 
 # Teardown stack
 teardown:
@@ -36,7 +76,6 @@ outputs:
 # Generate frontend configuration from stack output
 update-config:
 	python scripts/generate_frontend_config.py --stack-name $(STACK_NAME) --environment $(ENVIRONMENT)
-	cd frontend && node build-config.js
 
 # Test API endpoints after deployment
 test-api:
@@ -199,11 +238,11 @@ cleanup-eol:
 
 # Build and deploy terraform executor container
 build-terraform-executor:
-	cd backend/terraform-executor && ./build-and-deploy.sh
+	cd backend/terraform-executor && build-and-deploy.bat
 
 # Deploy with terraform executor
 deploy-with-terraform:
 	$(MAKE) build-terraform-executor
 	$(MAKE) deploy
 
-.PHONY: deploy deploy-guided teardown outputs update-config test-api logs serve-frontend install serve-local dev-start dev-start-ai dev-setup-ai dev-stop dev-logs dev-clean check security test dev-test dev-test-ai dev-test-all quality full-check validate-rules validate-config clean validate cleanup-eol build-terraform-executor deploy-with-terraform
+.PHONY: deploy deploy-full-stack deploy-guided deploy-core deploy-module delete-module deploy-basic deploy-security deploy-full teardown outputs update-config test-api logs serve-frontend install serve-local dev-start dev-start-ai dev-setup-ai dev-stop dev-logs dev-clean check security test dev-test dev-test-ai dev-test-all quality full-check validate-rules validate-config clean validate cleanup-eol build-terraform-executor deploy-with-terraform

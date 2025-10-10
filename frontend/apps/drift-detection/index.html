@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloudOps Assistant - Drift Detection</title>
+    <link rel="icon" type="image/svg+xml" href="../../shared/assets/favicon.svg">
+    <link rel="stylesheet" href="../../shared/css/base.css">
+    <link rel="stylesheet" href="../../shared/css/components.css">
+    <link rel="stylesheet" href="drift-detection.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="../../config.js"></script>
+    <script src="../../shared/js/core/api.js"></script>
+    <script src="../../shared/js/core/auth.js"></script>
+    <script src="../../shared/js/components/header.js"></script>
+    <script src="drift-detection.js"></script>
+</head>
+<body>
+    <div class="app">
+        <!-- Header Component -->
+        <div id="app-header"></div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="feature-header">
+                <h2><i class="fas fa-exclamation-triangle"></i> Infrastructure Drift Detection</h2>
+                <p>Monitor your infrastructure for configuration drift and unauthorized changes</p>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="header-with-info">
+                        <h3>GitHub Repository Scanning</h3>
+                    </div>
+                    <div class="scan-controls">
+                        <input type="text" id="github-target" placeholder="GitHub username or org (e.g., rmnicholson0612)" class="github-input">
+                        <input type="password" id="github-token" placeholder="GitHub token (optional for public repos)" class="github-input">
+                        <button class="btn btn-primary" onclick="scanRepos()">
+                            <i class="fas fa-search"></i> Scan Repositories
+                        </button>
+                        <button class="btn btn-secondary" onclick="clearGitHubForm()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="scan-results">Enter a GitHub username or organization to scan for terraform repositories...</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-robot"></i> AI Terraform Explainer</h3>
+                    <button class="btn btn-primary" onclick="loadAIExplanations()">
+                        <i class="fas fa-refresh"></i> Refresh Explanations
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="ai-explanations-display" class="ai-explanations">
+                        <div class="ai-loading">
+                            <i class="fas fa-spinner fa-spin"></i> Loading AI explanations...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3>Scheduled Drift Monitoring</h3>
+                    <button class="btn btn-primary" onclick="showDriftConfigModal()">
+                        <i class="fas fa-plus"></i> Add Repository
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="drift-status-display" class="drift-status">
+                        <div class="drift-loading">
+                            <i class="fas fa-spinner fa-spin"></i> Loading drift monitoring status...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check authentication
+            if (!API.isAuthenticated()) {
+                window.location.href = '../../login.html';
+                return;
+            }
+
+            // Initialize header
+            initializeHeader('Drift Detection');
+
+            // Initialize drift detection
+            initializeDriftDetection();
+        });
+    </script>
+</body>
+</html>

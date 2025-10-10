@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloudOps Assistant - Integrations</title>
+    <link rel="icon" type="image/svg+xml" href="../../shared/assets/favicon.svg">
+    <link rel="stylesheet" href="../../shared/css/base.css">
+    <link rel="stylesheet" href="../../shared/css/components.css">
+    <link rel="stylesheet" href="integrations.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="../../config.js"></script>
+    <script src="../../shared/js/core/api.js"></script>
+    <script src="../../shared/js/core/auth.js"></script>
+    <script src="../../shared/js/components/header.js"></script>
+    <script src="integrations.js"></script>
+</head>
+<body>
+    <div class="app">
+        <div id="app-header"></div>
+
+        <main class="main-content">
+            <div class="feature-header">
+                <h2><i class="fas fa-plug"></i> Integrations</h2>
+                <p>Connect CloudOps Assistant with your favorite tools and platforms</p>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fab fa-slack"></i> Slack Bot Integration</h3>
+                    <button class="btn btn-primary" id="configure-slack-btn">
+                        <i class="fas fa-cog"></i> Configure Slack Bot
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="slack-status-display" class="slack-status">
+                        <div class="slack-loading">
+                            <i class="fas fa-spinner fa-spin"></i> Loading Slack bot status...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fab fa-github"></i> GitHub Integration</h3>
+                    <span class="status-badge status-active">Active</span>
+                </div>
+                <div class="card-body">
+                    <div class="integration-info">
+                        <p>GitHub integration is active for automated PR reviews and repository scanning.</p>
+                        <div class="capabilities">
+                            <div class="capability">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Automated PR reviews for infrastructure changes</span>
+                            </div>
+                            <div class="capability">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Repository scanning for terraform files</span>
+                            </div>
+                            <div class="capability">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Webhook integration for real-time updates</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-cloud"></i> AWS Integration</h3>
+                    <span class="status-badge status-active">Active</span>
+                </div>
+                <div class="card-body">
+                    <div class="integration-info">
+                        <p>AWS services are integrated for cost analysis, resource discovery, and security scanning.</p>
+                        <div class="capabilities">
+                            <div class="capability">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Cost Explorer integration for spending analysis</span>
+                            </div>
+                            <div class="capability">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Resource discovery across EC2, Lambda, RDS, S3</span>
+                            </div>
+                            <div class="capability">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Security scanning and compliance checks</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-robot"></i> AI Integration</h3>
+                    <span class="status-badge status-active">Active</span>
+                </div>
+                <div class="card-body">
+                    <div class="integration-info">
+                        <p>AI services are integrated for intelligent analysis and automation.</p>
+                        <div class="capabilities">
+                            <div class="capability">
+                                <i class="fas fa-check-circle"></i>
+                                <span>AWS Bedrock for terraform plan analysis</span>
+                            </div>
+                            <div class="capability">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Local Ollama support for privacy-first AI</span>
+                            </div>
+                            <div class="capability">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Automated postmortem generation</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Slack Setup Modal -->
+    <div id="slack-setup-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fab fa-slack"></i> Slack Bot Setup</h2>
+                <span class="close" id="close-slack-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="slack-setup-steps">
+                    <div class="setup-step">
+                        <h4><i class="fas fa-1"></i> API Endpoints</h4>
+                        <p>Use these URLs in your Slack app configuration:</p>
+                        <div class="endpoint-box">
+                            <label>Events URL:</label>
+                            <input type="text" id="slack-events-url" readonly>
+                            <button class="btn btn-sm btn-secondary" id="copy-events-url">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <div class="endpoint-box">
+                            <label>Commands URL:</label>
+                            <input type="text" id="slack-commands-url" readonly>
+                            <button class="btn btn-sm btn-secondary" id="copy-commands-url">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="setup-step">
+                        <h4><i class="fas fa-2"></i> Available Commands</h4>
+                        <div class="commands-list">
+                            <div class="command-item">
+                                <code>/cloudops status</code>
+                                <span>Infrastructure overview</span>
+                            </div>
+                            <div class="command-item">
+                                <code>/cloudops drift [repo]</code>
+                                <span>Check drift status</span>
+                            </div>
+                            <div class="command-item">
+                                <code>/cloudops costs [service]</code>
+                                <span>Cost analysis</span>
+                            </div>
+                            <div class="command-item">
+                                <code>/cloudops register</code>
+                                <span>Link your account</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!API.isAuthenticated()) {
+                window.location.href = '../../login.html';
+                return;
+            }
+
+            initializeHeader('Integrations');
+
+            if (typeof initializeIntegrations === 'function') initializeIntegrations();
+            if (typeof loadSlackStatus === 'function') loadSlackStatus();
+
+            // Set up event listeners
+            const setupEventListener = (id, handler) => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('click', handler);
+                } else {
+                    console.error(`Element not found: ${id}`);
+                }
+            };
+
+            setupEventListener('configure-slack-btn', () => {
+                if (typeof showSlackSetupModal === 'function') {
+                    showSlackSetupModal();
+                }
+            });
+
+            setupEventListener('close-slack-modal', () => {
+                if (typeof closeSlackSetupModal === 'function') {
+                    closeSlackSetupModal();
+                }
+            });
+
+            setupEventListener('copy-events-url', () => {
+                if (typeof copyToClipboard === 'function') {
+                    copyToClipboard('slack-events-url');
+                }
+            });
+
+            setupEventListener('copy-commands-url', () => {
+                if (typeof copyToClipboard === 'function') {
+                    copyToClipboard('slack-commands-url');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

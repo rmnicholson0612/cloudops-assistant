@@ -1,240 +1,123 @@
 #!/usr/bin/env python3
-"""Generate frontend configuration from environment variables and stack output."""
-
-import argparse
+import boto3
 import json
-import os
-import subprocess
+import argparse
 import sys
-from pathlib import Path
 
+def get_stack_outputs(stack_name):
+    """Get CloudFormation stack outputs"""
+    try:
+        cf = boto3.client('cloudformation')
+        response = cf.describe_stacks(StackName=stack_name)
+        outputs = response['Stacks'][0].get('Outputs', [])
+        return {output['OutputKey']: output['OutputValue'] for output in outputs}
+    except Exception as e:
+        print(f"Error getting stack outputs: {e}")
+        return {}
 
-def get_stack_output(stack_name: str) -> str:
-    """Get API URL from CloudFormation stack output."""
-    # Validate and sanitize stack name to prevent command injection
-    if not stack_name or not isinstance(stack_name, str):
-        raise ValueError("Stack name must be a non-empty string")
-
-    # Allow only alphanumeric characters, hyphens, and underscores
-    import re
-    if not re.match(r'^[a-zA-Z0-9-_]+$', stack_name):
-        raise ValueError("Stack name contains invalid characters")
-
-    if len(stack_name) > 128:  # AWS CloudFormation stack name limit
-        raise ValueError("Stack name too long")
+def detect_deployed_modules(stack_name, environment):
+    """Detect which modules are deployed by checking stack outputs"""
+    modules = {
+        'security': False,
+        'drift': False,
+        'costs': False,
+        'docs': False,
+        'eol': False,
+        'monitoring': False,
+        'integrations': False,
+        'incident-hub': False,
+        'code-reviews': False
+    }
 
     try:
-        # Additional validation - only allow specific characters and length
-        if not re.match(r'^[a-zA-Z0-9][a-zA-Z0-9-]{0,126}[a-zA-Z0-9]$', stack_name) and len(stack_name) > 2:
-            raise ValueError("Invalid stack name format")
+        # Check main stack outputs
+        outputs = get_stack_outputs(stack_name)
+        if 'SecurityFindingsTableName' in outputs:
+            modules['security'] = True
+        if 'TerraformPlansTableName' in outputs:
+            modules['drift'] = True
+        if 'CostCacheTableName' in outputs:
+            modules['costs'] = True
+        if 'ServiceDocsTableName' in outputs:
+            modules['docs'] = True
+        if 'EOLDatabaseTableName' in outputs:
+            modules['eol'] = True
+        if 'ResourceDiscoveryTableName' in outputs:
+            modules['monitoring'] = True
+        if 'SlackUserMappingTable' in outputs:
+            modules['integrations'] = True
+        if 'PostmortemsTable' in outputs:
+            modules['incident-hub'] = True
+        if 'PRReviewsTableName' in outputs:
+            modules['code-reviews'] = True
+    except Exception as e:
+        print(f"Warning: Could not detect modules from stack {stack_name}: {e}")
 
-        result = subprocess.run(
-            [
-                "aws", "cloudformation", "describe-stacks",
-                "--stack-name", stack_name,
-                "--region", "us-east-1",
-                "--query", "Stacks[0].Outputs[?OutputKey=='CloudOpsAssistantApi'].OutputValue",
-                "--output", "text"
-            ],
-            capture_output=True,
-            text=True,
-            check=True,
-            timeout=30,
-            env=dict(os.environ)
-        )
-        api_url = result.stdout.strip()
-        if api_url and api_url != "None":
-            print(f"[OK] Found API URL: {api_url}")
-            return api_url
-    except (subprocess.CalledProcessError, FileNotFoundError):
+    return modules
+
+def generate_config(stack_name, environment):
+    """Generate frontend configuration with feature flags"""
+    import os
+    outputs = get_stack_outputs(stack_name)
+    modules = detect_deployed_modules(stack_name, environment)
+
+    api_url = outputs.get('CloudOpsAssistantApi', 'http://localhost:3001')
+    user_pool_id = outputs.get('UserPoolId', 'us-east-1_example')
+    user_pool_client_id = outputs.get('UserPoolClientId', 'example123')
+
+    # Get GitHub configuration from frontend .env file
+    github_target = ''
+    github_token = ''
+    try:
+        with open('frontend/.env', 'r') as f:
+            for line in f:
+                if line.startswith('VITE_GITHUB_DEFAULT_TARGET='):
+                    github_target = line.split('=', 1)[1].strip()
+                elif line.startswith('VITE_GITHUB_DEFAULT_TOKEN='):
+                    github_token = line.split('=', 1)[1].strip()
+    except FileNotFoundError:
         pass
 
-    print("[WARN] Could not get API URL from stack. Using placeholder.")
-    return "https://your-api-gateway-url.amazonaws.com/Prod"
+    config = f"""// Auto-generated configuration
+const CONFIG = {{
+    API_BASE_URL: '{api_url}',
+    USER_POOL_ID: '{user_pool_id}',
+    USER_POOL_CLIENT_ID: '{user_pool_client_id}',
+    ENVIRONMENT: '{environment}',
+    CURRENT_DAY: 18,
 
+    // GitHub Configuration for auto-scanning
+    GITHUB_DEFAULT_TARGET: '{github_target}',
+    GITHUB_DEFAULT_TOKEN: '{github_token}',
 
-def load_frontend_env() -> dict:
-    """Load frontend environment variables."""
-    env_vars = {}
-    env_path = Path("frontend/.env")
-
-    if env_path.exists():
-        with open(env_path) as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith("#") and "=" in line:
-                    key, value = line.split("=", 1)
-                    if key.startswith("VITE_"):
-                        env_vars[key[5:]] = value.strip('"')  # Remove VITE_ prefix and quotes
-
-    return env_vars
-
-
-def update_frontend_env(api_url: str) -> None:
-    """Update frontend .env file with API URL from deployment."""
-    env_path = Path("frontend/.env")
-    if not env_path.exists():
-        print("[WARN] frontend/.env not found, skipping update")
-        return
-
-    # Read current .env file
-    lines = []
-    with open(env_path) as f:
-        lines = f.readlines()
-
-    # Update API URL line
-    updated = False
-    for i, line in enumerate(lines):
-        if line.startswith("VITE_API_BASE_URL="):
-            lines[i] = f"VITE_API_BASE_URL={api_url}\n"
-            updated = True
-            break
-
-    if not updated:
-        lines.append(f"VITE_API_BASE_URL={api_url}\n")
-
-    # Write back to file
-    with open(env_path, "w") as f:
-        f.writelines(lines)
-
-    print(f"[OK] Updated frontend/.env with API URL: {api_url}")
-
-
-def sanitize_js_string(value: str) -> str:
-    """Sanitize string for safe JavaScript injection."""
-    if not isinstance(value, str):
-        return str(value)
-    # Escape single quotes, backslashes, and newlines for JavaScript
-    return value.replace("\\", "\\\\").replace("'", "\\'").replace("\n", "\\n").replace("\r", "\\r")
-
-def generate_config(stack_name: str, environment: str) -> None:
-    """Generate frontend config.js file."""
-    print("[INFO] Generating frontend configuration...")
-
-    api_url = get_stack_output(stack_name)
-    update_frontend_env(api_url)  # Update .env file with API URL
-    env_vars = load_frontend_env()
-
-    # Convert string booleans to JavaScript booleans
-    def to_js_bool(value: str) -> str:
-        return "true" if value.lower() in ["true", "1", "yes"] else "false"
-
-    config_content = f'''// CloudOps Assistant Frontend Configuration
-// Generated automatically - DO NOT EDIT MANUALLY
-// Update frontend/.env to change these values
-
-window.CONFIG = {{
-    // API Configuration
-    API_BASE_URL: '{sanitize_js_string(api_url)}',
-
-    // App Configuration
-    APP_NAME: '{sanitize_js_string(env_vars.get("APP_NAME", "CloudOps Assistant"))}',
-    VERSION: '{sanitize_js_string(env_vars.get("VERSION", "1.0.0"))}',
-    ENVIRONMENT: '{sanitize_js_string(environment)}',
-
-    // Feature Flags
+    // Feature flags - automatically detected from deployed modules
     FEATURES: {{
-        DRIFT_DETECTION: {to_js_bool(env_vars.get("ENABLE_DRIFT_DETECTION", "true"))},
-        COST_DASHBOARD: {to_js_bool(env_vars.get("ENABLE_COST_DASHBOARD", "true"))},
-        AI_FEATURES: {to_js_bool(env_vars.get("ENABLE_AI_FEATURES", "true"))}
-    }},
-
-    // Security
-    MAX_FILE_SIZE: {env_vars.get("MAX_FILE_SIZE", "10485760")},
-    ALLOWED_FILE_TYPES: ['.txt', '.log', '.out', '.plan'],
-
-    // GitHub Configuration
-    GITHUB_TARGETS: '{sanitize_js_string(env_vars.get("GITHUB_TARGETS", "your-github-username"))}',
-
-    // Utility Functions
-    sanitizeInput: function(input) {{
-        if (typeof input !== 'string') return input;
-        return input.replace(/[<>\\"'&]/g, '').substring(0, 1000);
+        SECURITY: {str(modules['security']).lower()},
+        DRIFT: {str(modules['drift']).lower()},
+        COSTS: {str(modules['costs']).lower()},
+        DOCS: {str(modules['docs']).lower()},
+        EOL: {str(modules['eol']).lower()},
+        MONITORING: {str(modules['monitoring']).lower()},
+        INTEGRATIONS: {str(modules['integrations']).lower()},
+        INCIDENT_HUB: {str(modules['incident-hub']).lower()},
+        CODE_REVIEWS: {str(modules['code-reviews']).lower()}
     }}
 }};
 
-console.log('CloudOps Assistant Config Loaded:', window.CONFIG.ENVIRONMENT);
-console.log('API Base URL:', window.CONFIG.API_BASE_URL);
-'''
+// Legacy support
+window.CONFIG = CONFIG;
+"""
 
-    # Write config.js
-    config_path = Path("frontend/config.js")
-    with open(config_path, "w") as f:
-        f.write(config_content)
+    # Write to frontend config.js
+    with open('frontend/config.js', 'w') as f:
+        f.write(config)
 
-    print("[OK] Frontend configuration generated successfully!")
-    print(f"[INFO] API URL: {api_url}")
-    print(f"[INFO] Environment: {environment}")
-    print(f"[INFO] Config written to: {config_path.absolute()}")
-    print(f"[INFO] Frontend .env updated with API URL")
+    print(f"Generated frontend config with features: {[k for k, v in modules.items() if v]}")
 
-
-def main():
-    parser = argparse.ArgumentParser(description="Generate frontend configuration")
-    parser.add_argument("--stack-name", default="cloudops-assistant", help="CloudFormation stack name")
-    parser.add_argument("--environment", default="prod", help="Deployment environment")
-    parser.add_argument("--local", action="store_true", help="Generate config for local development (no stack lookup)")
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Generate frontend configuration')
+    parser.add_argument('--stack-name', required=True, help='CloudFormation stack name')
+    parser.add_argument('--environment', default='dev', help='Environment name')
 
     args = parser.parse_args()
-
-    try:
-        if args.local:
-            # For local development, use placeholder API URL
-            print("[INFO] Generating local development configuration...")
-            env_vars = load_frontend_env()
-
-            def to_js_bool(value: str) -> str:
-                return "true" if value.lower() in ["true", "1", "yes"] else "false"
-
-            config_content = f'''// CloudOps Assistant Frontend Configuration (Local Development)
-// Generated automatically - DO NOT EDIT MANUALLY
-// Update frontend/.env to change these values
-
-window.CONFIG = {{
-    // API Configuration (Local Development)
-    API_BASE_URL: 'http://localhost:8080',  // Local development server
-
-    // App Configuration
-    APP_NAME: '{sanitize_js_string(env_vars.get("APP_NAME", "CloudOps Assistant"))}',
-    VERSION: '{sanitize_js_string(env_vars.get("VERSION", "1.0.0"))}',
-    ENVIRONMENT: 'development',
-
-    // Feature Flags
-    FEATURES: {{
-        DRIFT_DETECTION: {to_js_bool(env_vars.get("ENABLE_DRIFT_DETECTION", "true"))},
-        COST_DASHBOARD: {to_js_bool(env_vars.get("ENABLE_COST_DASHBOARD", "true"))},
-        AI_FEATURES: {to_js_bool(env_vars.get("ENABLE_AI_FEATURES", "true"))}
-    }},
-
-    // Security
-    MAX_FILE_SIZE: {env_vars.get("MAX_FILE_SIZE", "10485760")},
-    ALLOWED_FILE_TYPES: ['.txt', '.log', '.out', '.plan'],
-
-    // GitHub Configuration
-    GITHUB_TARGETS: '{sanitize_js_string(env_vars.get("GITHUB_TARGETS", "your-github-username"))}',
-
-    // Utility Functions
-    sanitizeInput: function(input) {{
-        if (typeof input !== 'string') return input;
-        return input.replace(/[<>\\"'&]/g, '').substring(0, 1000);
-    }}
-}};
-
-console.log('CloudOps Assistant Config Loaded (Local Dev):', window.CONFIG.ENVIRONMENT);
-'''
-
-            config_path = Path("frontend/config.js")
-            with open(config_path, "w") as f:
-                f.write(config_content)
-
-            print("[OK] Local development configuration generated!")
-            print("[INFO] API URL: http://localhost:3001/dev (update as needed)")
-        else:
-            generate_config(args.stack_name, args.environment)
-    except Exception as e:
-        print(f"[ERROR] Error generating config: {e}", file=sys.stderr)
-        sys.exit(1)
-
-
-if __name__ == "__main__":
-    main()
+    generate_config(args.stack_name, args.environment)

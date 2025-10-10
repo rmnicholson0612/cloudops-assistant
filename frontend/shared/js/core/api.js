@@ -34,7 +34,7 @@ const API = {
         }
         // Redirect to login page if not already there
         if (!window.location.pathname.includes('login.html')) {
-            window.location.href = 'login.html';
+            window.location.href = '../../login.html';
         }
     },
 
@@ -61,9 +61,7 @@ const API = {
         if (!this.requireAuth()) return null;
 
         try {
-            const baseUrl = window.CONFIG.API_BASE_URL.replace(/\/$/, '');
-            const cleanEndpoint = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
-            const response = await fetch(`${baseUrl}${cleanEndpoint}`, {
+            const response = await fetch(`${window.CONFIG.API_BASE_URL}${endpoint}`, {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
             });
 
@@ -90,9 +88,7 @@ const API = {
         if (!this.requireAuth()) return null;
 
         try {
-            const baseUrl = window.CONFIG.API_BASE_URL.replace(/\/$/, '');
-            const cleanEndpoint = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
-            const response = await fetch(`${baseUrl}${cleanEndpoint}`, {
+            const response = await fetch(`${window.CONFIG.API_BASE_URL}${endpoint}`, {
                 method: 'POST',
                 headers: this.getAuthHeaders(),
                 body: JSON.stringify(data)
@@ -122,9 +118,7 @@ const API = {
         if (!this.requireAuth()) return null;
 
         try {
-            const baseUrl = window.CONFIG.API_BASE_URL.replace(/\/$/, '');
-            const cleanEndpoint = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
-            const response = await fetch(`${baseUrl}${cleanEndpoint}`, {
+            const response = await fetch(`${window.CONFIG.API_BASE_URL}${endpoint}`, {
                 method: 'PUT',
                 headers: this.getAuthHeaders(),
                 body: JSON.stringify(data)
@@ -154,9 +148,7 @@ const API = {
         if (!this.requireAuth()) return null;
 
         try {
-            const baseUrl = window.CONFIG.API_BASE_URL.replace(/\/$/, '');
-            const cleanEndpoint = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
-            const response = await fetch(`${baseUrl}${cleanEndpoint}`, {
+            const response = await fetch(`${window.CONFIG.API_BASE_URL}${endpoint}`, {
                 method: 'DELETE',
                 headers: this.getAuthHeaders()
             });

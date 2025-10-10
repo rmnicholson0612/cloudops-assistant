@@ -1,9 +1,0 @@
-{
-  "httpMethod": "POST",
-  "path": "/terraform/execute",
-  "headers": {
-    "Authorization": "Bearer dummy-token",
-    "Content-Type": "application/json"
-  },
-  "body": "{\"repo_url\":\"https://github.com/test/test\",\"branch\":\"main\"}"
-}

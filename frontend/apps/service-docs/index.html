@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloudOps Assistant - Service Documentation</title>
+    <link rel="icon" type="image/svg+xml" href="../../shared/assets/favicon.svg">
+    <link rel="stylesheet" href="../../shared/css/base.css">
+    <link rel="stylesheet" href="../../shared/css/components.css">
+    <link rel="stylesheet" href="service-docs.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="../../config.js"></script>
+    <script src="../../shared/js/core/api.js"></script>
+    <script src="../../shared/js/core/auth.js"></script>
+    <script src="../../shared/js/components/header.js"></script>
+    <script src="service-docs.js"></script>
+</head>
+<body>
+    <div class="app">
+        <div id="app-header"></div>
+
+        <main class="main-content">
+            <div class="feature-header">
+                <h2><i class="fas fa-book"></i> Service Documentation</h2>
+                <p>AI-powered documentation search and service registry</p>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-search"></i> Documentation Search</h3>
+                </div>
+                <div class="card-body">
+                    <div class="search-container">
+                        <div class="search-box">
+                            <input type="text" id="search-input" placeholder="Ask a question about your services... (e.g., 'How do I restart the payment service?')">
+                            <button class="btn btn-primary" onclick="searchDocumentation()">
+                                <i class="fas fa-search"></i> Search
+                            </button>
+                        </div>
+                        <div class="capabilities">
+                            <div class="capability">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Natural language search: "How do I restart the payment service?"</span>
+                            </div>
+                            <div class="capability">
+                                <i class="fas fa-check-circle"></i>
+                                <span>AI-powered conversational responses with source citations</span>
+                            </div>
+                            <div class="capability">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Search across all registered services and documentation</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="search-results" class="search-results"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-server"></i> Registered Services</h3>
+                    <button class="btn btn-primary" onclick="showRegisterServiceModal()">
+                        <i class="fas fa-plus"></i> Register Service
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="services-display" class="services-list">
+                        <div class="loading">
+                            <i class="fas fa-spinner fa-spin"></i> Loading services...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-upload"></i> Document Management</h3>
+                </div>
+                <div class="card-body">
+                    <div class="upload-area">
+                        <div class="upload-instructions">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <h4>Upload Service Documentation</h4>
+                            <p>Upload documentation files for your services to enable AI-powered search</p>
+                            <button class="btn btn-primary" onclick="showUploadModal()">
+                                <i class="fas fa-upload"></i> Upload Documents
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!API.isAuthenticated()) {
+                window.location.href = '../../login.html';
+                return;
+            }
+
+            initializeHeader('Service Documentation');
+
+            if (typeof initializeServiceDocs === 'function') initializeServiceDocs();
+            if (typeof loadServices === 'function') loadServices();
+
+            // Set up search on Enter key
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) {
+                searchInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        searchDocumentation();
+                    }
+                });
+            }
+        });
+
+        function showRegisterServiceModal() {
+            alert('Service registration modal coming soon!');
+        }
+
+        function showUploadModal() {
+            alert('Document upload modal coming soon!');
+        }
+    </script>
+</body>
+</html>

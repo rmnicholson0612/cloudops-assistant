@@ -4,13 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CloudOps Assistant - Admin Dashboard</title>
-    <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/svg+xml" href="shared/assets/favicon.svg">
+    <link rel="stylesheet" href="shared/css/main.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="config.js"></script>
-    <script src="eol-functions.js"></script>
+    <script src="shared/js/core/features.js"></script>
+    <script src="shared/js/eol-functions.js"></script>
     <script src="js/core/api.js"></script>
-    <script src="js/drift-detection.js"></script>
+
 </head>
 <body>
     <div class="dashboard">
@@ -28,11 +29,7 @@
                             <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
                         </div>
                     </div>
-                    <div class="auth-section" id="auth-section">
-                        <button class="btn btn-primary" onclick="showLoginModal()">Login</button>
-                        <button class="btn btn-secondary" onclick="showRegisterModal()">Register</button>
-                    </div>
-                    <div class="user-section" id="user-section" style="display: none;">
+                    <div class="user-section" id="user-section">
                         <span id="user-email"></span>
                         <button class="btn btn-secondary" onclick="logout()">Logout</button>
                     </div>
@@ -42,10 +39,10 @@
 
         <!-- Navigation Tabs -->
         <nav class="nav-tabs">
-            <button class="tab-btn active" data-tab="drift">
+            <a href="apps/drift-detection/index.html" class="tab-btn">
                 <i class="fas fa-exclamation-triangle"></i>
                 Drift Detection
-            </button>
+            </a>
             <button class="tab-btn" data-tab="costs">
                 <i class="fas fa-dollar-sign"></i>
                 Cost Dashboard
@@ -78,375 +75,272 @@
 
         <!-- Tab Content -->
         <main class="main-content">
-            <!-- Drift Detection Tab -->
-            <div class="tab-content active" id="drift">
-                <div class="feature-header">
-                    <h2><i class="fas fa-exclamation-triangle"></i> Infrastructure Drift Detection</h2>
-                    <p>Monitor your infrastructure for configuration drift and unauthorized changes</p>
+            <!-- Dashboard Overview -->
+            <div class="feature-header">
+                <h2><i class="fas fa-tachometer-alt"></i> CloudOps Assistant Dashboard</h2>
+                <p>Centralized DevOps automation and monitoring platform</p>
+            </div>
+
+            <!-- App Cards -->
+            <div class="app-grid">
+                <div class="app-card" data-feature="drift">
+                    <div class="app-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <h3>Drift Detection</h3>
+                    <p>Monitor infrastructure for configuration drift and unauthorized changes</p>
+                    <div class="app-stats">
+                        <span class="stat">✅ Complete</span>
+                        <span class="stat">🔄 Active Monitoring</span>
+                    </div>
+                    <a href="apps/drift-detection/index.html" class="btn btn-primary">
+                        <i class="fas fa-arrow-right"></i> Open App
+                    </a>
                 </div>
 
-                <div class="card">
-                    <div class="card-header">
-                        <div class="header-with-info">
-                            <h3>GitHub Repository Scanning</h3>
-                        </div>
-                        <div class="scan-controls">
-                            <input type="text" id="github-target" placeholder="GitHub username or org (e.g., rmnicholson0612)" class="github-input">
-                            <input type="password" id="github-token" placeholder="GitHub token (optional for public repos)" class="github-input">
-                            <button class="btn btn-primary" onclick="scanRepos()">
-                                <i class="fas fa-search"></i> Scan Repositories
-                            </button>
-                            <button class="btn btn-secondary" onclick="clearGitHubForm()">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
+                <div class="app-card" data-feature="costs">
+                    <div class="app-icon">
+                        <i class="fas fa-dollar-sign"></i>
                     </div>
-                    <div class="card-body">
-                        <div id="scan-results">Enter a GitHub username or organization to scan for terraform repositories...</div>
+                    <h3>Cost Dashboard</h3>
+                    <p>Monitor AWS spending and optimize costs with real-time insights</p>
+                    <div class="app-stats">
+                        <span class="stat">✅ Available</span>
+                        <span class="stat">📊 Budget Tracking</span>
                     </div>
+                    <a href="apps/cost-dashboard/index.html" class="btn btn-primary">
+                        <i class="fas fa-arrow-right"></i> Open App
+                    </a>
                 </div>
 
-                <div class="card">
-                    <div class="card-header">
-                        <h3>Scheduled Drift Monitoring</h3>
-                        <button class="btn btn-primary" onclick="showDriftConfigModal()">
-                            <i class="fas fa-plus"></i> Add Repository
-                        </button>
+                <div class="app-card" data-feature="security">
+                    <div class="app-icon">
+                        <i class="fas fa-shield-alt"></i>
                     </div>
-                    <div class="card-body">
-                        <div id="drift-status-display" class="drift-status">
-                            <div class="drift-loading">
-                                <i class="fas fa-spinner fa-spin"></i> Loading drift monitoring status...
-                            </div>
-                        </div>
+                    <h3>Security Hub</h3>
+                    <p>Comprehensive security scanning and compliance monitoring</p>
+                    <div class="app-stats">
+                        <span class="stat">✅ Available</span>
+                        <span class="stat">🔒 Security Scans</span>
                     </div>
+                    <a href="apps/security/index.html" class="btn btn-primary">
+                        <i class="fas fa-arrow-right"></i> Open App
+                    </a>
+                </div>
+
+                <div class="app-card" data-feature="code-reviews">
+                    <div class="app-icon">
+                        <i class="fas fa-code-branch"></i>
+                    </div>
+                    <h3>Code Reviews</h3>
+                    <p>AI-powered code review and security analysis for pull requests</p>
+                    <div class="app-stats">
+                        <span class="stat">✅ Available</span>
+                        <span class="stat">🤖 AI Reviews</span>
+                    </div>
+                    <a href="apps/code-reviews/index.html" class="btn btn-primary">
+                        <i class="fas fa-arrow-right"></i> Open App
+                    </a>
+                </div>
+
+                <div class="app-card" data-feature="monitoring">
+                    <div class="app-icon">
+                        <i class="fas fa-list-alt"></i>
+                    </div>
+                    <h3>Service Catalog</h3>
+                    <p>Discover and manage services with resource monitoring and optimization</p>
+                    <div class="app-stats">
+                        <span class="stat">✅ Available</span>
+                        <span class="stat">📋 Service Registry</span>
+                    </div>
+                    <a href="apps/monitoring/index.html" class="btn btn-primary">
+                        <i class="fas fa-arrow-right"></i> Open App
+                    </a>
+                </div>
+
+                <div class="app-card" data-feature="eol">
+                    <div class="app-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <h3>EOL Tracker</h3>
+                    <p>Track end-of-life technologies and security vulnerabilities</p>
+                    <div class="app-stats">
+                        <span class="stat">✅ Available</span>
+                        <span class="stat">⚠️ EOL Detection</span>
+                    </div>
+                    <a href="apps/eol-tracker/index.html" class="btn btn-primary">
+                        <i class="fas fa-arrow-right"></i> Open App
+                    </a>
+                </div>
+
+                <div class="app-card" data-feature="incident-hub">
+                    <div class="app-icon">
+                        <i class="fas fa-fire-extinguisher"></i>
+                    </div>
+                    <h3>Incident Hub</h3>
+                    <p>Automated postmortem generation and incident management</p>
+                    <div class="app-stats">
+                        <span class="stat">✅ Available</span>
+                        <span class="stat">🤖 AI Postmortems</span>
+                    </div>
+                    <a href="apps/incident-hub/index.html" class="btn btn-primary">
+                        <i class="fas fa-arrow-right"></i> Open App
+                    </a>
+                </div>
+
+                <div class="app-card" data-feature="docs">
+                    <div class="app-icon">
+                        <i class="fas fa-book"></i>
+                    </div>
+                    <h3>Service Documentation</h3>
+                    <p>AI-powered documentation search and service registry</p>
+                    <div class="app-stats">
+                        <span class="stat">✅ Available</span>
+                        <span class="stat">🔍 Smart Search</span>
+                    </div>
+                    <a href="apps/service-docs/index.html" class="btn btn-primary">
+                        <i class="fas fa-arrow-right"></i> Open App
+                    </a>
+                </div>
+
+                <div class="app-card" data-feature="integrations">
+                    <div class="app-icon">
+                        <i class="fas fa-plug"></i>
+                    </div>
+                    <h3>Integrations</h3>
+                    <p>Connect with Slack, GitHub, AWS, and other platforms</p>
+                    <div class="app-stats">
+                        <span class="stat">✅ Available</span>
+                        <span class="stat">🔗 Multi-Platform</span>
+                    </div>
+                    <a href="apps/integrations/index.html" class="btn btn-primary">
+                        <i class="fas fa-arrow-right"></i> Open App
+                    </a>
                 </div>
             </div>
 
-            <!-- Cost Dashboard Tab -->
-            <div class="tab-content" id="costs">
-                <div class="feature-header">
-                    <h2><i class="fas fa-dollar-sign"></i> AWS Cost Dashboard</h2>
-                    <p>Monitor your AWS spending and optimize costs</p>
-                </div>
-                <div class="card">
-                    <div class="card-header">
-                        <h3>Cost Analysis</h3>
-                        <button class="btn btn-primary" onclick="loadCostData()">
-                            <i class="fas fa-sync"></i> Refresh Costs
-                        </button>
-                    </div>
-                    <div class="card-body">
-                        <div id="cost-display">Click "Refresh Costs" to load your AWS spending data...</div>
-                    </div>
-                </div>
-            </div>
 
-            <!-- AI Assistant Tab -->
-            <div class="tab-content" id="ai">
-                <div class="feature-header">
-                    <h2><i class="fas fa-robot"></i> AI Assistant</h2>
-                    <p>AI-powered infrastructure analysis and recommendations</p>
-                </div>
-                <div class="card">
-                    <div class="card-header">
-                        <h3>Terraform Plan Analysis</h3>
-                    </div>
-                    <div class="card-body">
-                        <div id="ai-analysis">AI analysis is automatically performed when drift detection runs. Check the drift detection tab to see AI-powered insights.</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Code Reviews Tab -->
-            <div class="tab-content" id="code-reviews">
-                <div class="feature-header">
-                    <h2><i class="fas fa-code-branch"></i> Code Reviews</h2>
-                    <p>AI-powered code review and security analysis</p>
-                </div>
-                <div class="card">
-                    <div class="card-header">
-                        <h3>Pull Request Reviews</h3>
-                        <button class="btn btn-primary" onclick="loadPRReviews()">
-                            <i class="fas fa-sync"></i> Load Reviews
-                        </button>
-                    </div>
-                    <div class="card-body">
-                        <div id="pr-reviews">Click "Load Reviews" to see recent pull request reviews...</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Monitoring Tab -->
-            <div class="tab-content" id="monitoring">
-                <div class="feature-header">
-                    <h2><i class="fas fa-chart-line"></i> Infrastructure Monitoring</h2>
-                    <p>Monitor your infrastructure health and performance</p>
-                </div>
-                <div class="card">
-                    <div class="card-header">
-                        <h3>Resource Discovery</h3>
-                        <button class="btn btn-primary" onclick="discoverResources()">
-                            <i class="fas fa-search"></i> Discover Resources
-                        </button>
-                    </div>
-                    <div class="card-body">
-                        <div id="resource-discovery">Click "Discover Resources" to scan your AWS infrastructure...</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Automation Tab -->
-            <div class="tab-content" id="automation">
-                <div class="feature-header">
-                    <h2><i class="fas fa-cogs"></i> Automation</h2>
-                    <p>Automate common DevOps tasks and workflows</p>
-                </div>
-                <div class="card">
-                    <div class="card-header">
-                        <h3>Automation Tasks</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="automation-grid">
-                            <div class="automation-card">
-                                <h4><i class="fas fa-backup"></i> Backup Automation</h4>
-                                <p>Automated backup scheduling and management</p>
-                                <button class="btn btn-primary" onclick="setupBackups()">Configure</button>
-                            </div>
-                            <div class="automation-card">
-                                <h4><i class="fas fa-shield-alt"></i> Security Automation</h4>
-                                <p>Automated security scanning and remediation</p>
-                                <button class="btn btn-primary" onclick="setupSecurity()">Configure</button>
-                            </div>
-                            <div class="automation-card">
-                                <h4><i class="fas fa-rocket"></i> Deployment Automation</h4>
-                                <p>CI/CD pipeline automation and monitoring</p>
-                                <button class="btn btn-primary" onclick="setupDeployment()">Configure</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- EOL Tracker Tab -->
-            <div class="tab-content" id="eol-tracker">
-                <div class="feature-header">
-                    <h2><i class="fas fa-clock"></i> End-of-Life Technology Tracker</h2>
-                    <p>Monitor your technology stack for end-of-life components and security risks</p>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <h3><i class="fas fa-search"></i> Technology Scan</h3>
-                        <button class="btn btn-primary" onclick="runEOLScan()">
-                            <i class="fas fa-sync"></i> Run EOL Scan
-                        </button>
-                    </div>
-                    <div class="card-body">
-                        <div class="eol-filters">
-                            <input type="text" id="eol-search-filter" placeholder="Search technologies..." class="eol-filter">
-                            <select id="eol-risk-filter" class="eol-filter">
-                                <option value="all">All Risk Levels</option>
-                                <option value="critical">Critical</option>
-                                <option value="high">High</option>
-                                <option value="medium">Medium</option>
-                                <option value="low">Low</option>
-                            </select>
-                            <select id="eol-repo-filter" class="eol-filter">
-                                <option value="all">All Repositories</option>
-                            </select>
-                        </div>
-                        <div id="eol-results" class="eol-table-container">
-                            <p>Click "Run EOL Scan" to analyze your technology stack for end-of-life components.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Security Tab -->
-            <div class="tab-content" id="security">
-                <div class="feature-header">
-                    <h2><i class="fas fa-shield-alt"></i> Security Compliance Dashboard</h2>
-                    <p>Monitor your AWS infrastructure for security compliance and vulnerabilities</p>
-                </div>
-
-                <!-- Security Hub Status Gauge -->
-                <div class="security-hub-header">
-                    <div class="security-gauge-container">
-                        <div class="security-gauge">
-                            <svg width="200" height="120" viewBox="0 0 200 120">
-                                <defs>
-                                    <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                        <stop offset="0%" style="stop-color:#dc3545;stop-opacity:1" />
-                                        <stop offset="50%" style="stop-color:#ffc107;stop-opacity:1" />
-                                        <stop offset="100%" style="stop-color:#28a745;stop-opacity:1" />
-                                    </linearGradient>
-                                </defs>
-                                <path d="M 20 100 A 80 80 0 0 1 180 100" stroke="#e9ecef" stroke-width="8" fill="none"/>
-                                <path id="gauge-fill" d="M 20 100 A 80 80 0 0 1 20 100" stroke="url(#gaugeGradient)" stroke-width="8" fill="none" stroke-linecap="round"/>
-                                <circle cx="100" cy="100" r="4" fill="#333"/>
-                                <line id="gauge-needle" x1="100" y1="100" x2="20" y2="100" stroke="#333" stroke-width="3" stroke-linecap="round"/>
-                            </svg>
-                            <div class="gauge-score" id="security-score">--</div>
-                            <div class="gauge-label">Security Posture</div>
-                        </div>
-                        <div class="security-summary">
-                            <h2>Security Hub</h2>
-                            <p id="last-scan-time">No scans yet</p>
-                            <button class="btn btn-primary" onclick="runSecurityScan()">
-                                <i class="fas fa-sync"></i> Run New Scan
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Vulnerability Action Buttons -->
-                <div class="vulnerability-actions" id="vulnerability-buttons">
-                    <button class="vuln-btn critical-btn" onclick="showVulnerabilities('critical')">
-                        <div class="vuln-count" id="critical-count">--</div>
-                        <div class="vuln-label">Critical</div>
-                    </button>
-                    <button class="vuln-btn high-btn" onclick="showVulnerabilities('high')">
-                        <div class="vuln-count" id="high-count">--</div>
-                        <div class="vuln-label">High</div>
-                    </button>
-                    <button class="vuln-btn medium-btn" onclick="showVulnerabilities('medium')">
-                        <div class="vuln-count" id="medium-count">--</div>
-                        <div class="vuln-label">Medium</div>
-                    </button>
-                    <button class="vuln-btn low-btn" onclick="showVulnerabilities('low')">
-                        <div class="vuln-count" id="low-count">--</div>
-                        <div class="vuln-label">Low</div>
-                    </button>
-                    <button class="vuln-btn passed-btn" onclick="showVulnerabilities('passed')">
-                        <div class="vuln-count" id="passed-count">--</div>
-                        <div class="vuln-label">Passed</div>
-                    </button>
-                </div>
-
-                <!-- View Toggle -->
-                <div class="view-toggle">
-                    <button class="toggle-btn active" onclick="switchView('resources', this)">
-                        <i class="fas fa-server"></i> By Resource
-                    </button>
-                    <button class="toggle-btn" onclick="switchView('compliance', this)">
-                        <i class="fas fa-clipboard-check"></i> By Compliance
-                    </button>
-                    <button class="toggle-btn" onclick="switchView('services', this)">
-                        <i class="fas fa-cubes"></i> By Service
-                    </button>
-                    <button class="toggle-btn" onclick="switchView('accounts', this)">
-                        <i class="fas fa-users"></i> By Account
-                    </button>
-                </div>
-
-                <!-- Resources View -->
-                <div class="card" id="resources-view">
-                    <div class="card-header">
-                        <h3><i class="fas fa-server"></i> Failing Checks by Resource</h3>
-                        <div class="filter-container">
-                            <select id="resource-status-filter" class="status-filter" onchange="filterResourcesByStatus()">
-                                <option value="all">All Status</option>
-                                <option value="critical">Critical</option>
-                                <option value="high">High</option>
-                                <option value="medium">Medium</option>
-                                <option value="low">Low</option>
-                                <option value="passed">Passed</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div id="resources-display" class="resources-list"></div>
-                    </div>
-                </div>
-
-                <!-- Compliance View -->
-                <div class="card" id="compliance-view" style="display: none;">
-                    <div class="card-header">
-                        <h3><i class="fas fa-clipboard-check"></i> Compliance Frameworks</h3>
-                    </div>
-                    <div class="card-body">
-                        <div id="compliance-display" class="compliance-frameworks"></div>
-                    </div>
-                </div>
-
-                <!-- Services View -->
-                <div class="card" id="services-view" style="display: none;">
-                    <div class="card-header">
-                        <h3><i class="fas fa-cubes"></i> Services Security Status</h3>
-                    </div>
-                    <div class="card-body">
-                        <div id="services-display" class="services-list"></div>
-                    </div>
-                </div>
-
-                <!-- Accounts View -->
-                <div class="card" id="accounts-view" style="display: none;">
-                    <div class="card-header">
-                        <h3><i class="fas fa-users"></i> Security by AWS Account</h3>
-                    </div>
-                    <div class="card-body">
-                        <div id="accounts-display" class="accounts-list"></div>
-                    </div>
-                </div>
-            </div>
         </main>
     </div>
 
-    <!-- Login Modal -->
-    <div id="loginModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Login to CloudOps Assistant</h2>
-                <span class="close" onclick="closeModal('loginModal')">&times;</span>
-            </div>
-            <div class="modal-body">
-                <form id="loginForm" onsubmit="handleLogin(event)">
-                    <div class="form-group">
-                        <label for="loginEmail">Email:</label>
-                        <input type="email" id="loginEmail" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="loginPassword">Password:</label>
-                        <input type="password" id="loginPassword" required>
-                    </div>
-                    <div class="budget-actions">
-                        <button type="button" class="btn btn-secondary" onclick="closeModal('loginModal')">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Login</button>
-                    </div>
-                </form>
-                <div id="loginResult" class="auth-result"></div>
-            </div>
-        </div>
-    </div>
+    <style>
+        /* Dashboard App Grid */
+        .app-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
 
-    <!-- Register Modal -->
-    <div id="registerModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Register for CloudOps Assistant</h2>
-                <span class="close" onclick="closeModal('registerModal')">&times;</span>
-            </div>
-            <div class="modal-body">
-                <form id="registerForm" onsubmit="handleRegister(event)">
-                    <div class="form-group">
-                        <label for="registerEmail">Email:</label>
-                        <input type="email" id="registerEmail" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="registerPassword">Password:</label>
-                        <input type="password" id="registerPassword" required minlength="8">
-                        <small>Minimum 8 characters with uppercase, lowercase, and number</small>
-                    </div>
-                    <div class="budget-actions">
-                        <button type="button" class="btn btn-secondary" onclick="closeModal('registerModal')">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Register</button>
-                    </div>
-                </form>
-                <div id="registerResult" class="auth-result"></div>
-            </div>
-        </div>
-    </div>
+        .app-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .app-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15);
+        }
+
+        .app-card.coming-soon {
+            opacity: 0.7;
+        }
+
+        .app-card.coming-soon::after {
+            content: "Coming Soon";
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .app-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1.5rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+        }
+
+        .app-icon i {
+            font-size: 2.5rem;
+            color: white;
+        }
+
+        .app-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: #333;
+            font-weight: 700;
+        }
+
+        .app-card p {
+            color: #666;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+
+        .app-stats {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .stat {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        /* Remove old tab styles */
+        .nav-tabs {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .app-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+
+            .app-card {
+                padding: 1.5rem;
+            }
+
+            .app-icon {
+                width: 60px;
+                height: 60px;
+            }
+
+            .app-icon i {
+                font-size: 2rem;
+            }
+        }
+    </style>
+
+
 
     <style>
         .security-gauge-container {
@@ -863,53 +757,27 @@
         // Global variables
         let allFindings = [];
 
-        // Tab switching functionality
-        document.addEventListener('DOMContentLoaded', function() {
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const tabId = btn.dataset.tab;
-
-                    // Remove active class from all tabs and content
-                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-
-                    // Add active class to clicked tab and corresponding content
-                    btn.classList.add('active');
-                    document.getElementById(tabId).classList.add('active');
-
-                    // Load security data when security tab is activated
-                    if (tabId === 'security') {
-                        loadSecurityData();
-                    }
-                });
-            });
+        // Check authentication on page load
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Redirect to login if not authenticated
+            if (!API.isAuthenticated()) {
+                window.location.href = 'login.html';
+                return;
+            }
 
             checkAuthStatus();
+            startTokenExpirationCheck();
             updateProgressCounter();
+
+            // Initialize feature detection and hide unavailable features
+            await featureManager.initialize();
+            featureManager.hideDisabledFeatures();
         });
 
-        // Authentication Functions
-        function showLoginModal() {
-            document.getElementById('loginModal').style.display = 'block';
-        }
 
-        function showRegisterModal() {
-            document.getElementById('registerModal').style.display = 'block';
-        }
-
-        function closeModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
-        }
-
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            if (event.target.classList.contains('modal')) {
-                event.target.style.display = 'none';
-            }
-        }
 
         function updateProgressCounter() {
-            const currentDay = window.CONFIG?.CURRENT_DAY || 20;
+            const currentDay = window.CONFIG?.CURRENT_DAY || 18;
             const totalDays = 30;
             const progress = Math.round((currentDay / totalDays) * 100);
 
@@ -918,821 +786,68 @@
             document.getElementById('progress-fill').style.width = progress + '%';
         }
 
-        // Security Dashboard Functions
-        async function loadSecurityData() {
-            console.log('Loading security data...');
-            await loadSecuritySummary();
-            await loadResourcesView();
-        }
 
-        async function loadSecuritySummary() {
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                document.getElementById('security-score').textContent = '--';
-                document.getElementById('last-scan-time').textContent = 'Please login first';
-                resetVulnerabilityButtons();
-                return;
-            }
 
-            try {
-                const response = await fetch(`${window.CONFIG.API_BASE_URL}/security/findings`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
 
-                if (response.ok) {
-                    const findings = await response.json();
-                    updateSecuritySummary(findings);
-                } else {
-                    document.getElementById('security-score').textContent = '--';
-                    document.getElementById('last-scan-time').textContent = 'No scans available';
-                    resetVulnerabilityButtons();
-                }
-            } catch (error) {
-                console.error('Error loading security summary:', error);
-                document.getElementById('security-score').textContent = '--';
-                document.getElementById('last-scan-time').textContent = 'Error loading data';
-                resetVulnerabilityButtons();
-            }
-        }
 
-        function updateSecuritySummary(findings) {
-            const counts = { critical: 0, high: 0, medium: 0, low: 0, passed: 0 };
 
-            findings.forEach(finding => {
-                const severity = finding.severity.toLowerCase();
-                const status = finding.status;
 
-                if (status === 'PASS' || severity === 'pass') {
-                    counts.passed++;
-                } else if (counts.hasOwnProperty(severity)) {
-                    counts[severity]++;
-                } else {
-                    // Unknown severity, check if it's a failure
-                    if (status === 'FAIL') {
-                        counts.medium++; // Default failed checks to medium
-                    } else {
-                        counts.passed++; // Default unknown to passed
-                    }
-                }
-            });
 
-            // Update vulnerability buttons
-            document.getElementById('critical-count').textContent = counts.critical;
-            document.getElementById('high-count').textContent = counts.high;
-            document.getElementById('medium-count').textContent = counts.medium;
-            document.getElementById('low-count').textContent = counts.low;
-            document.getElementById('passed-count').textContent = counts.passed;
 
-            // Calculate security score (higher is better)
-            const total = Object.values(counts).reduce((a, b) => a + b, 0);
-            const score = total > 0 ? Math.round((counts.passed / total) * 100) : 100;
 
-            document.getElementById('security-score').textContent = score + '%';
-            document.getElementById('last-scan-time').textContent = 'Last scan: ' + new Date().toLocaleString();
 
-            // Update gauge visualization
-            updateSecurityGauge(score);
-        }
 
-        function resetVulnerabilityButtons() {
-            ['critical', 'high', 'medium', 'low', 'passed'].forEach(severity => {
-                document.getElementById(severity + '-count').textContent = '--';
-            });
-        }
 
-        function updateSecurityGauge(score) {
-            const angle = (score / 100) * 160; // 160 degrees for the arc
-            const radians = (angle - 80) * (Math.PI / 180); // Convert to radians, offset by 80 degrees
-            const x = 100 + 80 * Math.cos(radians);
-            const y = 100 + 80 * Math.sin(radians);
 
-            // Update needle position
-            const needle = document.getElementById('gauge-needle');
-            needle.setAttribute('x2', x);
-            needle.setAttribute('y2', y);
 
-            // Update gauge fill
-            const largeArcFlag = angle > 80 ? 1 : 0;
-            const endX = 100 + 80 * Math.cos((angle - 80) * Math.PI / 180);
-            const endY = 100 + 80 * Math.sin((angle - 80) * Math.PI / 180);
-            const pathData = `M 20 100 A 80 80 0 ${largeArcFlag} 1 ${endX} ${endY}`;
 
-            document.getElementById('gauge-fill').setAttribute('d', pathData);
-        }
 
-        function switchView(viewType, clickedButton) {
-            document.querySelectorAll('.view-toggle .toggle-btn').forEach(btn => btn.classList.remove('active'));
-            if (clickedButton) clickedButton.classList.add('active');
 
-            ['resources-view', 'compliance-view', 'services-view', 'accounts-view'].forEach(viewId => {
-                const element = document.getElementById(viewId);
-                if (element) element.style.display = 'none';
-            });
-
-            const targetView = document.getElementById(viewType + '-view');
-            if (targetView) targetView.style.display = 'block';
-
-            if (viewType === 'resources') loadResourcesView();
-            else if (viewType === 'compliance') loadComplianceView();
-            else if (viewType === 'services') loadServicesView();
-            else if (viewType === 'accounts') loadAccountsView();
-        }
-
-        async function runSecurityScan() {
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                alert('Please login first');
-                return;
-            }
-
-            // Show loading state
-            const button = event.target.closest('button');
-            const originalText = button.innerHTML;
-            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scanning...';
-            button.disabled = true;
-
-            try {
-                const response = await fetch(`${window.CONFIG.API_BASE_URL}/security/scan`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        services: ['iam', 's3', 'ec2', 'cloudtrail', 'config', 'cloudwatch', 'kms', 'rds', 'lambda'],
-                        regions: ['us-east-1']
-                    })
-                });
-
-                const result = await response.json();
-                if (response.ok) {
-                    // Refresh security data immediately
-                    await loadSecurityData();
-                    alert(`Security scan completed successfully!`);
-                } else {
-                    alert(`Scan failed: ${result.error}`);
-                }
-            } catch (error) {
-                alert(`Error: ${error.message}`);
-            } finally {
-                // Restore button state
-                button.innerHTML = originalText;
-                button.disabled = false;
-            }
-        }
-
-        async function showVulnerabilities(severity) {
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                alert('Please login first');
-                return;
-            }
-
-            try {
-                const response = await fetch(`${window.CONFIG.API_BASE_URL}/security/findings`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-
-                if (response.ok) {
-                    const findings = await response.json();
-                    const filteredFindings = findings.filter(f => f.severity.toLowerCase() === severity.toLowerCase());
-
-                    if (filteredFindings.length === 0) {
-                        alert(`No ${severity} severity findings found`);
-                        return;
-                    }
-
-                    // Switch to resources view and filter by severity
-                    switchView('resources', document.querySelector('.toggle-btn'));
-                    displaySecurityFindings(filteredFindings);
-                } else {
-                    alert('No security findings available. Run a scan first.');
-                }
-            } catch (error) {
-                alert(`Error loading findings: ${error.message}`);
-            }
-        }
-
-        async function loadResourcesView() {
-            const display = document.getElementById('resources-display');
-            if (!display) return;
-
-            // Reset filter to show all
-            const filter = document.getElementById('resource-status-filter');
-            if (filter) filter.value = 'all';
-
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                display.innerHTML = '<p>Please login to view security findings</p>';
-                return;
-            }
-
-            try {
-                const response = await fetch(`${window.CONFIG.API_BASE_URL}/security/findings`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-
-                if (response.ok) {
-                    const findings = await response.json();
-                    displaySecurityFindings(findings);
-                } else {
-                    display.innerHTML = '<p>No security findings available. Run a scan first.</p>';
-                }
-            } catch (error) {
-                display.innerHTML = '<p>Error loading security findings</p>';
-            }
-        }
-
-        function displaySecurityFindings(findings) {
-            allFindings = findings; // Store for filtering
-            const display = document.getElementById('resources-display');
-            if (!findings || findings.length === 0) {
-                display.innerHTML = '<p>No security findings. Your infrastructure looks secure! 🎉</p>';
-                return;
-            }
-
-            display.innerHTML = findings.map(finding =>
-                '<div class="resource-item ' + finding.severity.toLowerCase() + '" data-status="' + finding.severity.toLowerCase() + '">' +
-                    '<div class="resource-header">' +
-                        '<h4>' + (finding.resource_id || 'Unknown Resource') + '</h4>' +
-                        '<span class="resource-type">' + finding.service + '</span>' +
-                        '<span class="account-badge">' + finding.region + '</span>' +
-                    '</div>' +
-                    '<p>' + finding.description + '</p>' +
-                    '<div class="findings-summary">' +
-                        '<span class="finding ' + finding.severity.toLowerCase() + '">' + finding.severity + '</span>' +
-                    '</div>' +
-                '</div>'
-            ).join('');
-        }
-
-        function filterResourcesByStatus() {
-            const filter = document.getElementById('resource-status-filter').value;
-            const display = document.getElementById('resources-display');
-
-            if (!allFindings || allFindings.length === 0) {
-                return;
-            }
-
-            let filteredFindings = allFindings;
-            if (filter !== 'all') {
-                filteredFindings = allFindings.filter(finding => {
-                    const severity = finding.severity.toLowerCase();
-                    const status = finding.status;
-
-                    if (filter === 'passed') {
-                        return status === 'PASS' || severity === 'pass';
-                    }
-                    return severity === filter;
-                });
-            }
-
-            if (filteredFindings.length === 0) {
-                display.innerHTML = `<p>No ${filter === 'all' ? '' : filter} findings found.</p>`;
-                return;
-            }
-
-            display.innerHTML = filteredFindings.map(finding =>
-                '<div class="resource-item ' + finding.severity.toLowerCase() + '" data-status="' + finding.severity.toLowerCase() + '">' +
-                    '<div class="resource-header">' +
-                        '<h4>' + (finding.resource_id || 'Unknown Resource') + '</h4>' +
-                        '<span class="resource-type">' + finding.service + '</span>' +
-                        '<span class="account-badge">' + finding.region + '</span>' +
-                    '</div>' +
-                    '<p>' + finding.description + '</p>' +
-                    '<div class="findings-summary">' +
-                        '<span class="finding ' + finding.severity.toLowerCase() + '">' + finding.severity + '</span>' +
-                    '</div>' +
-                '</div>'
-            ).join('');
-        }
-
-
-
-        async function loadComplianceView() {
-            const display = document.getElementById('compliance-display');
-            if (!display) return;
-
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                display.innerHTML = '<p>Please login to view compliance data</p>';
-                return;
-            }
-
-            try {
-                const response = await fetch(`${window.CONFIG.API_BASE_URL}/security/compliance`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-
-                if (response.ok) {
-                    const compliance = await response.json();
-                    displayComplianceFrameworks(compliance);
-                } else {
-                    display.innerHTML = '<p>No compliance data available. Run a security scan first.</p>';
-                }
-            } catch (error) {
-                display.innerHTML = '<p>Error loading compliance data</p>';
-            }
-        }
-
-        function displayComplianceFrameworks(compliance) {
-            const display = document.getElementById('compliance-display');
-
-            const frameworks = Object.keys(compliance);
-            if (frameworks.length === 0) {
-                display.innerHTML = '<p>No compliance data available. Run a security scan first.</p>';
-                return;
-            }
-
-            display.innerHTML = frameworks.map(framework => {
-                const data = compliance[framework];
-                const total = data.total || 0;
-                const notApplicable = data.not_applicable || 0;
-                const applicable = total - notApplicable;
-                const failed = (data.critical || 0) + (data.high || 0) + (data.medium || 0) + (data.low || 0);
-                const passed = applicable - failed;
-                const score = applicable > 0 ? Math.round((passed / applicable) * 100) : 100;
-
-                return '<div class="compliance-framework">' +
-                        '<div class="framework-header">' +
-                            '<div class="circular-progress">' +
-                                '<svg class="progress-ring" width="70" height="70">' +
-                                    '<circle class="progress-ring-bg" cx="35" cy="35" r="30"></circle>' +
-                                    '<circle class="progress-ring-fill" cx="35" cy="35" r="30" ' +
-                                            'style="stroke: ' + getComplianceColor(score) + '; stroke-dasharray: ' + ((score/100) * 188.5) + ' 188.5;"></circle>' +
-                                '</svg>' +
-                                '<div class="progress-text">' +
-                                    '<div class="progress-percentage">' + score + '%</div>' +
-                                    '<div class="progress-label">' + framework + '</div>' +
-                                '</div>' +
-                            '</div>' +
-                            '<div>' +
-                                '<h4>' + getFrameworkName(framework) + ' Compliance</h4>' +
-                                '<p>' + total + ' total checks (' + applicable + ' applicable)</p>' +
-                                '<div class="findings-summary">' +
-                                    (data.critical > 0 ? '<span class="finding critical">' + data.critical + ' Critical</span>' : '') +
-                                    (data.high > 0 ? '<span class="finding high">' + data.high + ' High</span>' : '') +
-                                    (data.medium > 0 ? '<span class="finding medium">' + data.medium + ' Medium</span>' : '') +
-                                    (data.low > 0 ? '<span class="finding low">' + data.low + ' Low</span>' : '') +
-                                    (passed > 0 ? '<span class="finding passed">' + passed + ' Passed</span>' : '') +
-                                    (notApplicable > 0 ? '<span class="finding not-applicable">' + notApplicable + ' N/A</span>' : '') +
-                                '</div>' +
-                            '</div>' +
-                        '</div>' +
-                    '</div>';
-            }).join('');
-        }
-
-        function getFrameworkName(framework) {
-            const names = {
-                'CIS': 'CIS Benchmarks',
-                'NIST': 'NIST Cybersecurity Framework',
-                'PCI': 'PCI Data Security Standard',
-                'SOC2': 'SOC 2 Type II'
-            };
-            return names[framework] || framework + ' Compliance';
-        }
-
-        function getComplianceColor(score) {
-            if (score >= 90) return '#28a745';
-            if (score >= 70) return '#ffc107';
-            if (score >= 50) return '#fd7e14';
-            return '#dc3545';
-        }
-
-        function loadServicesView() {
-            const display = document.getElementById('services-display');
-            if (!display) return;
-
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                display.innerHTML = '<p>Please login to view services data</p>';
-                return;
-            }
-
-            display.innerHTML = '<p>Service-based security analysis not yet implemented. Run a security scan first.</p>';
-        }
-
-        async function loadAccountsView() {
-            const display = document.getElementById('accounts-display');
-            if (!display) return;
-
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                display.innerHTML = '<p>Please login to view account data</p>';
-                return;
-            }
-
-            try {
-                const response = await fetch(`${window.CONFIG.API_BASE_URL}/security/accounts`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-
-                if (response.ok) {
-                    const accounts = await response.json();
-                    displayAccountsData(accounts);
-                } else {
-                    display.innerHTML = '<p>No account data available. Run a security scan first.</p>';
-                }
-            } catch (error) {
-                display.innerHTML = '<p>Error loading account data</p>';
-            }
-        }
-
-        function displayAccountsData(accounts) {
-            const display = document.getElementById('accounts-display');
-
-            const accountIds = Object.keys(accounts);
-            if (accountIds.length === 0) {
-                display.innerHTML = '<p>No account data available. Run a security scan first.</p>';
-                return;
-            }
-
-            display.innerHTML = accountIds.map(accountId => {
-                const data = accounts[accountId];
-                const total = data.total || 0;
-                const criticalHigh = (data.critical || 0) + (data.high || 0);
-                const severity = criticalHigh > 0 ? 'critical' : (data.medium > 0 ? 'medium' : 'low');
-
-                return '<div class="account-item ' + severity + '">' +
-                        '<div class="account-header">' +
-                            '<div>' +
-                                '<h4>AWS Account: ' + accountId + '</h4>' +
-                                '<div class="account-resources">' +
-                                    data.regions.length + ' regions • ' + data.services.length + ' services' +
-                                '</div>' +
-                                '<div class="findings-summary">' +
-                                    (data.critical > 0 ? '<span class="finding critical">' + data.critical + ' Critical</span>' : '') +
-                                    (data.high > 0 ? '<span class="finding high">' + data.high + ' High</span>' : '') +
-                                    (data.medium > 0 ? '<span class="finding medium">' + data.medium + ' Medium</span>' : '') +
-                                    (data.low > 0 ? '<span class="finding low">' + data.low + ' Low</span>' : '') +
-                                '</div>' +
-                            '</div>' +
-                            '<div class="account-badge">' + total + ' findings</div>' +
-                        '</div>' +
-                        '<p><strong>Regions:</strong> ' + data.regions.join(', ') + '</p>' +
-                        '<p><strong>Services:</strong> ' + data.services.join(', ') + '</p>' +
-                    '</div>';
-            }).join('');
-        }
-
-        // Authentication Functions
-        function showLoginModal() {
-            document.getElementById('loginModal').style.display = 'block';
-        }
-
-        function showRegisterModal() {
-            document.getElementById('registerModal').style.display = 'block';
-        }
-
-        function closeModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
-        }
-
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            if (event.target.classList.contains('modal')) {
-                event.target.style.display = 'none';
-            }
-        }
-
-        async function handleLogin(event) {
-            event.preventDefault();
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-            const resultDiv = document.getElementById('loginResult');
-
-            resultDiv.innerHTML = '<div class="loading">Logging in...</div>';
-
-            try {
-                const response = await fetch(`${window.CONFIG.API_BASE_URL}/auth/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
-                });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    localStorage.setItem('access_token', result.access_token);
-                    localStorage.setItem('user_email', email);
-                    updateAuthUI();
-                    resultDiv.innerHTML = '<div class="success">Login successful!</div>';
-                    setTimeout(() => {
-                        closeModal('loginModal');
-                        // Trigger auto-scan if on drift detection tab and defaults are configured
-                        const activeTab = document.querySelector('.tab-content.active');
-                        if (activeTab && activeTab.id === 'drift' && window.CONFIG?.GITHUB_DEFAULT_TARGET && window.CONFIG?.GITHUB_DEFAULT_TOKEN) {
-                            setTimeout(() => scanRepos(), 500);
-                        }
-                    }, 1500);
-                } else {
-                    resultDiv.innerHTML = `<div class="error">Login failed: ${result.error}</div>`;
-                }
-            } catch (error) {
-                resultDiv.innerHTML = `<div class="error">Login error: ${error.message}</div>`;
-            }
-        }
-
-        async function handleRegister(event) {
-            event.preventDefault();
-            const email = document.getElementById('registerEmail').value;
-            const password = document.getElementById('registerPassword').value;
-            const resultDiv = document.getElementById('registerResult');
-
-            resultDiv.innerHTML = '<div class="loading">Registering...</div>';
-
-            try {
-                const response = await fetch(`${window.CONFIG.API_BASE_URL}/auth/register`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
-                });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    resultDiv.innerHTML = '<div class="success">Registration successful! Please login.</div>';
-                    setTimeout(() => {
-                        closeModal('registerModal');
-                        showLoginModal();
-                    }, 2000);
-                } else {
-                    resultDiv.innerHTML = `<div class="error">Registration failed: ${result.error}</div>`;
-                }
-            } catch (error) {
-                resultDiv.innerHTML = `<div class="error">Registration error: ${error.message}</div>`;
-            }
-        }
 
         function logout() {
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('user_email');
-            updateAuthUI();
+            if (typeof API !== 'undefined' && API.logout) {
+                API.logout();
+            } else {
+                // Fallback if API not loaded yet
+                localStorage.removeItem('access_token');
+                localStorage.removeItem('user_email');
+                window.location.href = 'login.html';
+            }
         }
 
         function checkAuthStatus() {
-            const token = localStorage.getItem('access_token');
-            if (token) updateAuthUI();
+            if (API.isAuthenticated()) {
+                updateAuthUI();
+            }
+        }
+
+        // Check token expiration every 5 minutes
+        function startTokenExpirationCheck() {
+            setInterval(() => {
+                if (!API.isAuthenticated()) {
+                    // Token expired, update UI
+                    updateAuthUI();
+                }
+            }, 5 * 60 * 1000); // 5 minutes
         }
 
         function updateAuthUI() {
-            const token = localStorage.getItem('access_token');
             const email = localStorage.getItem('user_email');
-            const authSection = document.getElementById('auth-section');
             const userSection = document.getElementById('user-section');
 
-            if (token && email) {
-                authSection.style.display = 'none';
+            if (API.isAuthenticated() && email) {
                 userSection.style.display = 'block';
                 document.getElementById('user-email').textContent = email;
             } else {
-                authSection.style.display = 'block';
                 userSection.style.display = 'none';
             }
         }
 
-        // EOL Tracker Functions
-        async function runEOLScan() {
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                alert('Please login first');
-                return;
-            }
 
-            const button = event.target.closest('button');
-            const originalText = button.innerHTML;
-            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scanning...';
-            button.disabled = true;
 
-            try {
-                const response = await fetch(`${window.CONFIG.API_BASE_URL}/eol/scan`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
 
-                const result = await response.json();
-                if (response.ok) {
-                    displayEOLResults(result.technologies || []);
-                } else {
-                    document.getElementById('eol-results').innerHTML = `<p>Scan failed: ${result.error}</p>`;
-                }
-            } catch (error) {
-                document.getElementById('eol-results').innerHTML = `<p>Error: ${error.message}</p>`;
-            } finally {
-                button.innerHTML = originalText;
-                button.disabled = false;
-            }
-        }
 
-        function displayEOLResults(technologies) {
-            const container = document.getElementById('eol-results');
 
-            if (!technologies || technologies.length === 0) {
-                container.innerHTML = '<p>No technologies found or all technologies are up to date! 🎉</p>';
-                return;
-            }
-
-            const repoNames = new Set(technologies.map(t => t.repository).filter(r => r));
-            populateEOLRepoFilter(repoNames);
-
-            const tableHTML = '<table class="eol-table">' +
-                    '<thead>' +
-                        '<tr>' +
-                            '<th>Technology</th>' +
-                            '<th>Version</th>' +
-                            '<th>EOL Date</th>' +
-                            '<th>Repository</th>' +
-                            '<th>Risk Level</th>' +
-                            '<th>Recommendation</th>' +
-                        '</tr>' +
-                    '</thead>' +
-                    '<tbody>' +
-                        technologies.map(tech =>
-                            '<tr class="technology-row ' + tech.risk_level + '" data-risk="' + tech.risk_level + '">' +
-                                '<td><strong>' + tech.name + '</strong></td>' +
-                                '<td>' + (tech.version || 'Unknown') + '</td>' +
-                                '<td>' + formatDate(tech.eol_date) + '</td>' +
-                                '<td>' + (tech.repository || 'N/A') + '</td>' +
-                                '<td><span class="finding ' + tech.risk_level + '">' + tech.risk_level.toUpperCase() + '</span></td>' +
-                                '<td>' + (tech.recommendation || 'Update to latest version') + '</td>' +
-                            '</tr>'
-                        ).join('') +
-                    '</tbody>' +
-                '</table>';
-
-            container.innerHTML = tableHTML;
-            setupEOLTableFilters();
-        }
-
-        // Drift Detection Functions are now in js/drift-detection.js
-
-        // Cost Dashboard Functions
-        async function loadCostData() {
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                alert('Please login first');
-                return;
-            }
-
-            const display = document.getElementById('cost-display');
-            display.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading cost data...';
-
-            try {
-                const response = await fetch(`${window.CONFIG.API_BASE_URL}/costs/summary`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-
-                if (response.ok) {
-                    const costs = await response.json();
-                    displayCostData(costs);
-                } else {
-                    display.innerHTML = '<p>No cost data available. Make sure you have AWS Cost Explorer enabled.</p>';
-                }
-            } catch (error) {
-                display.innerHTML = `<p>Error loading cost data: ${error.message}</p>`;
-            }
-        }
-
-        function displayCostData(costs) {
-            const display = document.getElementById('cost-display');
-            display.innerHTML = '<div class="cost-summary">' +
-                    '<h4>Monthly Cost Summary</h4>' +
-                    '<p>Total Spend: $' + (costs.total || '0.00') + '</p>' +
-                    '<p>Last Updated: ' + new Date().toLocaleString() + '</p>' +
-                '</div>';
-        }
-
-        // AI Assistant Functions - Now integrated with drift detection
-
-        // Code Review Functions
-        async function loadPRReviews() {
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                alert('Please login first');
-                return;
-            }
-
-            const display = document.getElementById('pr-reviews');
-            display.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading PR reviews...';
-
-            try {
-                const response = await fetch(`${window.CONFIG.API_BASE_URL}/reviews/list`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-
-                if (response.ok) {
-                    const reviews = await response.json();
-                    displayPRReviews(reviews.reviews || []);
-                } else {
-                    display.innerHTML = '<p>No PR reviews available.</p>';
-                }
-            } catch (error) {
-                display.innerHTML = `<p>Error loading reviews: ${error.message}</p>`;
-            }
-        }
-
-        function displayPRReviews(reviews) {
-            const display = document.getElementById('pr-reviews');
-
-            if (!reviews || reviews.length === 0) {
-                display.innerHTML = '<p>No PR reviews found.</p>';
-                return;
-            }
-
-            display.innerHTML = '<div class="reviews-list">' +
-                    reviews.map(review =>
-                        '<div class="review-item">' +
-                            '<h5>' + review.repository + '</h5>' +
-                            '<p>PR #' + review.pr_number + ': ' + review.title + '</p>' +
-                            '<p>Status: ' + review.status + '</p>' +
-                        '</div>'
-                    ).join('') +
-                '</div>';
-        }
-
-        // Monitoring Functions
-        async function discoverResources() {
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                alert('Please login first');
-                return;
-            }
-
-            const display = document.getElementById('resource-discovery');
-            display.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Discovering AWS resources...';
-
-            try {
-                const response = await fetch(`${window.CONFIG.API_BASE_URL}/resources/discover`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                const result = await response.json();
-                if (response.ok) {
-                    displayDiscoveredResources(result.resources || []);
-                } else {
-                    display.innerHTML = `<p>Discovery failed: ${result.error}</p>`;
-                }
-            } catch (error) {
-                display.innerHTML = `<p>Error: ${error.message}</p>`;
-            }
-        }
-
-        function displayDiscoveredResources(resources) {
-            const display = document.getElementById('resource-discovery');
-
-            if (!resources || resources.length === 0) {
-                display.innerHTML = '<p>No resources discovered.</p>';
-                return;
-            }
-
-            display.innerHTML = '<div class="resources-grid">' +
-                    resources.map(resource =>
-                        '<div class="resource-card">' +
-                            '<h5>' + resource.type + '</h5>' +
-                            '<p>' + resource.name + '</p>' +
-                            '<p>Region: ' + resource.region + '</p>' +
-                        '</div>'
-                    ).join('') +
-                '</div>';
-        }
-
-        // Automation Functions
-        function setupBackups() {
-            alert('Backup automation setup - Feature coming soon!');
-        }
-
-        function setupSecurity() {
-            alert('Security automation setup - Feature coming soon!');
-        }
-
-        function setupDeployment() {
-            alert('Deployment automation setup - Feature coming soon!');
-        }
-
-        // Initialize security view on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            // Load data for active tab
-            setTimeout(() => {
-                const activeTab = document.querySelector('.tab-content.active');
-                if (activeTab && activeTab.id === 'security') {
-                    loadSecurityData();
-                }
-            }, 100);
-
-            // Drift monitoring status is initialized in js/drift-detection.js
-        });
-
-        function showVulnerabilities(severity) {
-            alert('Showing ' + severity + ' vulnerabilities');
-        }
     </script>
 </body>
 </html>

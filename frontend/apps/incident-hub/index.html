@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloudOps Assistant - Incident Hub</title>
+    <link rel="icon" type="image/svg+xml" href="../../shared/assets/favicon.svg">
+    <link rel="stylesheet" href="../../shared/css/base.css">
+    <link rel="stylesheet" href="../../shared/css/components.css">
+    <link rel="stylesheet" href="incident-hub.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="../../config.js"></script>
+    <script src="../../shared/js/core/api.js"></script>
+    <script src="../../shared/js/core/auth.js"></script>
+    <script src="../../shared/js/components/header.js"></script>
+    <script src="incident-hub.js"></script>
+</head>
+<body>
+    <div class="app">
+        <div id="app-header"></div>
+
+        <main class="main-content">
+            <div class="feature-header">
+                <h2><i class="fas fa-fire-extinguisher"></i> Incident Hub</h2>
+                <p>Automated postmortem generation and incident management</p>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-clipboard-list"></i> Automated Postmortem Generator</h3>
+                    <button class="btn btn-primary" id="create-postmortem-btn">
+                        <i class="fas fa-plus"></i> Create Postmortem
+                    </button>
+                    <button class="btn btn-secondary" id="refresh-postmortems-btn">
+                        <i class="fas fa-refresh"></i> Refresh Postmortems
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="postmortems-display" class="postmortems">
+                        <div class="loading">
+                            <i class="fas fa-spinner fa-spin"></i> Loading postmortems...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-exclamation-triangle"></i> Active Incidents</h3>
+                    <button class="btn btn-primary" id="create-incident-btn">
+                        <i class="fas fa-plus"></i> Create Incident
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="no-data">
+                        <i class="fas fa-info-circle"></i>
+                        No active incidents. Create an incident to track ongoing issues.
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-chart-line"></i> Incident Analytics</h3>
+                </div>
+                <div class="card-body">
+                    <div class="analytics-grid">
+                        <div class="metric-card">
+                            <div class="metric-value">0</div>
+                            <div class="metric-label">Active Incidents</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">0</div>
+                            <div class="metric-label">This Month</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">0 min</div>
+                            <div class="metric-label">Avg Resolution Time</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">0</div>
+                            <div class="metric-label">Postmortems</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!API.isAuthenticated()) {
+                window.location.href = '../../login.html';
+                return;
+            }
+
+            initializeHeader('Incident Hub');
+
+            if (typeof initializeIncidentHub === 'function') initializeIncidentHub();
+            if (typeof loadPostmortems === 'function') loadPostmortems();
+
+            // Set up event listeners
+            const setupEventListener = (id, handler) => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('click', handler);
+                }
+            };
+
+            setupEventListener('create-postmortem-btn', () => {
+                if (typeof showCreatePostmortemModal === 'function') {
+                    showCreatePostmortemModal();
+                }
+            });
+
+            setupEventListener('refresh-postmortems-btn', () => {
+                if (typeof loadPostmortems === 'function') {
+                    loadPostmortems();
+                }
+            });
+
+            setupEventListener('create-incident-btn', () => {
+                alert('Incident creation feature coming soon!');
+            });
+        });
+    </script>
+</body>
+</html>

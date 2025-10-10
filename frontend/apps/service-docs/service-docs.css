@@ -1,0 +1,145 @@
+/* Service Documentation App Styles */
+
+.search-container {
+    margin-bottom: 30px;
+}
+
+.search-box {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.search-box input {
+    flex: 1;
+    padding: 12px;
+    border: 2px solid #e1e5e9;
+    border-radius: 6px;
+    font-size: 16px;
+}
+
+.search-box input:focus {
+    outline: none;
+    border-color: #007cba;
+}
+
+.service-item {
+    background: white;
+    border: 1px solid #e1e5e9;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 15px;
+}
+
+.service-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.service-meta {
+    display: flex;
+    gap: 15px;
+    color: #666;
+    font-size: 14px;
+}
+
+.doc-count {
+    background: #e9ecef;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+}
+
+.search-results {
+    margin-top: 20px;
+}
+
+.search-result {
+    background: #f8f9fa;
+    border-left: 4px solid #007cba;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 0 6px 6px 0;
+}
+
+.result-source {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 8px;
+}
+
+.result-content {
+    line-height: 1.6;
+}
+
+.no-results {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px dashed #ddd;
+}
+
+.upload-area {
+    text-align: center;
+    padding: 40px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 2px dashed #ddd;
+}
+
+.upload-instructions i {
+    font-size: 3rem;
+    color: #007cba;
+    margin-bottom: 20px;
+}
+
+.upload-instructions h4 {
+    margin: 0 0 10px 0;
+    color: #333;
+}
+
+.upload-instructions p {
+    color: #666;
+    margin-bottom: 20px;
+}
+
+.capabilities {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.capability {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border-left: 4px solid #28a745;
+}
+
+.capability i {
+    color: #28a745;
+    font-size: 16px;
+}
+
+.capability span {
+    color: #333;
+    line-height: 1.4;
+}
+
+.services-list {
+    min-height: 200px;
+}
+
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}

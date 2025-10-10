@@ -1,0 +1,1463 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: CloudOps Assistant - Modular Deployment
+
+Parameters:
+  EnableDrift:
+    Type: String
+    Default: 'true'
+    AllowedValues: ['true', 'false']
+  EnableCosts:
+    Type: String
+    Default: 'true'
+    AllowedValues: ['true', 'false']
+  EnableSecurity:
+    Type: String
+    Default: 'true'
+    AllowedValues: ['true', 'false']
+  EnableEOL:
+    Type: String
+    Default: 'false'
+    AllowedValues: ['true', 'false']
+  EnableDocs:
+    Type: String
+    Default: 'false'
+    AllowedValues: ['true', 'false']
+  EnableMonitoring:
+    Type: String
+    Default: 'false'
+    AllowedValues: ['true', 'false']
+  EnableIntegrations:
+    Type: String
+    Default: 'false'
+    AllowedValues: ['true', 'false']
+  EnableIncidentHub:
+    Type: String
+    Default: 'false'
+    AllowedValues: ['true', 'false']
+  EnableCodeReviews:
+    Type: String
+    Default: 'false'
+    AllowedValues: ['true', 'false']
+
+Conditions:
+  DeployDrift: !Equals [!Ref EnableDrift, 'true']
+  DeployCosts: !Equals [!Ref EnableCosts, 'true']
+  DeploySecurity: !Equals [!Ref EnableSecurity, 'true']
+  DeployEOL: !Equals [!Ref EnableEOL, 'true']
+  DeployDocs: !Equals [!Ref EnableDocs, 'true']
+  DeployMonitoring: !Equals [!Ref EnableMonitoring, 'true']
+  DeployIntegrations: !Equals [!Ref EnableIntegrations, 'true']
+  DeployIncidentHub: !Equals [!Ref EnableIncidentHub, 'true']
+  DeployCodeReviews: !Equals [!Ref EnableCodeReviews, 'true']
+
+Globals:
+  Function:
+    Timeout: 60
+    Environment:
+      Variables:
+        USER_POOL_ID: !Ref CloudOpsUserPool
+        USER_POOL_CLIENT_ID: !Ref CloudOpsUserPoolClient
+        ENVIRONMENT: ${ENVIRONMENT}
+        BEDROCK_MODEL: ${BEDROCK_MODEL}
+        GITHUB_TOKEN: ${GITHUB_TOKEN}
+  Api:
+    Cors:
+      AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+      AllowHeaders: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+      AllowOrigin: "'*'"
+      MaxAge: "'86400'"
+
+Resources:
+  # Core Resources (Always Deployed)
+  CloudOpsUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: cloudops-assistant-users
+      AutoVerifiedAttributes: [email]
+      UsernameAttributes: [email]
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+
+  CloudOpsUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref CloudOpsUserPool
+      ClientName: cloudops-assistant-client
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+        - ALLOW_ADMIN_USER_PASSWORD_AUTH
+
+  AuthHandlerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../backend/lambda/
+      Handler: auth_handler.lambda_handler
+      Runtime: python3.13
+      MemorySize: 256
+      Timeout: 30
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:AdminCreateUser
+                - cognito-idp:AdminSetUserPassword
+                - cognito-idp:AdminInitiateAuth
+                - cognito-idp:GetUser
+              Resource: !GetAtt CloudOpsUserPool.Arn
+      Events:
+        AuthProxy:
+          Type: Api
+          Properties:
+            Path: /auth/{proxy+}
+            Method: ANY
+
+  # Drift Detection Resources (Conditional)
+  TerraformPlansTable:
+    Type: AWS::DynamoDB::Table
+    Condition: DeployDrift
+    Properties:
+      TableName: cloudops-assistant-terraform-plans
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: plan_id
+          AttributeType: S
+        - AttributeName: repo_name
+          AttributeType: S
+        - AttributeName: timestamp
+          AttributeType: S
+        - AttributeName: user_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: plan_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: repo-timestamp-index
+          KeySchema:
+            - AttributeName: repo_name
+              KeyType: HASH
+            - AttributeName: timestamp
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: user-id-index
+          KeySchema:
+            - AttributeName: user_id
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      SSESpecification:
+        SSEEnabled: true
+
+  DriftConfigTable:
+    Type: AWS::DynamoDB::Table
+    Condition: DeployDrift
+    Properties:
+      TableName: cloudops-assistant-drift-config
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: config_id
+          AttributeType: S
+        - AttributeName: user_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: config_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: user-id-index
+          KeySchema:
+            - AttributeName: user_id
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      SSESpecification:
+        SSEEnabled: true
+
+  TaskStatusTable:
+    Type: AWS::DynamoDB::Table
+    Condition: DeployDrift
+    Properties:
+      TableName: cloudops-assistant-task-status
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: task_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: task_id
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      SSESpecification:
+        SSEEnabled: true
+
+  PlanProcessorFunction:
+    Type: AWS::Serverless::Function
+    Condition: DeployDrift
+    Properties:
+      CodeUri: ../backend/lambda/
+      Handler: plan_processor.lambda_handler
+      Runtime: python3.13
+      MemorySize: 512
+      Environment:
+        Variables:
+          TERRAFORM_PLANS_TABLE: !Ref TerraformPlansTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TerraformPlansTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action: cognito-idp:GetUser
+              Resource: !GetAtt CloudOpsUserPool.Arn
+      Events:
+        UploadPlan:
+          Type: Api
+          Properties:
+            Path: /upload-plan
+            Method: post
+
+  PlanHistoryFunction:
+    Type: AWS::Serverless::Function
+    Condition: DeployDrift
+    Properties:
+      CodeUri: ../backend/lambda/
+      Handler: plan_history.lambda_handler
+      Runtime: python3.13
+      MemorySize: 256
+      Environment:
+        Variables:
+          TERRAFORM_PLANS_TABLE: !Ref TerraformPlansTable
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref TerraformPlansTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action: cognito-idp:GetUser
+              Resource: !GetAtt CloudOpsUserPool.Arn
+      Events:
+        PlanHistory:
+          Type: Api
+          Properties:
+            Path: /plan-history/{repo}
+            Method: get
+        PlanDetails:
+          Type: Api
+          Properties:
+            Path: /plan-details/{plan_id}
+            Method: get
+        ComparePlans:
+          Type: Api
+          Properties:
+            Path: /compare-plans/{plan1}/{plan2}
+            Method: get
+
+  DriftConfigFunction:
+    Type: AWS::Serverless::Function
+    Condition: DeployDrift
+    Properties:
+      CodeUri: ../backend/lambda/
+      Handler: drift_config.lambda_handler
+      Runtime: python3.13
+      MemorySize: 1024
+      Timeout: 600
+      Environment:
+        Variables:
+          DRIFT_CONFIG_TABLE: !Ref DriftConfigTable
+          TERRAFORM_PLANS_TABLE: !Ref TerraformPlansTable
+          TASK_STATUS_TABLE: !Ref TaskStatusTable
+          TERRAFORM_EXECUTOR_FUNCTION: !Ref TerraformExecutorFunction
+      Layers:
+        - !Sub 'arn:aws:lambda:${AWS::Region}:553035198032:layer:git-lambda2:8'
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DriftConfigTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TerraformPlansTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TaskStatusTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - sns:CreateTopic
+                - sns:Subscribe
+                - sns:Publish
+                - cognito-idp:GetUser
+                - lambda:InvokeFunction
+                - lambda:ListFunctions
+              Resource: '*'
+      Events:
+        Configure:
+          Type: Api
+          Properties:
+            Path: /drift/configure
+            Method: post
+        Status:
+          Type: Api
+          Properties:
+            Path: /drift/status
+            Method: get
+        TaskStatus:
+          Type: Api
+          Properties:
+            Path: /drift/task-status/{task_id}
+            Method: get
+        Update:
+          Type: Api
+          Properties:
+            Path: /drift/update/{config_id}
+            Method: put
+        Delete:
+          Type: Api
+          Properties:
+            Path: /drift/delete/{config_id}
+            Method: delete
+        ManualScan:
+          Type: Api
+          Properties:
+            Path: /drift/scan/{config_id}
+            Method: post
+
+  RepoScannerFunction:
+    Type: AWS::Serverless::Function
+    Condition: DeployDrift
+    Properties:
+      CodeUri: ../backend/lambda/
+      Handler: repo_scanner.lambda_handler
+      Runtime: python3.13
+      MemorySize: 512
+      Timeout: 300
+      Environment:
+        Variables:
+          DRIFT_CONFIG_TABLE: !Ref DriftConfigTable
+      Layers:
+        - !Sub 'arn:aws:lambda:${AWS::Region}:553035198032:layer:git-lambda2:8'
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref DriftConfigTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action: cognito-idp:GetUser
+              Resource: !GetAtt CloudOpsUserPool.Arn
+      Events:
+        ScanRepos:
+          Type: Api
+          Properties:
+            Path: /scan-repos
+            Method: post
+
+  DriftSchedulerFunction:
+    Type: AWS::Serverless::Function
+    Condition: DeployDrift
+    Properties:
+      CodeUri: ../backend/lambda/
+      Handler: drift_scheduler.lambda_handler
+      Runtime: python3.13
+      MemorySize: 1024
+      Timeout: 900
+      Layers:
+        - !Sub 'arn:aws:lambda:${AWS::Region}:553035198032:layer:git-lambda2:8'
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DriftConfigTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TerraformPlansTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - sns:CreateTopic
+                - sns:Subscribe
+                - sns:Publish
+              Resource: '*'
+      Events:
+        ScheduleHourly:
+          Type: Schedule
+          Properties:
+            Schedule: rate(1 hour)
+            Description: Hourly drift monitoring check (respects per-repo schedules)
+
+  AIExplainerFunction:
+    Type: AWS::Serverless::Function
+    Condition: DeployDrift
+    Properties:
+      CodeUri: ../backend/lambda/
+      Handler: ai_explainer.lambda_handler
+      Runtime: python3.13
+      MemorySize: 512
+      Environment:
+        Variables:
+          TERRAFORM_PLANS_TABLE: !Ref TerraformPlansTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TerraformPlansTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+                - cognito-idp:GetUser
+              Resource: '*'
+      Events:
+        Explain:
+          Type: Api
+          Properties:
+            Path: /ai/explain
+            Method: post
+        Explanations:
+          Type: Api
+          Properties:
+            Path: /ai/explanations
+            Method: get
+
+  TerraformExecutorFunction:
+    Type: AWS::Serverless::Function
+    Condition: DeployDrift
+    Properties:
+      CodeUri: ../backend/terraform-executor/
+      Handler: terraform_executor.lambda_handler
+      Runtime: python3.13
+      MemorySize: 1024
+      Timeout: 900
+      Environment:
+        Variables:
+          TASK_STATUS_TABLE: !Ref TaskStatusTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TaskStatusTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - ecs:RunTask
+                - ecs:DescribeTasks
+                - ec2:DescribeVpcs
+                - ec2:DescribeSubnets
+                - ec2:DescribeSecurityGroups
+                - iam:PassRole
+                - cognito-idp:GetUser
+              Resource: '*'
+      Events:
+        TerraformExecutor:
+          Type: Api
+          Properties:
+            Path: /terraform/execute
+            Method: post
+
+  # Cost Dashboard Resources (Conditional)
+  BudgetConfigTable:
+    Type: AWS::DynamoDB::Table
+    Condition: DeployCosts
+    Properties:
+      TableName: cloudops-assistant-budget-config
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: budget_id
+          AttributeType: S
+        - AttributeName: user_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: budget_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: user-id-index
+          KeySchema:
+            - AttributeName: user_id
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      SSESpecification:
+        SSEEnabled: true
+
+  BudgetAlertsTopic:
+    Type: AWS::SNS::Topic
+    Condition: DeployCosts
+    Properties:
+      TopicName: cloudops-assistant-budget-alerts
+      DisplayName: CloudOps Assistant Budget Alerts
+
+  CostCacheTable:
+    Type: AWS::DynamoDB::Table
+    Condition: DeployCosts
+    Properties:
+      TableName: cloudops-assistant-cost-cache
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: cache_key
+          AttributeType: S
+      KeySchema:
+        - AttributeName: cache_key
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      SSESpecification:
+        SSEEnabled: true
+
+  CostAnalyzerFunction:
+    Type: AWS::Serverless::Function
+    Condition: DeployCosts
+    Properties:
+      CodeUri: ../backend/lambda/
+      Handler: cost_analyzer.lambda_handler
+      Runtime: python3.13
+      MemorySize: 256
+      Environment:
+        Variables:
+          COST_CACHE_TABLE: !Ref CostCacheTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref CostCacheTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - ce:GetCostAndUsage
+                - ce:GetDimensionValues
+                - ce:GetUsageReport
+                - cognito-idp:GetUser
+              Resource: '*'
+      Events:
+        CurrentCost:
+          Type: Api
+          Properties:
+            Path: /costs/current
+            Method: get
+        ServiceCost:
+          Type: Api
+          Properties:
+            Path: /costs/services
+            Method: get
+        TrendsCost:
+          Type: Api
+          Properties:
+            Path: /costs/trends
+            Method: get
+
+  BudgetManagerFunction:
+    Type: AWS::Serverless::Function
+    Condition: DeployCosts
+    Properties:
+      CodeUri: ../backend/lambda/
+      Handler: budget_manager.lambda_handler
+      Runtime: python3.13
+      MemorySize: 256
+      Timeout: 30
+      Environment:
+        Variables:
+          BUDGET_CONFIG_TABLE: !Ref BudgetConfigTable
+          COST_CACHE_TABLE: !Ref CostCacheTable
+          BUDGET_ALERTS_TOPIC_ARN: !Ref BudgetAlertsTopic
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref BudgetConfigTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref CostCacheTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - ce:GetCostAndUsage
+                - sns:Publish
+                - sns:Subscribe
+                - sns:Unsubscribe
+                - sns:ListSubscriptionsByTopic
+                - cognito-idp:GetUser
+              Resource: '*'
+      Events:
+        ConfigureBudget:
+          Type: Api
+          Properties:
+            Path: /budgets/configure
+            Method: post
+        BudgetStatus:
+          Type: Api
+          Properties:
+            Path: /budgets/status
+            Method: get
+        BudgetAlerts:
+          Type: Api
+          Properties:
+            Path: /budgets/alerts
+            Method: get
+        DeleteBudget:
+          Type: Api
+          Properties:
+            Path: /budgets/delete/{budget_id}
+            Method: delete
+        UpdateBudget:
+          Type: Api
+          Properties:
+            Path: /budgets/update/{budget_id}
+            Method: put
+        BudgetSchedule:
+          Type: Schedule
+          Properties:
+            Schedule: rate(1 hour)
+            Description: Hourly budget monitoring and alert checking
+
+  TestBudgetAlertFunction:
+    Type: AWS::Serverless::Function
+    Condition: DeployCosts
+    Properties:
+      CodeUri: ../backend/lambda/
+      Handler: test_budget_alert.lambda_handler
+      Runtime: python3.13
+      MemorySize: 256
+      Timeout: 30
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - sns:CreateTopic
+                - sns:Subscribe
+                - sns:Publish
+                - sns:DeleteTopic
+                - cognito-idp:GetUser
+              Resource: '*'
+      Events:
+        TestBudgetAlert:
+          Type: Api
+          Properties:
+            Path: /budgets/test-alert
+            Method: post
+
+  # Security Hub Resources (Conditional)
+  SecurityFindingsTable:
+    Type: AWS::DynamoDB::Table
+    Condition: DeploySecurity
+    Properties:
+      TableName: cloudops-assistant-security-findings
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: TTL
+        Enabled: true
+      SSESpecification:
+        SSEEnabled: true
+
+  SecurityScannerFunction:
+    Type: AWS::Serverless::Function
+    Condition: DeploySecurity
+    Properties:
+      CodeUri: ../backend/lambda/security_scanner/
+      Handler: security_scanner.lambda_handler
+      Runtime: python3.13
+      MemorySize: 1024
+      Timeout: 900
+      Environment:
+        Variables:
+          SECURITY_FINDINGS_TABLE: !Ref SecurityFindingsTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SecurityFindingsTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - ec2:Describe*
+                - s3:List*
+                - s3:Get*
+                - iam:List*
+                - iam:Get*
+                - lambda:List*
+                - rds:Describe*
+                - cloudtrail:DescribeTrails
+                - cloudtrail:GetTrailStatus
+                - config:DescribeConfigurationRecorders
+                - config:DescribeDeliveryChannels
+                - cloudwatch:DescribeAlarms
+                - logs:DescribeLogGroups
+                - kms:ListKeys
+                - kms:DescribeKey
+                - cognito-idp:GetUser
+              Resource: '*'
+      Events:
+        SecurityScan:
+          Type: Api
+          Properties:
+            Path: /security/scan
+            Method: post
+        SecurityFindings:
+          Type: Api
+          Properties:
+            Path: /security/findings
+            Method: get
+        SecurityCompliance:
+          Type: Api
+          Properties:
+            Path: /security/compliance
+            Method: get
+        SecurityComplianceRules:
+          Type: Api
+          Properties:
+            Path: /security/compliance/rules
+            Method: get
+        SecurityAccounts:
+          Type: Api
+          Properties:
+            Path: /security/accounts
+            Method: get
+
+  # EOL Tracker Resources (Conditional)
+  EOLDatabaseTable:
+    Type: AWS::DynamoDB::Table
+    Condition: DeployEOL
+    Properties:
+      TableName: cloudops-assistant-eol-database-v2
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: eol_id
+          AttributeType: S
+        - AttributeName: technology_type
+          AttributeType: S
+      KeySchema:
+        - AttributeName: eol_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: technology-type-index
+          KeySchema:
+            - AttributeName: technology_type
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      SSESpecification:
+        SSEEnabled: true
+
+  EOLScanResultsTable:
+    Type: AWS::DynamoDB::Table
+    Condition: DeployEOL
+    Properties:
+      TableName: cloudops-assistant-eol-scans-v2
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: scan_id
+          AttributeType: S
+        - AttributeName: user_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: scan_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: user-id-index
+          KeySchema:
+            - AttributeName: user_id
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      SSESpecification:
+        SSEEnabled: true
+
+  EOLTrackerFunction:
+    Type: AWS::Serverless::Function
+    Condition: DeployEOL
+    Properties:
+      CodeUri: ../backend/lambda/
+      Handler: eol_tracker.lambda_handler
+      Runtime: python3.13
+      MemorySize: 512
+      Timeout: 300
+      Environment:
+        Variables:
+          EOL_DATABASE_TABLE: !Ref EOLDatabaseTable
+          EOL_SCANS_TABLE: !Ref EOLScanResultsTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref EOLDatabaseTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref EOLScanResultsTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action: cognito-idp:GetUser
+              Resource: !GetAtt CloudOpsUserPool.Arn
+      Events:
+        EOLDatabase:
+          Type: Api
+          Properties:
+            Path: /eol/database
+            Method: get
+        EOLScan:
+          Type: Api
+          Properties:
+            Path: /eol/scan
+            Method: post
+        EOLResults:
+          Type: Api
+          Properties:
+            Path: /eol/results/{scan_id}
+            Method: get
+
+  EOLSchedulerFunction:
+    Type: AWS::Serverless::Function
+    Condition: DeployEOL
+    Properties:
+      CodeUri: ../backend/lambda/
+      Handler: eol_scheduler.lambda_handler
+      Runtime: python3.13
+      MemorySize: 256
+      Timeout: 900
+      Environment:
+        Variables:
+          EOL_DATABASE_TABLE: !Ref EOLDatabaseTable
+          EOL_SCANS_TABLE: !Ref EOLScanResultsTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref EOLDatabaseTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref EOLScanResultsTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - lambda:InvokeFunction
+              Resource: !GetAtt EOLTrackerFunction.Arn
+      Events:
+        DailySchedule:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 6 * * ? *)
+            Description: Daily EOL database updates and scans
+
+  # Service Documentation Resources (Conditional)
+  ServiceDocsTable:
+    Type: AWS::DynamoDB::Table
+    Condition: DeployDocs
+    Properties:
+      TableName: cloudops-assistant-service-docs-v2
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: service_name
+          AttributeType: S
+        - AttributeName: doc_name
+          AttributeType: S
+      KeySchema:
+        - AttributeName: service_name
+          KeyType: HASH
+        - AttributeName: doc_name
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      SSESpecification:
+        SSEEnabled: true
+
+  ServiceDocsBucket:
+    Type: AWS::S3::Bucket
+    Condition: DeployDocs
+    Properties:
+      BucketName: !Sub 'cloudops-assistant-service-docs-${AWS::AccountId}'
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+  ServiceDocsFunction:
+    Type: AWS::Serverless::Function
+    Condition: DeployDocs
+    Properties:
+      CodeUri: ../backend/lambda/
+      Handler: service_docs.lambda_handler
+      Runtime: python3.13
+      MemorySize: 512
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref ServiceDocsBucket
+        - S3WritePolicy:
+            BucketName: !Ref ServiceDocsBucket
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ServiceDocsTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+                - cognito-idp:GetUser
+              Resource: '*'
+      Events:
+        ListServices:
+          Type: Api
+          Properties:
+            Path: /docs/services
+            Method: get
+        RegisterService:
+          Type: Api
+          Properties:
+            Path: /docs/register
+            Method: post
+        UploadDoc:
+          Type: Api
+          Properties:
+            Path: /docs/upload
+            Method: post
+        SearchDocs:
+          Type: Api
+          Properties:
+            Path: /docs/search
+            Method: post
+        ListDocs:
+          Type: Api
+          Properties:
+            Path: /docs/list
+            Method: get
+        GetDoc:
+          Type: Api
+          Properties:
+            Path: /docs/get
+            Method: post
+        DeleteDoc:
+          Type: Api
+          Properties:
+            Path: /docs/delete
+            Method: delete
+
+  # Resource Discovery/Monitoring Resources (Conditional)
+  ResourceDiscoveryTable:
+    Type: AWS::DynamoDB::Table
+    Condition: DeployMonitoring
+    Properties:
+      TableName: cloudops-assistant-resource-discovery
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: scan_id
+          AttributeType: S
+        - AttributeName: user_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: scan_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: user-id-index
+          KeySchema:
+            - AttributeName: user_id
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      SSESpecification:
+        SSEEnabled: true
+
+  ResourceDiscoveryFunction:
+    Type: AWS::Serverless::Function
+    Condition: DeployMonitoring
+    Properties:
+      CodeUri: ../backend/lambda/
+      Handler: resource_discovery.lambda_handler
+      Runtime: python3.13
+      MemorySize: 1024
+      Timeout: 900
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ResourceDiscoveryTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - ec2:DescribeInstances
+                - ec2:DescribeVpcs
+                - ec2:DescribeSecurityGroups
+                - lambda:ListFunctions
+                - lambda:ListTags
+                - rds:DescribeDBInstances
+                - rds:ListTagsForResource
+                - s3:ListAllMyBuckets
+                - s3:GetBucketTagging
+                - s3:GetBucketLocation
+                - elbv2:DescribeLoadBalancers
+                - elbv2:DescribeTags
+                - ce:GetCostAndUsage
+                - bedrock:InvokeModel
+                - cognito-idp:GetUser
+              Resource: '*'
+      Events:
+        DiscoveryProxy:
+          Type: Api
+          Properties:
+            Path: /discovery/{proxy+}
+            Method: ANY
+
+  ResourceDiscoverySchedulerFunction:
+    Type: AWS::Serverless::Function
+    Condition: DeployMonitoring
+    Properties:
+      CodeUri: ../backend/lambda/
+      Handler: resource_discovery_scheduler.lambda_handler
+      Runtime: python3.13
+      MemorySize: 256
+      Timeout: 300
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref ResourceDiscoveryTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - lambda:InvokeFunction
+              Resource: !GetAtt ResourceDiscoveryFunction.Arn
+      Events:
+        DailySchedule:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 2 * * ? *)
+            Description: Daily resource discovery scans for enabled users
+
+  # Slack Integrations Resources (Conditional)
+  SlackUserMappingTable:
+    Type: AWS::DynamoDB::Table
+    Condition: DeployIntegrations
+    Properties:
+      TableName: cloudops-assistant-slack-user-mapping
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: slack_user_id
+          AttributeType: S
+        - AttributeName: cognito_user_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: slack_user_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: cognito-user-index
+          KeySchema:
+            - AttributeName: cognito_user_id
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      SSESpecification:
+        SSEEnabled: true
+
+  SlackBotFunction:
+    Type: AWS::Serverless::Function
+    Condition: DeployIntegrations
+    Properties:
+      CodeUri: ../backend/lambda/
+      Handler: slack_bot.lambda_handler
+      Runtime: python3.13
+      MemorySize: 512
+      Environment:
+        Variables:
+          SLACK_USER_MAPPING_TABLE: !Ref SlackUserMappingTable
+          SLACK_SIGNING_SECRET: ${SLACK_SIGNING_SECRET}
+          SLACK_BOT_TOKEN: ${SLACK_BOT_TOKEN}
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SlackUserMappingTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+                - ce:GetCostAndUsage
+                - cognito-idp:GetUser
+              Resource: '*'
+      Events:
+        SlackEvents:
+          Type: Api
+          Properties:
+            Path: /slack/events
+            Method: post
+        SlackCommands:
+          Type: Api
+          Properties:
+            Path: /slack/commands
+            Method: post
+
+  SlackLinkingFunction:
+    Type: AWS::Serverless::Function
+    Condition: DeployIntegrations
+    Properties:
+      CodeUri: ../backend/lambda/
+      Handler: slack_linking.lambda_handler
+      Runtime: python3.13
+      MemorySize: 256
+      Environment:
+        Variables:
+          SLACK_USER_MAPPING_TABLE: !Ref SlackUserMappingTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SlackUserMappingTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:GetUser
+                - cognito-idp:AdminGetUser
+                - cognito-idp:AdminInitiateAuth
+              Resource: !GetAtt CloudOpsUserPool.Arn
+      Events:
+        SlackLink:
+          Type: Api
+          Properties:
+            Path: /slack/link
+            Method: get
+        SlackConfirm:
+          Type: Api
+          Properties:
+            Path: /slack/confirm
+            Method: post
+
+  # Incident Hub/Postmortem Resources (Conditional)
+  PostmortemsTable:
+    Type: AWS::DynamoDB::Table
+    Condition: DeployIncidentHub
+    Properties:
+      TableName: PostmortemsTable
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: user_id
+          AttributeType: S
+        - AttributeName: postmortem_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: user_id
+          KeyType: HASH
+        - AttributeName: postmortem_id
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      SSESpecification:
+        SSEEnabled: true
+
+  PostmortemGeneratorFunction:
+    Type: AWS::Serverless::Function
+    Condition: DeployIncidentHub
+    Properties:
+      CodeUri: ../backend/lambda/
+      Handler: postmortem_generator.lambda_handler
+      Runtime: python3.13
+      MemorySize: 512
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PostmortemsTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:GetUser
+                - cognito-idp:ListUsers
+                - ce:GetCostAndUsage
+                - bedrock:InvokeModel
+                - bedrock:InvokeModelWithResponseStream
+              Resource: '*'
+      Events:
+        Create:
+          Type: Api
+          Properties:
+            Path: /postmortems
+            Method: post
+        List:
+          Type: Api
+          Properties:
+            Path: /postmortems
+            Method: get
+        Get:
+          Type: Api
+          Properties:
+            Path: /postmortems/{postmortem_id}
+            Method: get
+        Update:
+          Type: Api
+          Properties:
+            Path: /postmortems/{postmortem_id}
+            Method: put
+        Delete:
+          Type: Api
+          Properties:
+            Path: /postmortems/{postmortem_id}
+            Method: delete
+        Generate:
+          Type: Api
+          Properties:
+            Path: /postmortems/generate
+            Method: post
+        Suggest:
+          Type: Api
+          Properties:
+            Path: /postmortems/suggest
+            Method: post
+        Previous:
+          Type: Api
+          Properties:
+            Path: /postmortems/previous
+            Method: post
+        Conversation:
+          Type: Api
+          Properties:
+            Path: /postmortems/conversation
+            Method: post
+        Users:
+          Type: Api
+          Properties:
+            Path: /users
+            Method: get
+
+  # Code Reviews Resources (Conditional)
+  PRReviewsTable:
+    Type: AWS::DynamoDB::Table
+    Condition: DeployCodeReviews
+    Properties:
+      TableName: cloudops-assistant-pr-reviews
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: review_id
+          AttributeType: S
+        - AttributeName: repo_name
+          AttributeType: S
+      KeySchema:
+        - AttributeName: review_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: repo-name-index
+          KeySchema:
+            - AttributeName: repo_name
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      SSESpecification:
+        SSEEnabled: true
+
+  PRWebhookHandlerFunction:
+    Type: AWS::Serverless::Function
+    Condition: DeployCodeReviews
+    Properties:
+      CodeUri: ../backend/lambda/
+      Handler: pr_webhook_handler.lambda_handler
+      Runtime: python3.13
+      MemorySize: 256
+      Environment:
+        Variables:
+          PR_REVIEWS_TABLE: !Ref PRReviewsTable
+          GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET}
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PRReviewsTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - lambda:InvokeFunction
+              Resource: !GetAtt PRReviewAnalyzerFunction.Arn
+      Events:
+        PRWebhook:
+          Type: Api
+          Properties:
+            Path: /pr-webhook
+            Method: post
+
+  PRReviewAnalyzerFunction:
+    Type: AWS::Serverless::Function
+    Condition: DeployCodeReviews
+    Properties:
+      CodeUri: ../backend/lambda/
+      Handler: pr_review_analyzer.lambda_handler
+      Runtime: python3.13
+      MemorySize: 512
+      Timeout: 300
+      Environment:
+        Variables:
+          PR_REVIEWS_TABLE: !Ref PRReviewsTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PRReviewsTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource: '*'
+
+  PRReviewsAPIFunction:
+    Type: AWS::Serverless::Function
+    Condition: DeployCodeReviews
+    Properties:
+      CodeUri: ../backend/lambda/
+      Handler: pr_reviews_api.lambda_handler
+      Runtime: python3.13
+      MemorySize: 256
+      Environment:
+        Variables:
+          PR_REVIEWS_TABLE: !Ref PRReviewsTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PRReviewsTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:GetUser
+              Resource: !GetAtt CloudOpsUserPool.Arn
+      Events:
+        PRReviews:
+          Type: Api
+          Properties:
+            Path: /pr-reviews
+            Method: get
+        PRReviewDetails:
+          Type: Api
+          Properties:
+            Path: /pr-reviews/{review_id}
+            Method: get
+        ConfigurePRReviews:
+          Type: Api
+          Properties:
+            Path: /pr-reviews/configure
+            Method: post
+
+Outputs:
+  CloudOpsAssistantApi:
+    Description: API Gateway endpoint URL
+    Value: !Sub 'https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/'
+    Export:
+      Name: CloudOpsAssistantApiUrl
+
+  UserPoolId:
+    Description: Cognito User Pool ID
+    Value: !Ref CloudOpsUserPool
+    Export:
+      Name: CloudOpsUserPoolId
+
+  UserPoolClientId:
+    Description: Cognito User Pool Client ID
+    Value: !Ref CloudOpsUserPoolClient
+    Export:
+      Name: CloudOpsUserPoolClientId
+
+  TerraformPlansTableName:
+    Condition: DeployDrift
+    Description: DynamoDB table for terraform plans
+    Value: !Ref TerraformPlansTable
+    Export:
+      Name: CloudOpsTerraformPlansTable
+
+  TaskStatusTableName:
+    Condition: DeployDrift
+    Description: DynamoDB table for task status tracking
+    Value: !Ref TaskStatusTable
+    Export:
+      Name: CloudOpsTaskStatusTable
+
+  CostCacheTableName:
+    Condition: DeployCosts
+    Description: DynamoDB table for cost cache
+    Value: !Ref CostCacheTable
+    Export:
+      Name: CloudOpsCostCacheTable
+
+  SecurityFindingsTableName:
+    Condition: DeploySecurity
+    Description: DynamoDB table for security findings
+    Value: !Ref SecurityFindingsTable
+    Export:
+      Name: CloudOpsSecurityFindingsTable
+
+  EOLDatabaseTableName:
+    Condition: DeployEOL
+    Description: DynamoDB table for EOL database
+    Value: !Ref EOLDatabaseTable
+    Export:
+      Name: CloudOpsEOLDatabaseTable
+
+  EOLScanResultsTableName:
+    Condition: DeployEOL
+    Description: DynamoDB table for EOL scan results
+    Value: !Ref EOLScanResultsTable
+    Export:
+      Name: CloudOpsEOLScanResultsTable
+
+  BudgetConfigTableName:
+    Condition: DeployCosts
+    Description: DynamoDB table for budget configuration
+    Value: !Ref BudgetConfigTable
+    Export:
+      Name: CloudOpsBudgetConfigTable
+
+  ServiceDocsTableName:
+    Condition: DeployDocs
+    Description: DynamoDB table for service documentation metadata
+    Value: !Ref ServiceDocsTable
+    Export:
+      Name: CloudOpsServiceDocsTable
+
+  ServiceDocsBucketName:
+    Condition: DeployDocs
+    Description: S3 Bucket for Service Documentation
+    Value: !Ref ServiceDocsBucket
+    Export:
+      Name: CloudOpsServiceDocsBucket
+
+  ResourceDiscoveryTableName:
+    Condition: DeployMonitoring
+    Description: DynamoDB table for resource discovery scans
+    Value: !Ref ResourceDiscoveryTable
+    Export:
+      Name: CloudOpsResourceDiscoveryTable
+
+  SlackUserMappingTableName:
+    Condition: DeployIntegrations
+    Description: DynamoDB table for Slack user mapping
+    Value: !Ref SlackUserMappingTable
+    Export:
+      Name: CloudOpsSlackUserMappingTable
+
+  PostmortemsTableName:
+    Condition: DeployIncidentHub
+    Description: DynamoDB table for postmortems
+    Value: !Ref PostmortemsTable
+    Export:
+      Name: CloudOpsPostmortemsTable
+
+  PRReviewsTableName:
+    Condition: DeployCodeReviews
+    Description: DynamoDB table for PR reviews
+    Value: !Ref PRReviewsTable
+    Export:
+      Name: CloudOpsPRReviewsTable

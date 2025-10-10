@@ -34,9 +34,7 @@ def lambda_handler(event, context):
                 result = check_repo_drift(repo_config)
                 results.append(result)
 
-                # Send alert if drift detected
-                if result.get("drift_detected"):
-                    send_drift_alert(repo_config, result)
+                # TODO: Send email notification if drift detected or error occurred
 
             except Exception as e:
                 logger.error(
@@ -191,36 +189,4 @@ def is_scan_due(repo_config):
         return True  # Default to scanning if error
 
 
-def send_drift_alert(repo_config, drift_result):
-    """Send SNS alert when drift is detected"""
-    try:
-        sns = boto3.client("sns")
-        topic_arn = repo_config.get("alert_topic_arn")
-
-        if not topic_arn:
-            return
-
-        message = f"""
-🚨 Infrastructure Drift Detected!
-
-Repository: {repo_config['repo_name']}
-Changes Detected: {drift_result.get('changes_count', 0)}
-
-Scan Time: {drift_result.get('scan_time', 'Unknown')}
-
-View full details in CloudOps Assistant dashboard.
-        """
-
-        sns.publish(
-            TopicArn=topic_arn,
-            Subject=f"Drift Alert: {repo_config['repo_name']}",
-            Message=message.format(
-                changes_count=drift_result.get("changes_count", 0),
-                scan_time=drift_result.get("scan_time", "Unknown"),
-            ),
-        )
-
-        logger.info(f"Sent drift alert for {repo_config['repo_name']}")
-
-    except Exception as e:
-        logger.error(f"Failed to send alert: {str(e)}")
+# TODO: Implement email notifications for drift alerts

@@ -124,6 +124,10 @@ def configure_budget(event, user_id):
 
         budget_table.put_item(Item=budget_config)
 
+        # Subscribe email to SNS topic if provided
+        if email:
+            subscribe_email_to_alerts(email)
+
         return success_response(
             {
                 "message": "Budget configured successfully",
@@ -365,20 +369,25 @@ def send_budget_alert(budget, threshold, current_spending, monthly_limit):
 
         # Sanitize budget name for alert
         budget_name = sanitize_input(str(budget.get("budget_name", "Unknown")))
-        subject = f"🚨 Budget Alert: {budget_name} - {threshold}% threshold exceeded"
+        # Determine alert type based on threshold
+        alert_type = "⚠️ WARNING" if threshold <= 80 else "🚨 ALERT"
+        subject = f"{alert_type}: {budget_name} - {threshold}% threshold exceeded"
+
+        alert_level = "WARNING" if threshold <= 80 else "ALERT"
+        service_name = sanitize_input(str(budget.get("service_filter", "all")))
+        service_display = "All AWS Services" if service_name == "all" else service_name
 
         message = f"""
-CloudOps Assistant Budget Alert
+CloudOps Assistant Budget {alert_level}
 
 Budget: {budget_name}
-Threshold: {threshold}%
+Service: {service_display}
+Threshold: {threshold}% ({alert_level})
 Current Usage: {percentage:.1f}%
 
 Monthly Limit: ${monthly_limit:.2f}
 Current Spending: ${current_spending:.2f}
 Remaining Budget: ${monthly_limit - current_spending:.2f}
-
-Service Filter: {sanitize_input(str(budget.get('service_filter', 'all')))}
 
 Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}
 
@@ -391,7 +400,38 @@ View detailed cost breakdown in your CloudOps Assistant dashboard.
             logger.error("BUDGET_ALERTS_TOPIC_ARN environment variable not configured")
             return
 
-        sns_client.publish(TopicArn=topic_arn, Subject=subject, Message=message)
+        # Get email from budget config
+        email = budget.get("email")
+        if not email:
+            logger.warning(f"No email configured for budget {budget_name}")
+            return
+
+        # Create user-specific topic for this alert
+        user_topic_name = f"budget-alert-{user_id}"
+        try:
+            # Create topic
+            topic_response = sns_client.create_topic(Name=user_topic_name)
+            user_topic_arn = topic_response["TopicArn"]
+
+            # Subscribe email
+            sns_client.subscribe(
+                TopicArn=user_topic_arn, Protocol="email", Endpoint=email
+            )
+
+            # Publish message
+            sns_client.publish(
+                TopicArn=user_topic_arn, Subject=subject, Message=message
+            )
+
+            logger.info(f"Budget alert sent to {email} for budget {budget_name}")
+
+        except Exception as sns_error:
+            logger.error(f"Failed to send budget alert via SNS: {str(sns_error)}")
+            # Fallback to original topic
+            try:
+                sns_client.publish(TopicArn=topic_arn, Subject=subject, Message=message)
+            except Exception as fallback_error:
+                logger.error(f"Fallback SNS publish also failed: {str(fallback_error)}")
 
         budget_id_safe = sanitize_input(str(budget.get("budget_id", "unknown")))[:50]
         # Prevent log injection by using structured logging
@@ -427,6 +467,10 @@ def get_current_spending(service_filter="all", user_context=None):
             "DynamoDB",
             "CloudFront",
             "API Gateway",
+            "RDS",
+            "ELB",
+            "CloudWatch",
+            "Route 53",
         ]
         if service_filter not in allowed_services:
             logger.warning(
@@ -695,6 +739,30 @@ def error_response(status_code, message):
         },
         "body": json.dumps({"error": message}),
     }
+
+
+def subscribe_email_to_alerts(email):
+    """Subscribe email to budget alerts SNS topic"""
+    try:
+        topic_arn = os.environ.get("BUDGET_ALERTS_TOPIC_ARN")
+        if not topic_arn:
+            logger.warning("BUDGET_ALERTS_TOPIC_ARN not configured")
+            return
+
+        # Check if email is already subscribed
+        response = sns_client.list_subscriptions_by_topic(TopicArn=topic_arn)
+        existing_emails = [
+            sub["Endpoint"]
+            for sub in response["Subscriptions"]
+            if sub["Protocol"] == "email" and sub["Endpoint"] == email
+        ]
+
+        if not existing_emails:
+            sns_client.subscribe(TopicArn=topic_arn, Protocol="email", Endpoint=email)
+            logger.info(f"Subscribed {email} to budget alerts")
+
+    except Exception as e:
+        logger.warning(f"Failed to subscribe email to alerts: {str(e)}")
 
 
 def cors_response():

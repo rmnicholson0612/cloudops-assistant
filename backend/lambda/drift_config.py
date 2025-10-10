@@ -1,9 +1,7 @@
 import json
 import logging
 import os
-import subprocess
-import tempfile
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from decimal import Decimal
 
 import boto3
@@ -76,6 +74,8 @@ def lambda_handler(event, context):
             return configure_drift_monitoring(event)
         elif method == "GET" and "/drift/status" in path:
             return get_drift_status(event)
+        elif method == "GET" and "/drift/task-status" in path:
+            return get_task_status(event)
         elif method == "POST" and "/drift/scan" in path:
             return run_manual_scan(event)
         elif method == "PUT" and "/drift/update" in path:
@@ -109,12 +109,12 @@ def configure_drift_monitoring(event):
             return error_response("Invalid user ID", 401)
 
         # Secure input sanitization and validation
-        # Sanitize repo_name - only allow alphanumeric, hyphens, underscores
+        # Sanitize repo_name - allow alphanumeric, hyphens, underscores, forward slashes
         repo_name = (
             str(body.get("repo_name", "")).strip() if body.get("repo_name") else None
         )
         if repo_name:
-            repo_name = re.sub(r"[^a-zA-Z0-9_-]", "", repo_name)[:100]
+            repo_name = re.sub(r"[^a-zA-Z0-9_/-]", "", repo_name)[:100]
             if not repo_name:
                 return error_response("Invalid repository name format")
 
@@ -163,15 +163,7 @@ def configure_drift_monitoring(event):
         if not repo_name or not github_url:
             return error_response("repo_name and github_url are required")
 
-        # Create SNS topic for alerts if email provided
-        alert_topic_arn = None
-        if alert_email:
-            alert_topic_arn = create_alert_topic(user_id, repo_name, alert_email)
-            if not alert_topic_arn:
-                logger.warning(
-                    f"Failed to create SNS topic for {alert_email}, "
-                    "continuing without alerts"
-                )
+        # TODO: Implement email notifications later
 
         # Store configuration
         drift_table_name = os.environ.get(
@@ -189,7 +181,6 @@ def configure_drift_monitoring(event):
                 "github_url": github_url,
                 "terraform_dir": terraform_dir,
                 "schedule": schedule,
-                "alert_topic_arn": alert_topic_arn,
                 "alert_email": alert_email,
                 "created_at": datetime.now(timezone.utc).isoformat(),
                 "enabled": True,
@@ -393,49 +384,28 @@ def run_manual_scan(event):
             )
             return error_response("Unauthorized", 403)
 
-        # Run real terraform scan
-        drift_result = execute_terraform_scan(
-            config["github_url"], config["terraform_dir"]
+        # Create task ID for tracking
+        task_id = f"{config['repo_name']}-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
+
+        # Start async terraform scan
+        start_async_terraform_scan(
+            config["github_url"],
+            config["terraform_dir"],
+            task_id,
+            config["repo_name"],
+            user_id,
         )
 
-        # Store scan result
-        plans_table_name = os.environ.get(
-            "TERRAFORM_PLANS_TABLE", "cloudops-assistant-terraform-plans"
-        )
-        plans_table = dynamodb.Table(plans_table_name)
-        plan_id = (
-            f"{config['repo_name']}-"
-            f"{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
-        )
-
-        # Determine if this is an error case
-        is_error = "error" in drift_result["plan_output"].lower() or "failed" in drift_result["plan_output"].lower()
-        
-        plans_table.put_item(
-            Item={
-                "plan_id": plan_id,
-                "repo_name": config["repo_name"],
-                "user_id": user_id,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "drift_detected": is_error or drift_result["drift_detected"],  # Show error as drift
-                "changes_detected": drift_result["changes_count"],
-                "plan_content": drift_result["plan_output"],
-                "status": "error" if is_error else ("drift" if drift_result["drift_detected"] else "no_drift"),
-                "ttl": int(
-                    (datetime.now(timezone.utc) + timedelta(days=30)).timestamp()
-                ),
-            }
-        )
-
+        # Return immediate response
         return {
             "statusCode": 200,
             "headers": get_cors_headers(),
             "body": json.dumps(
                 {
-                    "message": "Manual scan completed",
-                    "plan_id": plan_id,
-                    "drift_detected": drift_result["drift_detected"],
-                    "changes_detected": drift_result["changes_count"],
+                    "message": "Terraform scan started",
+                    "task_id": task_id,
+                    "status": "running",
+                    "estimated_duration": "2-5 minutes",
                 },
                 default=decimal_default,
             ),
@@ -563,7 +533,14 @@ def delete_drift_config(event):
         if response["Item"].get("user_id") != user_id:
             return error_response("Unauthorized", 403)
 
-        # Delete the item
+        config = response["Item"]
+        repo_name = config.get("repo_name")
+
+        # Delete all historical scan data for this repository
+        if repo_name:
+            cleanup_scan_history(repo_name, user_id)
+
+        # Delete the configuration
         table.delete_item(Key={"config_id": sanitized_config_id})
 
         return {
@@ -577,35 +554,6 @@ def delete_drift_config(event):
         return error_response("Failed to delete configuration")
 
 
-def create_alert_topic(user_id, repo_name, email):
-    """Create SNS topic for drift alerts"""
-    try:
-        sns = boto3.client("sns")
-
-        # Secure topic name generation
-        import re
-
-        # Sanitize inputs for SNS topic name
-        safe_user_id = re.sub(r"[^a-zA-Z0-9_-]", "", str(user_id))[:20]
-        safe_repo_name = re.sub(r"[^a-zA-Z0-9_-]", "", str(repo_name))[:30]
-        topic_name = f"cloudops-drift-{safe_user_id}-{safe_repo_name}"
-        # Ensure topic name meets SNS requirements (alphanumeric, hyphens, underscores only)
-        topic_name = re.sub(r"[^a-zA-Z0-9_-]", "-", topic_name)[:256]
-
-        # Create topic
-        response = sns.create_topic(Name=topic_name)
-        topic_arn = response["TopicArn"]
-
-        # Subscribe email
-        sns.subscribe(TopicArn=topic_arn, Protocol="email", Endpoint=email)
-
-        return topic_arn
-
-    except Exception as e:
-        logger.error(f"Error creating alert topic: {str(e)}")
-        return None
-
-
 def get_cors_headers():
     """Get secure CORS headers with proper JWT support"""
     return {
@@ -616,40 +564,193 @@ def get_cors_headers():
     }
 
 
+def get_task_status(event):
+    """Get live status of a terraform execution task"""
+    # Fixed: Removed duplicate function definition that was causing 404 errors
+    try:
+        task_id = event.get("pathParameters", {}).get("task_id")
+        if not task_id:
+            return error_response("Missing task_id parameter", 400)
+
+        # Sanitize task_id
+        import re
+
+        task_id = re.sub(r"[^a-zA-Z0-9_-]", "", str(task_id).strip())[:50]
+        if not task_id:
+            return error_response("Invalid task_id format", 400)
+
+        # Get task status from DynamoDB
+        status_table_name = os.environ.get(
+            "TASK_STATUS_TABLE", "cloudops-assistant-task-status"
+        )
+        status_table = dynamodb.Table(status_table_name)
+
+        response = status_table.get_item(Key={"task_id": task_id})
+
+        if "Item" not in response:
+            return error_response("Task not found", 404)
+
+        task_status = response["Item"]
+
+        # Convert Decimal objects for JSON serialization
+        def convert_decimals(obj):
+            if isinstance(obj, dict):
+                return {key: convert_decimals(value) for key, value in obj.items()}
+            elif isinstance(obj, Decimal):
+                return float(obj)
+            else:
+                return obj
+
+        converted_status = convert_decimals(task_status)
+
+        return {
+            "statusCode": 200,
+            "headers": get_cors_headers(),
+            "body": json.dumps(converted_status, default=str),
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting task status: {str(e)}")
+        return error_response(f"Failed to get task status: {str(e)}")
+
+
+def start_async_terraform_scan(github_url, terraform_dir, task_id, repo_name, user_id):
+    """Start async terraform scan using Event invocation"""
+    try:
+        logger.info(
+            f"Starting async terraform scan for {github_url}, task_id: {task_id}"
+        )
+
+        # Create initial task status record immediately
+        status_table_name = os.environ.get(
+            "TASK_STATUS_TABLE", "cloudops-assistant-task-status"
+        )
+        status_table = dynamodb.Table(status_table_name)
+
+        import time
+
+        status_table.put_item(
+            Item={
+                "task_id": task_id,
+                "status": "queued",
+                "message": "Terraform scan queued for execution",
+                "repo_name": repo_name,
+                "repo_url": github_url,
+                "user_id": user_id,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+                "ttl": int(time.time() + 86400),  # 24 hours
+            }
+        )
+        logger.info(f"Created initial task status record for task_id: {task_id}")
+
+        lambda_client = boto3.client("lambda")
+
+        lambda_payload = {
+            "httpMethod": "POST",
+            "body": json.dumps(
+                {
+                    "repo_url": github_url,
+                    "branch": "main",
+                    "terraform_dir": terraform_dir,
+                    "task_id": task_id,
+                    "repo_name": repo_name,
+                    "user_id": user_id,
+                    "callback_function": "drift_config",
+                }
+            ),
+            "headers": {"Authorization": "Bearer dummy-token"},
+        }
+
+        # Get terraform executor function name dynamically
+        function_name = os.environ.get("TERRAFORM_EXECUTOR_FUNCTION")
+        if not function_name:
+            # Fallback: try to find the function by listing
+            try:
+                lambda_list = lambda_client.list_functions()
+                for func in lambda_list["Functions"]:
+                    if "TerraformExecutorFunction" in func["FunctionName"]:
+                        function_name = func["FunctionName"]
+                        break
+                if not function_name:
+                    logger.error("TerraformExecutorFunction not found")
+                    return False
+            except Exception as list_error:
+                logger.error(
+                    f"Failed to find terraform executor function: {list_error}"
+                )
+                return False
+
+        # Use Event invocation for async execution
+        lambda_client.invoke(
+            FunctionName=function_name,
+            InvocationType="Event",  # Async invocation
+            Payload=json.dumps(lambda_payload),
+        )
+
+        logger.info(f"Async terraform scan started successfully, task_id: {task_id}")
+        return True
+
+    except Exception as e:
+        logger.error(f"Error starting async terraform scan: {str(e)}")
+        return False
+
+
+# Keep original sync function for scheduled scans
 def execute_terraform_scan(github_url, terraform_dir):
-    """Execute terraform plan using containerized TerraformExecutorFunction"""
+    """Execute terraform plan using containerized TerraformExecutorFunction (sync)"""
     try:
         logger.info(f"Starting terraform scan for {github_url}")
-        
-        # Call the containerized TerraformExecutorFunction
-        lambda_client = boto3.client('lambda')
-        
+
+        lambda_client = boto3.client("lambda")
+
         payload = {
             "httpMethod": "POST",
-            "body": json.dumps({
-                "repo_url": github_url,
-                "branch": "main",
-                "terraform_dir": terraform_dir
-            }),
-            "headers": {
-                "Authorization": "Bearer dummy-token"
-            }
+            "body": json.dumps(
+                {
+                    "repo_url": github_url,
+                    "branch": "main",
+                    "terraform_dir": terraform_dir,
+                }
+            ),
+            "headers": {"Authorization": "Bearer dummy-token"},
         }
-        
-        function_name = 'cloudops-assistant-TerraformExecutorFunction-ZOrfvBDWMXoz'
-        
-        logger.info(f"Invoking TerraformExecutorFunction: {function_name}")
-        
+
+        # Get terraform executor function name dynamically
+        function_name = os.environ.get("TERRAFORM_EXECUTOR_FUNCTION")
+        if not function_name:
+            # Fallback: try to find the function by listing
+            try:
+                lambda_list = lambda_client.list_functions()
+                for func in lambda_list["Functions"]:
+                    if "TerraformExecutorFunction" in func["FunctionName"]:
+                        function_name = func["FunctionName"]
+                        break
+                if not function_name:
+                    logger.error("TerraformExecutorFunction not found")
+                    return {
+                        "drift_detected": False,
+                        "changes_count": 0,
+                        "plan_output": "TerraformExecutorFunction not found",
+                    }
+            except Exception as list_error:
+                logger.error(
+                    f"Failed to find terraform executor function: {list_error}"
+                )
+                return {
+                    "drift_detected": False,
+                    "changes_count": 0,
+                    "plan_output": f"Failed to find terraform executor: {list_error}",
+                }
+
         response = lambda_client.invoke(
             FunctionName=function_name,
-            InvocationType='RequestResponse',
-            Payload=json.dumps(payload)
+            InvocationType="RequestResponse",
+            Payload=json.dumps(payload),
         )
-        
-        result = json.loads(response['Payload'].read())
-        
-        # Check for Lambda execution errors
-        if 'errorType' in result:
+
+        result = json.loads(response["Payload"].read())
+
+        if "errorType" in result:
             error_msg = f"TerraformExecutorFunction error: {result.get('errorType', 'Unknown')} - {result.get('errorMessage', 'No details')}"
             logger.error(error_msg)
             return {
@@ -657,39 +758,37 @@ def execute_terraform_scan(github_url, terraform_dir):
                 "changes_count": 0,
                 "plan_output": error_msg,
             }
-        
-        if result.get('statusCode') == 200:
-            body = json.loads(result['body'])
-            
-            if body.get('success'):
-                plan_output = body.get('stdout', '')
+
+        if result.get("statusCode") == 200:
+            body = json.loads(result["body"])
+
+            if body.get("success"):
+                plan_output = body.get("stdout", "")
                 drift_detected = detect_terraform_drift(plan_output)
                 changes_count = count_terraform_changes(plan_output)
-                
-                logger.info(f"Terraform execution successful - Drift: {drift_detected}, Changes: {changes_count}")
-                
+
                 return {
                     "drift_detected": drift_detected,
                     "changes_count": changes_count,
                     "plan_output": plan_output,
                 }
             else:
-                error_msg = body.get('stderr', 'Unknown terraform error')
-                logger.error(f"Terraform execution failed: {error_msg}")
+                error_msg = body.get("stderr", "Unknown terraform error")
                 return {
                     "drift_detected": False,
                     "changes_count": 0,
                     "plan_output": f"Terraform execution failed: {error_msg}",
                 }
         else:
-            error_msg = result.get('body', f"HTTP {result.get('statusCode', 'Unknown')}")
-            logger.error(f"TerraformExecutorFunction failed: {error_msg}")
+            error_msg = result.get(
+                "body", f"HTTP {result.get('statusCode', 'Unknown')}"
+            )
             return {
                 "drift_detected": False,
                 "changes_count": 0,
                 "plan_output": f"Lambda execution failed: {error_msg}",
             }
-            
+
     except Exception as e:
         logger.error(f"Error calling TerraformExecutorFunction: {str(e)}")
         return {
@@ -697,9 +796,6 @@ def execute_terraform_scan(github_url, terraform_dir):
             "changes_count": 0,
             "plan_output": f"Failed to execute terraform scan: {str(e)}",
         }
-
-
-
 
 
 def detect_terraform_drift(plan_output):
@@ -797,6 +893,35 @@ def decimal_default(obj):
     raise TypeError(
         f"Object of type {type(obj).__name__} is not JSON serializable: {obj}"
     )
+
+
+def cleanup_scan_history(repo_name, user_id):
+    """Delete all scan history for a repository when removing from monitoring"""
+    try:
+        plans_table_name = os.environ.get(
+            "TERRAFORM_PLANS_TABLE", "cloudops-assistant-terraform-plans"
+        )
+        plans_table = dynamodb.Table(plans_table_name)
+
+        # Query all plans for this repository
+        query_response = plans_table.query(
+            IndexName="repo-timestamp-index",
+            KeyConditionExpression=DynamoKey("repo_name").eq(repo_name),
+        )
+
+        # Delete all plans for this repository (regardless of user)
+        deleted_count = 0
+        for item in query_response.get("Items", []):
+            plans_table.delete_item(Key={"plan_id": item["plan_id"]})
+            deleted_count += 1
+
+        logger.info(
+            f"Cleaned up {deleted_count} scan records for repository {repo_name}"
+        )
+
+    except Exception as e:
+        logger.error(f"Error cleaning up scan history for {repo_name}: {str(e)}")
+        # Don't fail the delete operation if cleanup fails
 
 
 def error_response(message, status_code=400):

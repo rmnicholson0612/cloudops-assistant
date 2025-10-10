@@ -1,0 +1,78 @@
+/* Incident Hub App Styles */
+
+.incident-status {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-active { background: #f8d7da; color: #721c24; }
+.status-resolved { background: #d4edda; color: #155724; }
+.status-investigating { background: #fff3cd; color: #856404; }
+
+.severity-critical { background: #f5c6cb; color: #721c24; }
+.severity-high { background: #f8d7da; color: #721c24; }
+.severity-medium { background: #fff3cd; color: #856404; }
+.severity-low { background: #d4edda; color: #155724; }
+
+.postmortem-item {
+    background: white;
+    border: 1px solid #e1e5e9;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 15px;
+}
+
+.postmortem-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+.no-data {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px dashed #ddd;
+}
+
+.analytics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.metric-card {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    border: 1px solid #e9ecef;
+}
+
+.metric-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #007cba;
+    margin-bottom: 8px;
+}
+
+.metric-label {
+    color: #666;
+    font-size: 14px;
+    text-transform: uppercase;
+    font-weight: 500;
+}
+
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}

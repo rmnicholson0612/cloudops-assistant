@@ -1,0 +1,250 @@
+/* Integrations App Styles */
+
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-active {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-inactive {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.status-pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.integration-info {
+    padding: 10px 0;
+}
+
+.integration-info p {
+    margin-bottom: 20px;
+    color: #666;
+}
+
+/* Slack Status */
+.slack-status {
+    min-height: 150px;
+}
+
+.slack-configured {
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 8px;
+    padding: 20px;
+    color: #155724;
+}
+
+.slack-configured i {
+    color: #28a745;
+    margin-right: 10px;
+}
+
+.slack-not-configured {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 8px;
+    padding: 20px;
+    color: #856404;
+}
+
+.slack-not-configured i {
+    color: #ffc107;
+    margin-right: 10px;
+}
+
+.slack-commands {
+    margin-top: 15px;
+}
+
+.slack-commands p {
+    margin: 10px 0 5px 0;
+    font-weight: 600;
+}
+
+.slack-commands ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.slack-commands li {
+    margin-bottom: 5px;
+}
+
+.slack-commands code {
+    background: rgba(0,0,0,0.1);
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+}
+
+.slack-loading {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}
+
+/* Slack Setup Modal */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+    background-color: white;
+    margin: 5% auto;
+    padding: 0;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    padding: 20px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h2 {
+    margin: 0;
+    color: #333;
+}
+
+.close {
+    color: #aaa;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover {
+    color: #000;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.slack-setup-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.setup-step h4 {
+    margin: 0 0 15px 0;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.setup-step h4 i {
+    background: #007cba;
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+}
+
+.endpoint-box {
+    margin: 10px 0;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.endpoint-box label {
+    min-width: 100px;
+    font-weight: 600;
+    color: #555;
+}
+
+.endpoint-box input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #f8f9fa;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+}
+
+.commands-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.command-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+.command-item code {
+    background: #e9ecef;
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+}
+
+.command-item span {
+    color: #666;
+    font-size: 14px;
+}
+
+/* Capabilities */
+.capabilities {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.capability {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border-left: 4px solid #28a745;
+}
+
+.capability i {
+    color: #28a745;
+    font-size: 16px;
+}
+
+.capability span {
+    color: #333;
+    line-height: 1.4;
+}

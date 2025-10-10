@@ -29,9 +29,11 @@ logger.setLevel(logging.INFO)
 dynamodb = boto3.resource("dynamodb")
 
 eol_database_table_name = os.environ.get(
-    "EOL_DATABASE_TABLE", "cloudops-assistant-eol-database"
+    "EOL_DATABASE_TABLE", "cloudops-assistant-eol-database-v2"
 )
-eol_scans_table_name = os.environ.get("EOL_SCANS_TABLE", "cloudops-assistant-eol-scans")
+eol_scans_table_name = os.environ.get(
+    "EOL_SCANS_TABLE", "cloudops-assistant-eol-scans-v2"
+)
 
 eol_database_table = dynamodb.Table(eol_database_table_name)
 eol_scans_table = dynamodb.Table(eol_scans_table_name)
@@ -39,6 +41,9 @@ eol_scans_table = dynamodb.Table(eol_scans_table_name)
 
 def lambda_handler(event, context):
     """EOL Tracker - Track end-of-life dates for tech stack"""
+    logger.info(f"EOL Lambda handler called with method: {event.get('httpMethod')}")
+    logger.info(f"Path: {event.get('path')}")
+
     if event.get("httpMethod") == "OPTIONS":
         return cors_response()
 
@@ -50,6 +55,9 @@ def _authenticated_handler(event, context):
     try:
         path = event.get("path", "")
         method = event.get("httpMethod", "")
+
+        logger.info(f"EOL Handler - Path: {path}, Method: {method}")
+        logger.info(f"User info: {event.get('user_info', {})}")
 
         if method == "GET" and "/eol/dashboard" in path:
             return get_eol_dashboard(event)
@@ -66,6 +74,7 @@ def _authenticated_handler(event, context):
 
     except Exception as e:
         logger.error(f"EOL tracker error: {str(e)}")
+        logger.error(f"Event: {json.dumps(event, default=str)}")
         return error_response(f"Internal server error: {str(e)}")
 
 
@@ -145,10 +154,20 @@ def trigger_eol_scan(event):
     """Trigger EOL scan for repositories"""
     try:
         user_id = event["user_info"]["user_id"]
-        body = json.loads(event.get("body", "{}"))
+        body_str = event.get("body", "{}")
+        logger.info(f"Raw body: {body_str}")
+
+        try:
+            body = json.loads(body_str)
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON decode error: {str(e)}")
+            return error_response("Invalid JSON in request body")
 
         github_target = body.get("github_target")
         github_token = body.get("github_token")
+
+        logger.info(f"Parsed github_target: {github_target}")
+        logger.info(f"Token provided: {'Yes' if github_token else 'No'}")
 
         if not github_target:
             return error_response("github_target is required")
@@ -265,7 +284,8 @@ def trigger_eol_scan(event):
 
     except Exception as e:
         logger.error(f"Error triggering EOL scan: {str(e)}")
-        return error_response("Failed to trigger EOL scan")
+        logger.error(f"Event: {json.dumps(event, default=str)}")
+        return error_response(f"Failed to trigger EOL scan: {str(e)}")
 
 
 def scan_github_repos(github_target, github_token=None):

@@ -1,0 +1,30 @@
+/* Code Reviews Styles */
+
+.reviews-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.review-item {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 15px;
+    background: white;
+    transition: all 0.3s ease;
+}
+
+.review-item:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.review-item h5 {
+    margin: 0 0 8px 0;
+    color: #333;
+}
+
+.review-item p {
+    margin: 4px 0;
+    color: #666;
+}

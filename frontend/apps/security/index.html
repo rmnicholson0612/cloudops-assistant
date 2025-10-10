@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloudOps Assistant - Security Hub</title>
+    <link rel="icon" type="image/svg+xml" href="../../shared/assets/favicon.svg">
+    <link rel="stylesheet" href="../../shared/css/base.css">
+    <link rel="stylesheet" href="../../shared/css/components.css">
+    <link rel="stylesheet" href="security.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="../../config.js"></script>
+    <script src="../../shared/js/core/api.js"></script>
+    <script src="../../shared/js/core/auth.js"></script>
+    <script src="../../shared/js/components/header.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="security.js"></script>
+</head>
+<body>
+    <div class="app">
+        <div id="app-header"></div>
+
+        <main class="main-content">
+            <div class="feature-header">
+                <h2><i class="fas fa-shield-alt"></i> Security Compliance Dashboard</h2>
+                <p>Monitor your AWS infrastructure for security compliance and vulnerabilities</p>
+            </div>
+
+            <!-- Security Hub Status Gauge -->
+            <div class="security-hub-header">
+                <div class="security-gauge-container">
+                    <div class="security-gauge">
+                        <svg width="200" height="120" viewBox="0 0 200 120">
+                            <defs>
+                                <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" style="stop-color:#dc3545;stop-opacity:1" />
+                                    <stop offset="50%" style="stop-color:#ffc107;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#28a745;stop-opacity:1" />
+                                </linearGradient>
+                            </defs>
+                            <path d="M 20 100 A 80 80 0 0 1 180 100" stroke="#e9ecef" stroke-width="8" fill="none"/>
+                            <path id="gauge-fill" d="M 20 100 A 80 80 0 0 1 20 100" stroke="url(#gaugeGradient)" stroke-width="8" fill="none" stroke-linecap="round"/>
+                            <circle cx="100" cy="100" r="4" fill="#333"/>
+                            <line id="gauge-needle" x1="100" y1="100" x2="20" y2="100" stroke="#333" stroke-width="3" stroke-linecap="round"/>
+                        </svg>
+                        <div class="gauge-score" id="security-score">--</div>
+                        <div class="gauge-label">Security Posture</div>
+                    </div>
+                    <div class="security-summary">
+                        <h2>Security Hub</h2>
+                        <p id="last-scan-time">No scans yet</p>
+                        <button class="btn btn-primary" onclick="runSecurityScan()">
+                            <i class="fas fa-sync"></i> Run New Scan
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vulnerability Action Buttons -->
+            <div class="vulnerability-actions" id="vulnerability-buttons">
+                <button class="vuln-btn critical-btn" onclick="showVulnerabilities('critical')">
+                    <div class="vuln-count" id="critical-count">--</div>
+                    <div class="vuln-label">Critical</div>
+                </button>
+                <button class="vuln-btn high-btn" onclick="showVulnerabilities('high')">
+                    <div class="vuln-count" id="high-count">--</div>
+                    <div class="vuln-label">High</div>
+                </button>
+                <button class="vuln-btn medium-btn" onclick="showVulnerabilities('medium')">
+                    <div class="vuln-count" id="medium-count">--</div>
+                    <div class="vuln-label">Medium</div>
+                </button>
+                <button class="vuln-btn low-btn" onclick="showVulnerabilities('low')">
+                    <div class="vuln-count" id="low-count">--</div>
+                    <div class="vuln-label">Low</div>
+                </button>
+                <button class="vuln-btn passed-btn" onclick="showVulnerabilities('passed')">
+                    <div class="vuln-count" id="passed-count">--</div>
+                    <div class="vuln-label">Passed</div>
+                </button>
+            </div>
+
+            <!-- Main Content Tabs -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="tab-navigation">
+                        <button class="tab-btn active" onclick="switchTab('findings')">
+                            <i class="fas fa-exclamation-triangle"></i> Security Findings
+                        </button>
+                        <button class="tab-btn" onclick="switchTab('compliance')">
+                            <i class="fas fa-shield-alt"></i> Compliance Rules
+                        </button>
+                    </div>
+                    <div class="tab-actions">
+                        <button class="btn btn-secondary" onclick="exportToPDF()">
+                            <i class="fas fa-file-pdf"></i> Export PDF
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Findings Tab -->
+                <div id="findings-tab" class="tab-content active">
+                    <div class="card-header">
+                        <h3><i class="fas fa-server"></i> Security Findings</h3>
+                        <div class="filter-container">
+                            <select id="resource-status-filter" class="status-filter" onchange="filterResourcesByStatus()">
+                                <option value="all">All Status</option>
+                                <option value="critical">Critical</option>
+                                <option value="high">High</option>
+                                <option value="medium">Medium</option>
+                                <option value="low">Low</option>
+                                <option value="passed">Passed</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="resources-display" class="resources-list"></div>
+                    </div>
+                </div>
+
+                <!-- Compliance Tab -->
+                <div id="compliance-tab" class="tab-content">
+                    <div class="card-header">
+                        <h3><i class="fas fa-shield-alt"></i> Compliance Frameworks</h3>
+                        <div class="filter-container">
+                            <select id="compliance-framework-filter" class="status-filter" onchange="filterComplianceFramework()">
+                                <option value="all">All Frameworks</option>
+                                <option value="CIS">CIS Controls</option>
+                                <option value="NIST">NIST Framework</option>
+                                <option value="PCI">PCI-DSS</option>
+                                <option value="SOC2">SOC 2</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="compliance-display" class="compliance-list"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Define switchTab function before DOM loads
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
+
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+
+            if (typeof window.currentTab !== 'undefined') {
+                window.currentTab = tabName;
+            }
+
+            if (tabName === 'compliance' && typeof window.complianceData !== 'undefined' && Object.keys(window.complianceData).length === 0) {
+                if (typeof loadComplianceData === 'function') {
+                    loadComplianceData();
+                }
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!API.isAuthenticated()) {
+                window.location.href = '../../login.html';
+                return;
+            }
+
+            initializeHeader('Security Hub');
+            initializeSecurityHub();
+        });
+    </script>
+</body>
+</html>

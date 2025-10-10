@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloudOps Assistant - Cost Dashboard</title>
+    <link rel="icon" type="image/svg+xml" href="../../shared/assets/favicon.svg">
+    <link rel="stylesheet" href="../../shared/css/base.css">
+    <link rel="stylesheet" href="../../shared/css/components.css">
+    <link rel="stylesheet" href="cost-dashboard.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="../../config.js"></script>
+    <script src="../../shared/js/core/api.js"></script>
+    <script src="../../shared/js/core/auth.js"></script>
+    <script src="../../shared/js/components/header.js"></script>
+    <script src="cost-dashboard.js"></script>
+</head>
+<body>
+    <div class="app">
+        <div id="app-header"></div>
+
+        <main class="main-content">
+            <div class="feature-header">
+                <h2><i class="fas fa-dollar-sign"></i> Cost Management</h2>
+                <p>Track AWS spending and optimize your cloud costs</p>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="header-with-info">
+                        <h3><i class="fas fa-chart-line"></i> Monthly Spending</h3>
+                    </div>
+                    <div class="month-selector">
+                        <select id="month-selector">
+                            <!-- Options populated by JavaScript -->
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="current-cost-display" class="cost-display">
+                        <div class="cost-loading">
+                            <i class="fas fa-spinner fa-spin"></i> Loading current costs...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cost-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-chart-pie"></i> Service Breakdown</h3>
+                    </div>
+                    <div class="card-body">
+                        <div id="service-costs-display" class="service-costs">
+                            <div class="cost-loading">
+                                <i class="fas fa-spinner fa-spin"></i> Loading service costs...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-calendar-alt"></i> 30-Day Trends</h3>
+                    </div>
+                    <div class="card-body">
+                        <div id="cost-trends-display" class="cost-trends">
+                            <div class="cost-loading">
+                                <i class="fas fa-spinner fa-spin"></i> Loading cost trends...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-tags"></i> Cost by Service Tag</h3>
+                </div>
+                <div class="card-body">
+                    <div id="tag-costs-display" class="service-costs">
+                        <div class="cost-loading">
+                            <i class="fas fa-spinner fa-spin"></i> Loading tagged costs...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="header-with-info">
+                        <h3><i class="fas fa-exclamation-circle"></i> Budget Alerts</h3>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-primary" onclick="showBudgetModal()">
+                            <i class="fas fa-bell"></i> Configure Budget Alert
+                        </button>
+                        <button class="btn btn-secondary" onclick="testBudgetAlert()">
+                            <i class="fas fa-envelope"></i> Test Email
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="budget-status" class="budget-status">
+                        <div class="budget-loading">
+                            <i class="fas fa-spinner fa-spin"></i> Loading budget status...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Budget Configuration Modal -->
+    <div id="budget-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-bell"></i> Configure Budget Alert</h2>
+                <span class="close" onclick="closeBudgetModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="budget-form">
+                    <div class="form-group">
+                        <label for="budget-name">Budget Name</label>
+                        <input type="text" id="budget-name" required placeholder="e.g., Monthly AWS Budget">
+                    </div>
+                    <div class="form-group">
+                        <label for="budget-limit">Monthly Limit ($)</label>
+                        <input type="number" id="budget-limit" required min="1" step="0.01" placeholder="100.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="aws-service">AWS Service</label>
+                        <select id="aws-service" required>
+                            <option value="all">All AWS Services</option>
+                            <option value="Amazon Elastic Compute Cloud - Compute">Amazon EC2</option>
+                            <option value="AWS Lambda">AWS Lambda</option>
+                            <option value="Amazon Simple Storage Service">Amazon S3</option>
+                            <option value="Amazon DynamoDB">Amazon DynamoDB</option>
+                            <option value="Amazon CloudFront">Amazon CloudFront</option>
+                            <option value="Amazon API Gateway">Amazon API Gateway</option>
+                            <option value="Amazon Relational Database Service">Amazon RDS</option>
+                            <option value="Amazon Elastic Load Balancing">Elastic Load Balancing</option>
+                            <option value="Amazon CloudWatch">Amazon CloudWatch</option>
+                            <option value="Amazon Route 53">Amazon Route 53</option>
+                            <option value="Amazon Elastic Container Service">Amazon ECS</option>
+                            <option value="Amazon Elastic Kubernetes Service">Amazon EKS</option>
+                            <option value="Amazon Virtual Private Cloud">Amazon VPC</option>
+                            <option value="AWS Key Management Service">AWS KMS</option>
+                            <option value="Amazon Simple Notification Service">Amazon SNS</option>
+                            <option value="Amazon Simple Queue Service">Amazon SQS</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="warn-threshold">Warning Threshold (%)</label>
+                        <input type="number" id="warn-threshold" required min="1" max="100" value="70" placeholder="70">
+                    </div>
+                    <div class="form-group">
+                        <label for="alert-threshold">Alert Threshold (%)</label>
+                        <input type="number" id="alert-threshold" required min="1" max="100" value="90" placeholder="90">
+                    </div>
+                    <div class="form-group">
+                        <label for="notification-email">Notification Email</label>
+                        <input type="email" id="notification-email" required placeholder="your-email@example.com">
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Create Budget Alert
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="closeBudgetModal()">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!API.isAuthenticated()) {
+                window.location.href = '../../login.html';
+                return;
+            }
+
+            initializeHeader('Cost Dashboard');
+            initializeCostDashboard();
+        });
+    </script>
+</body>
+</html>

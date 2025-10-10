@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloudOps Assistant - EOL Tracker</title>
+    <link rel="icon" type="image/svg+xml" href="../../shared/assets/favicon.svg">
+    <link rel="stylesheet" href="../../shared/css/base.css">
+    <link rel="stylesheet" href="../../shared/css/components.css">
+    <link rel="stylesheet" href="eol-tracker.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="../../config.js"></script>
+    <script src="../../shared/js/core/api.js"></script>
+    <script src="../../shared/js/core/auth.js"></script>
+    <script src="../../shared/js/components/header.js"></script>
+    <script src="eol-tracker.js"></script>
+</head>
+<body>
+    <div class="app">
+        <div id="app-header"></div>
+
+        <main class="main-content">
+            <div class="feature-header">
+                <h2><i class="fas fa-clock"></i> End-of-Life Technology Tracker</h2>
+                <p>Monitor your technology stack for end-of-life components and security risks</p>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-search"></i> Technology Scan</h3>
+                </div>
+                <div class="card-body">
+                    <div class="scan-config">
+                        <div class="form-group">
+                            <label for="github-target">GitHub Target (username/org or username/repo):</label>
+                            <input type="text" id="github-target" placeholder="e.g., octocat or octocat/Hello-World" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="github-token">GitHub Token (optional, for private repos):</label>
+                            <input type="password" id="github-token" placeholder="ghp_xxxxxxxxxxxx" class="form-control">
+                            <small class="form-text">Required for private repositories and higher rate limits</small>
+                        </div>
+                        <button class="btn btn-primary" onclick="runEOLScan()">
+                            <i class="fas fa-sync"></i> Run EOL Scan
+                        </button>
+                    </div>
+                    <div class="eol-filters" style="margin-top: 20px;">
+                        <input type="text" id="eol-search-filter" placeholder="Search technologies..." class="eol-filter">
+                        <select id="eol-risk-filter" class="eol-filter">
+                            <option value="all">All Risk Levels</option>
+                            <option value="critical">Critical</option>
+                            <option value="high">High</option>
+                            <option value="medium">Medium</option>
+                            <option value="low">Low</option>
+                        </select>
+                        <select id="eol-repo-filter" class="eol-filter">
+                            <option value="all">All Repositories</option>
+                        </select>
+                    </div>
+                    <div id="eol-results" class="eol-table-container">
+                        <p>Click "Run EOL Scan" to analyze your technology stack for end-of-life components.</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!API.isAuthenticated()) {
+                window.location.href = '../../login.html';
+                return;
+            }
+
+            initializeHeader('EOL Tracker');
+            initializeEOLTracker();
+        });
+    </script>
+</body>
+</html>
